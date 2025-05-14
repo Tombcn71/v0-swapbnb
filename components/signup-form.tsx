@@ -77,8 +77,8 @@ export function SignupForm() {
       <CardHeader className="space-y-1">
         <div className="flex justify-center mb-4">
           <Link href="/" className="flex items-center">
-            <Home className="h-6 w-6 text-teal-600 mr-2" />
-            <span className="text-xl font-bold text-teal-600">SwapBnB</span>
+            <Home className="h-6 w-6 text-google-blue mr-2" />
+            <span className="text-xl font-bold text-google-blue">SwapBnB</span>
           </Link>
         </div>
         <CardTitle className="text-2xl text-center">Account aanmaken</CardTitle>
@@ -133,7 +133,7 @@ export function SignupForm() {
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
-          <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700" disabled={isLoading}>
+          <Button type="submit" className="w-full bg-google-blue hover:bg-blue-600" disabled={isLoading}>
             {isLoading ? "Bezig met registreren..." : "Registreren"}
           </Button>
         </form>
@@ -141,7 +141,7 @@ export function SignupForm() {
       <CardFooter className="flex flex-col space-y-4">
         <div className="text-center text-sm">
           <span>Heb je al een account? </span>
-          <Link href="/login" className="text-teal-600 hover:text-teal-500 font-medium">
+          <Link href="/login" className="text-google-blue hover:text-blue-500 font-medium">
             Inloggen
           </Link>
         </div>

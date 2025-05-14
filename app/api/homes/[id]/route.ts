@@ -8,9 +8,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     console.log(`Fetching home with ID: ${homeId}`)
 
-    // Haal de woning op
+    // Haal de woning op met de correcte kolomnamen
     const home = await executeQuery(
-      `SELECT h.*, u.name as owner_name, u.image as owner_image
+      `SELECT h.*, u.name as host_name
        FROM homes h
        JOIN users u ON h.user_id = u.id
        WHERE h.id = $1`,
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const reviews = await executeQuery(
       `SELECT r.*, u.name as reviewer_name
        FROM reviews r
-       JOIN users u ON r.reviewer_id = u.id
+       JOIN users u ON r.author_id = u.id
        WHERE r.home_id = $1
        ORDER BY r.created_at DESC`,
       [homeId],

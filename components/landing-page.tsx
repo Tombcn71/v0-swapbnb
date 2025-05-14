@@ -11,17 +11,17 @@ export function LandingPage() {
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center">
-            <Home className="h-6 w-6 text-teal-600 mr-2" />
-            <span className="text-xl font-bold text-teal-600">SwapBnB</span>
+            <Home className="h-6 w-6 text-google-blue mr-2" />
+            <span className="text-xl font-bold text-google-blue">SwapBnB</span>
           </div>
           <nav className="hidden md:flex space-x-6">
-            <Link href="/how-it-works" className="text-gray-600 hover:text-teal-600">
+            <Link href="/how-it-works" className="text-gray-600 hover:text-google-blue">
               Hoe het werkt
             </Link>
-            <Link href="/listings" className="text-gray-600 hover:text-teal-600">
+            <Link href="/listings" className="text-gray-600 hover:text-google-blue">
               Woningen
             </Link>
-            <Link href="/about" className="text-gray-600 hover:text-teal-600">
+            <Link href="/about" className="text-gray-600 hover:text-google-blue">
               Over ons
             </Link>
           </nav>
@@ -38,13 +38,13 @@ export function LandingPage() {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white py-20">
+        <section className="bg-gradient-to-r from-google-blue to-blue-400 text-white py-20">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Wissel van huis, niet van budget</h1>
             <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
               Ontdek een nieuwe manier van reizen door huizen te ruilen met andere Nederlanders
             </p>
-            <Button size="lg" className="bg-white text-teal-600 hover:bg-gray-100">
+            <Button size="lg" className="bg-white text-google-blue hover:bg-gray-100">
               Begin met ruilen
             </Button>
           </div>
@@ -58,7 +58,7 @@ export function LandingPage() {
               <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center">
-                    <Home className="h-12 w-12 text-teal-500 mb-4" />
+                    <Home className="h-12 w-12 text-google-blue mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Bespaar geld</h3>
                     <p className="text-gray-600">
                       Geen accommodatiekosten, alleen een kleine servicevergoeding per succesvolle ruil
@@ -69,7 +69,7 @@ export function LandingPage() {
               <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center">
-                    <Users className="h-12 w-12 text-teal-500 mb-4" />
+                    <Users className="h-12 w-12 text-google-blue mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Leef als een local</h3>
                     <p className="text-gray-600">
                       Ervaar een nieuwe stad of dorp vanuit het perspectief van een inwoner
@@ -80,7 +80,7 @@ export function LandingPage() {
               <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center">
-                    <CheckCircle className="h-12 w-12 text-teal-500 mb-4" />
+                    <CheckCircle className="h-12 w-12 text-google-blue mb-4" />
                     <h3 className="text-xl font-semibold mb-2">Veilig en vertrouwd</h3>
                     <p className="text-gray-600">
                       Geverifieerde gebruikers en beoordelingen zorgen voor een veilige ervaring
@@ -98,7 +98,7 @@ export function LandingPage() {
             <h2 className="text-3xl font-bold text-center mb-12">Hoe het werkt</h2>
             <div className="max-w-4xl mx-auto">
               <div className="flex mb-8">
-                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white font-bold mr-4">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
                   1
                 </div>
                 <div>
@@ -107,7 +107,7 @@ export function LandingPage() {
                 </div>
               </div>
               <div className="flex mb-8">
-                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white font-bold mr-4">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
                   2
                 </div>
                 <div>
@@ -116,7 +116,7 @@ export function LandingPage() {
                 </div>
               </div>
               <div className="flex mb-8">
-                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white font-bold mr-4">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
                   3
                 </div>
                 <div>
@@ -125,7 +125,7 @@ export function LandingPage() {
                 </div>
               </div>
               <div className="flex mb-8">
-                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white font-bold mr-4">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
                   4
                 </div>
                 <div>
@@ -134,7 +134,7 @@ export function LandingPage() {
                 </div>
               </div>
               <div className="flex">
-                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white font-bold mr-4">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
                   5
                 </div>
                 <div>
@@ -147,13 +147,13 @@ export function LandingPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="bg-teal-50 py-16">
+        <section className="bg-blue-50 py-16">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold mb-6">Klaar om te beginnen?</h2>
             <p className="text-xl mb-8 max-w-2xl mx-auto">
               Word lid van onze gemeenschap en ontdek een nieuwe manier van reizen door heel Nederland.
             </p>
-            <Button size="lg" className="bg-teal-600 hover:bg-teal-700">
+            <Button size="lg" className="bg-google-blue hover:bg-blue-600">
               <span>Maak een account aan</span>
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>

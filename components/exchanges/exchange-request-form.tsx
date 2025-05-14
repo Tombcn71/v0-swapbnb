@@ -106,8 +106,8 @@ export function ExchangeRequestForm({ home }: ExchangeRequestFormProps) {
               <p className="text-gray-600 mb-4">Selecteer de begin- en einddatum voor je verblijf in {home.city}.</p>
               <DatePickerWithRange value={dateRange} onChange={(range) => setDateRange(range)} />
               {dateRange?.from && dateRange?.to && (
-                <div className="mt-4 p-3 bg-teal-50 border border-teal-100 rounded-md">
-                  <p className="text-teal-800 text-sm">
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
+                  <p className="text-blue-800 text-sm">
                     Je hebt geselecteerd: {format(dateRange.from, "d MMMM yyyy", { locale: nl })} tot{" "}
                     {format(dateRange.to, "d MMMM yyyy", { locale: nl })}
                   </p>
@@ -132,7 +132,7 @@ export function ExchangeRequestForm({ home }: ExchangeRequestFormProps) {
             </CardContent>
           </Card>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full bg-google-blue hover:bg-blue-600" disabled={isSubmitting}>
             {isSubmitting ? "Aanvraag verzenden..." : "Verzend aanvraag"}
           </Button>
         </form>

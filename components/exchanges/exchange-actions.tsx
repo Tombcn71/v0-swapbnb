@@ -115,7 +115,11 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Annuleren</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCancel} disabled={isLoading}>
+              <AlertDialogAction
+                onClick={handleCancel}
+                disabled={isLoading}
+                className="bg-google-blue hover:bg-blue-600"
+              >
                 {isLoading ? "Bezig..." : "Bevestigen"}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -147,7 +151,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Sluiten</AlertDialogCancel>
-                <AlertDialogAction>Contact opnemen</AlertDialogAction>
+                <AlertDialogAction className="bg-google-blue hover:bg-blue-600">Contact opnemen</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -169,7 +173,11 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Terug</AlertDialogCancel>
-                <AlertDialogAction onClick={handleCancel} disabled={isLoading}>
+                <AlertDialogAction
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="bg-google-blue hover:bg-blue-600"
+                >
                   {isLoading ? "Bezig..." : "Bevestigen"}
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -179,7 +187,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
           {new Date(exchange.endDate) <= new Date() && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button className="w-full justify-start">
+                <Button className="w-full justify-start bg-google-blue hover:bg-blue-600">
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Markeer als voltooid
                 </Button>
@@ -194,7 +202,11 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleComplete} disabled={isLoading}>
+                  <AlertDialogAction
+                    onClick={handleComplete}
+                    disabled={isLoading}
+                    className="bg-google-blue hover:bg-blue-600"
+                  >
                     {isLoading ? "Bezig..." : "Bevestigen"}
                   </AlertDialogAction>
                 </AlertDialogFooter>

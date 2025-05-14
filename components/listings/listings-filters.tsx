@@ -196,7 +196,7 @@ export function ListingsFilters() {
           <X className="mr-2 h-4 w-4" />
           Reset filters
         </Button>
-        <Button onClick={handleSearch}>
+        <Button onClick={handleSearch} className="bg-google-blue hover:bg-blue-600">
           <Search className="mr-2 h-4 w-4" />
           Zoek woningen
         </Button>
