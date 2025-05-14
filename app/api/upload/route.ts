@@ -1,10 +1,9 @@
-import { put } from "@vercel/blob"
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { v4 as uuidv4 } from "uuid"
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<NextResponse> {
   const session = await getServerSession(authOptions)
 
   if (!session || !session.user) {
@@ -12,25 +11,36 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { filename, contentType } = await request.json()
+    const body = (await request.json()) as HandleUploadBody
 
-    if (!filename || !contentType) {
-      return NextResponse.json({ error: "Filename and contentType are required" }, { status: 400 })
-    }
-
-    // Genereer een unieke bestandsnaam om overschrijvingen te voorkomen
-    const uniqueFilename = `${uuidv4()}-${filename}`
-    const pathname = `homes/${session.user.id}/${uniqueFilename}`
-
-    // Genereer een uploadable URL zonder body (null als placeholder)
-    const { url, uploadUrl } = await put(pathname, null, {
-      contentType,
-      access: "public",
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        return {
+          allowedContentTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+          maximumSizeInBytes: 10 * 1024 * 1024, // 10MB
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({
+            userId: session.user.id,
+          }),
+        }
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        try {
+          console.log("Blob upload completed:", blob)
+          const { userId } = JSON.parse(tokenPayload)
+          console.log("User ID:", userId)
+          // Here you could update your database with the blob URL
+        } catch (error) {
+          console.error("Error in onUploadCompleted:", error)
+        }
+      },
     })
 
-    return NextResponse.json({ url, uploadUrl })
+    return NextResponse.json(jsonResponse)
   } catch (error) {
-    console.error("Error generating upload URL:", error)
-    return NextResponse.json({ error: "Failed to generate upload URL" }, { status: 500 })
+    console.error("Error handling upload:", error)
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 })
   }
 }

@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Check, X, ImageIcon, Loader2 } from "lucide-react"
 import Image from "next/image"
+import { upload } from "@vercel/blob/client"
 
 export function AddHomeForm() {
   const [step, setStep] = useState(1)
@@ -81,42 +82,16 @@ export function AddHomeForm() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
 
-        // Genereer een upload URL van onze API
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            filename: file.name,
-            contentType: file.type,
-          }),
+        // Upload the file directly to Vercel Blob
+        const blob = await upload(file.name, file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
         })
 
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.error || "Failed to get upload URL")
-        }
-
-        const { uploadUrl, url } = await response.json()
-
-        // Upload het bestand naar de verkregen URL
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": file.type,
-          },
-          body: file,
-        })
-
-        if (!uploadResponse.ok) {
-          throw new Error("Failed to upload image")
-        }
-
-        uploadedUrls.push(url)
+        uploadedUrls.push(blob.url)
       }
 
-      // Update de formulier state met de nieuwe afbeeldingen
+      // Update the form state with the new images
       setFormData((prev) => ({
         ...prev,
         images: [...prev.images, ...uploadedUrls],
