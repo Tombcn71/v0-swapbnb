@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
 
       const messages = await executeQuery(
         `SELECT m.*, 
-                sender.name as sender_name, sender.email as sender_email, 
-                receiver.name as receiver_name, receiver.email as receiver_email
+                sender.name as sender_name, 
+                receiver.name as receiver_name
          FROM messages m
          JOIN users sender ON m.sender_id = sender.id
          JOIN users receiver ON m.receiver_id = receiver.id
@@ -63,15 +63,11 @@ export async function GET(request: NextRequest) {
          CASE
            WHEN m.sender_id = $1 THEN m.receiver_id
            ELSE m.sender_id
-         END as user_id,
+         END as other_user_id,
          CASE
            WHEN m.sender_id = $1 THEN receiver.name
            ELSE sender.name
-         END as user_name,
-         CASE
-           WHEN m.sender_id = $1 THEN receiver.email
-           ELSE sender.email
-         END as user_email,
+         END as other_user_name,
          (
            SELECT content
            FROM messages
@@ -79,7 +75,7 @@ export async function GET(request: NextRequest) {
               OR (sender_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END AND receiver_id = $1)
            ORDER BY created_at DESC
            LIMIT 1
-         ) as last_message,
+         ) as last_message_content,
          (
            SELECT created_at
            FROM messages
@@ -148,8 +144,8 @@ export async function POST(request: NextRequest) {
     // Stuur het bericht
     const result = await executeQuery(
       `INSERT INTO messages 
-       (sender_id, receiver_id, content) 
-       VALUES ($1, $2, $3) 
+       (sender_id, receiver_id, content, read) 
+       VALUES ($1, $2, $3, false) 
        RETURNING *`,
       [session.user.id, receiverId, content],
     )
@@ -157,8 +153,8 @@ export async function POST(request: NextRequest) {
     // Haal de volledige berichtgegevens op
     const messages = await executeQuery(
       `SELECT m.*, 
-              sender.name as sender_name, sender.email as sender_email,
-              receiver.name as receiver_name, receiver.email as receiver_email
+              sender.name as sender_name,
+              receiver.name as receiver_name
        FROM messages m
        JOIN users sender ON m.sender_id = sender.id
        JOIN users receiver ON m.receiver_id = receiver.id
