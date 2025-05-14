@@ -19,34 +19,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "Alleen afbeeldingen zijn toegestaan" }, { status: 400 })
     }
 
-    // Genereer een unieke bestandsnaam om overschrijvingen te voorkomen
-    const timestamp = Date.now()
-    const randomId = Math.random().toString(36).substring(2, 10)
-    const fileName = body.filename ? `${timestamp}-${randomId}-${body.filename}` : `${timestamp}-${randomId}`
-
     const response = await handleUpload({
       body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        // Valideer bestandsgrootte (max 5MB)
-        const fileSize = clientPayload?.size || 0
-        if (fileSize > 5 * 1024 * 1024) {
-          throw new Error("Bestand is te groot (max 5MB)")
-        }
-
         return {
           allowedContentTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-          tokenPayload: {
-            userId: session.user.id,
-            timestamp: Date.now(),
-          },
         }
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log("Upload voltooid:", blob)
-        console.log("Token payload:", tokenPayload)
-        // Hier kun je eventueel de blob URL opslaan in je database
-        return blob
       },
     })
 
