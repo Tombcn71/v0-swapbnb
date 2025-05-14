@@ -1,278 +1,227 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Home, Users, Shield } from "lucide-react"
-import { ArrowRight, Repeat, Star } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Home, Users, CheckCircle, ArrowRight } from "lucide-react"
 
 export function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <section className="bg-google-blue py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white">Wissel van huis, niet van budget</h1>
-          <p className="text-xl mb-8 text-white max-w-3xl mx-auto">
-            Ontdek een nieuwe manier van reizen door huizen te ruilen met andere Nederlanders
-          </p>
-          <Button asChild size="lg" className="bg-white text-google-blue hover:bg-gray-100">
-            <Link href="/listings">Begin met ruilen</Link>
-          </Button>
-        </div>
-      </section>
-
-      {/* Why SwapBnB Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-16">Waarom SwapBnB?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-google-blue mx-auto mb-4 flex justify-center">
-                <Home className="h-12 w-12" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Bespaar geld</h3>
-              <p className="text-gray-600">
-                Geen accommodatiekosten, alleen een kleine servicevergoeding per succesvolle ruil
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-google-blue mx-auto mb-4 flex justify-center">
-                <Users className="h-12 w-12" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Leef als een local</h3>
-              <p className="text-gray-600">Ervaar een nieuwe stad of dorp vanuit het perspectief van een inwoner</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="text-google-blue mx-auto mb-4 flex justify-center">
-                <Shield className="h-12 w-12" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">Veilig en vertrouwd</h3>
-              <p className="text-gray-600">
-                Geverifieerde gebruikers en beoordelingen zorgen voor een veilige ervaring
-              </p>
-            </div>
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <Home className="h-6 w-6 text-google-blue mr-2" />
+            <span className="text-xl font-bold text-google-blue">SwapBnB</span>
           </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Hoe werkt het?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Home className="h-8 w-8 text-google-blue" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">1. Voeg je woning toe</h3>
-              <p className="text-gray-600">
-                Maak een profiel aan voor je woning met foto's en beschrijvingen. Laat anderen zien wat jouw huis
-                bijzonder maakt.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Repeat className="h-8 w-8 text-google-blue" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">2. Vind een match</h3>
-              <p className="text-gray-600">
-                Zoek naar woningen op jouw favoriete bestemming en neem contact op met de eigenaar om een ruil voor te
-                stellen.
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="h-8 w-8 text-google-blue" />
-              </div>
-              <h3 className="text-xl font-semibold mb-3">3. Geniet van je verblijf</h3>
-              <p className="text-gray-600">
-                Reis naar je bestemming en geniet van een authentieke ervaring in een echt thuis, zonder hotelkosten.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Listings */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl font-bold">Uitgelichte woningen</h2>
-            <Button asChild variant="outline" className="flex items-center gap-2">
-              <Link href="/listings">
-                Bekijk alle woningen
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+          <nav className="hidden md:flex space-x-6">
+            <Link href="/how-it-works" className="text-gray-600 hover:text-google-blue">
+              Hoe het werkt
+            </Link>
+            <Link href="/listings" className="text-gray-600 hover:text-google-blue">
+              Woningen
+            </Link>
+            <Link href="/about" className="text-gray-600 hover:text-google-blue">
+              Over ons
+            </Link>
+          </nav>
+          <div className="flex space-x-4">
+            <Button variant="outline" asChild>
+              <Link href="/login">Inloggen</Link>
             </Button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Featured Listing 1 */}
-            <div className="bg-white rounded-lg overflow-hidden shadow-md">
-              <div className="relative">
-                <img
-                  src="/placeholder.svg?key=6l1jq"
-                  alt="Amsterdam Canal House"
-                  className="w-full h-64 object-cover"
-                />
-                <div className="absolute top-4 left-4">
-                  <span className="bg-google-blue text-white px-3 py-1 rounded-full text-sm font-medium">Populair</span>
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Karakteristiek grachtenpand</h3>
-                <p className="text-gray-600 mb-4">Amsterdam, Nederland</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1">
-                    <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                    <span>4.8 (56 reviews)</span>
-                  </div>
-                  <Button asChild size="sm">
-                    <Link href="/homes/1">Bekijk details</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Featured Listing 2 */}
-            <div className="bg-white rounded-lg overflow-hidden shadow-md">
-              <div className="relative">
-                <img src="/placeholder.svg?key=001fv" alt="Barcelona Apartment" className="w-full h-64 object-cover" />
-                <div className="absolute top-4 left-4">
-                  <span className="bg-google-blue text-white px-3 py-1 rounded-full text-sm font-medium">Nieuw</span>
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Modern appartement met balkon</h3>
-                <p className="text-gray-600 mb-4">Barcelona, Spanje</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1">
-                    <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                    <span>4.9 (23 reviews)</span>
-                  </div>
-                  <Button asChild size="sm">
-                    <Link href="/homes/2">Bekijk details</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Featured Listing 3 */}
-            <div className="bg-white rounded-lg overflow-hidden shadow-md">
-              <div className="relative">
-                <img src="/placeholder.svg?key=b3i4d" alt="Paris Apartment" className="w-full h-64 object-cover" />
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Charmant appartement met uitzicht</h3>
-                <p className="text-gray-600 mb-4">Parijs, Frankrijk</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1">
-                    <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                    <span>4.7 (41 reviews)</span>
-                  </div>
-                  <Button asChild size="sm">
-                    <Link href="/homes/3">Bekijk details</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Wat onze gebruikers zeggen</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex items-center gap-1 mb-4">
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-              </div>
-              <p className="text-gray-600 mb-6">
-                "Dankzij SwapBnB hebben we een geweldige vakantie gehad in Barcelona zonder hotelkosten. Het was
-                fantastisch om in een echt thuis te verblijven en de stad als locals te ervaren."
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full overflow-hidden">
-                  <img
-                    src="/professional-woman-headshot.png"
-                    alt="Lisa de Vries"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <p className="font-semibold">Lisa de Vries</p>
-                  <p className="text-gray-500 text-sm">Amsterdam, Nederland</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex items-center gap-1 mb-4">
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-              </div>
-              <p className="text-gray-600 mb-6">
-                "We hebben ons huis geruild met een gezin uit Parijs. Onze kinderen vonden het geweldig om in een ander
-                huis te verblijven en we hebben zoveel geld bespaard op accommodatie."
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full overflow-hidden">
-                  <img src="/professional-man-headshot.png" alt="Mark Jansen" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <p className="font-semibold">Mark Jansen</p>
-                  <p className="text-gray-500 text-sm">Utrecht, Nederland</p>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex items-center gap-1 mb-4">
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-                <Star className="text-yellow-400 h-5 w-5 fill-current" />
-              </div>
-              <p className="text-gray-600 mb-6">
-                "Als alleenstaande reiziger vond ik het altijd lastig om betaalbare accommodatie te vinden. Met SwapBnB
-                kan ik nu op plekken komen die anders buiten mijn budget zouden vallen."
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full overflow-hidden">
-                  <img src="images/testimonial-3.png" alt="Emma Visser" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <p className="font-semibold">Emma Visser</p>
-                  <p className="text-gray-500 text-sm">Rotterdam, Nederland</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-google-blue text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-6">Klaar om de wereld te ontdekken?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Voeg je woning toe aan SwapBnB en begin met het plannen van je volgende avontuur zonder accommodatiekosten.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-white text-google-blue hover:bg-gray-100">
-              <Link href="/register">Registreer nu</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-blue-600">
-              <Link href="/listings">Bekijk woningen</Link>
+            <Button asChild>
+              <Link href="/signup">Registreren</Link>
             </Button>
           </div>
         </div>
-      </section>
+      </header>
+
+      <main className="flex-grow">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-google-blue to-blue-400 text-white py-20">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">Wissel van huis, niet van budget</h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+              Ontdek een nieuwe manier van reizen door huizen te ruilen met andere Nederlanders
+            </p>
+            <Button size="lg" className="bg-white text-google-blue hover:bg-gray-100">
+              Begin met ruilen
+            </Button>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="py-16 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-12">Waarom SwapBnB?</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+              <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center">
+                    <Home className="h-12 w-12 text-google-blue mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Bespaar geld</h3>
+                    <p className="text-gray-600">
+                      Geen accommodatiekosten, alleen een kleine servicevergoeding per succesvolle ruil
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center">
+                    <Users className="h-12 w-12 text-google-blue mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Leef als een local</h3>
+                    <p className="text-gray-600">
+                      Ervaar een nieuwe stad of dorp vanuit het perspectief van een inwoner
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center text-center">
+                    <CheckCircle className="h-12 w-12 text-google-blue mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Veilig en vertrouwd</h3>
+                    <p className="text-gray-600">
+                      Geverifieerde gebruikers en beoordelingen zorgen voor een veilige ervaring
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-12">Hoe het werkt</h2>
+            <div className="max-w-4xl mx-auto">
+              <div className="flex mb-8">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
+                  1
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Maak een account</h3>
+                  <p className="text-gray-600">Registreer en verifieer je identiteit</p>
+                </div>
+              </div>
+              <div className="flex mb-8">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
+                  2
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Voeg je woning toe</h3>
+                  <p className="text-gray-600">Upload foto's en details van je huis</p>
+                </div>
+              </div>
+              <div className="flex mb-8">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
+                  3
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Vind een match</h3>
+                  <p className="text-gray-600">Zoek naar woningen die beschikbaar zijn wanneer jij wilt ruilen</p>
+                </div>
+              </div>
+              <div className="flex mb-8">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
+                  4
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Maak afspraken</h3>
+                  <p className="text-gray-600">Communiceer via ons berichtensysteem om details af te stemmen</p>
+                </div>
+              </div>
+              <div className="flex">
+                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-google-blue text-white font-bold mr-4">
+                  5
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Bevestig de ruil</h3>
+                  <p className="text-gray-600">Betaal de servicevergoeding en geniet van je verblijf</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="bg-blue-50 py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold mb-6">Klaar om te beginnen?</h2>
+            <p className="text-xl mb-8 max-w-2xl mx-auto">
+              Word lid van onze gemeenschap en ontdek een nieuwe manier van reizen door heel Nederland.
+            </p>
+            <Button size="lg" className="bg-google-blue hover:bg-blue-600">
+              <span>Maak een account aan</span>
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        </section>
+      </main>
+
+      <footer className="bg-gray-800 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">SwapBnB</h3>
+              <p className="text-gray-300">De beste manier om van huis te wisselen in Nederland.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Links</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/how-it-works" className="text-gray-300 hover:text-white">
+                    Hoe het werkt
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/listings" className="text-gray-300 hover:text-white">
+                    Woningen
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about" className="text-gray-300 hover:text-white">
+                    Over ons
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Ondersteuning</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/faq" className="text-gray-300 hover:text-white">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="text-gray-300 hover:text-white">
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="text-gray-300 hover:text-white">
+                    Privacy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Nieuwsbrief</h3>
+              <p className="text-gray-300 mb-2">Blijf op de hoogte van nieuwe functies en updates.</p>
+              <div className="flex">
+                <input type="email" placeholder="E-mailadres" className="px-3 py-2 text-black rounded-l-md w-full" />
+                <Button className="rounded-l-none">Aanmelden</Button>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
+            <p>&copy; {new Date().getFullYear()} SwapBnB. Alle rechten voorbehouden.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

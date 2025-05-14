@@ -1,0 +1,96 @@
+{
+  "common": {
+    "login": "Login",
+    "signup": "Sign up",
+    "logout": "Logout",
+    "search": "Search",
+    "home": "Home",
+    "profile": "Profile",
+    "messages": "Messages",
+    "listings": "Listings",
+    "exchanges": "Exchanges"
+  },
+  "landing": {
+    "hero": {
+      "title": "Swap homes, not budgets",
+      "subtitle": "Discover a new way to travel by exchanging homes with other Dutch residents",
+      "cta": "Start swapping"
+    },
+    "features": {
+      "title": "Why SwapBnB?",
+      "items": [
+        {
+          "title": "Save money",
+          "description": "No accommodation costs, just a small service fee per successful exchange"
+        },
+        {
+          "title": "Live like a local",
+          "description": "Experience a new city or town from a resident's perspective"
+        },
+        {
+          "title": "Safe and trusted",
+          "description": "Verified users and reviews ensure a safe experience"
+        }
+      ]
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "steps": [
+        {
+          "title": "Create an account",
+          "description": "Register and verify your identity"
+        },
+        {
+          "title": "Add your home",
+          "description": "Upload photos and details of your house"
+        },
+        {
+          "title": "Find a match",
+          "description": "Search for homes available when you want to swap"
+        },
+        {
+          "title": "Make arrangements",
+          "description": "Communicate via our messaging system to align on details"
+        },
+        {
+          "title": "Confirm the exchange",
+          "description": "Pay the service fee and enjoy your stay"
+        }
+      ]
+    },
+    "testimonials": {
+      "title": "What our users say",
+      "items": [
+        {
+          "quote": "We had a great time in Amsterdam while another family enjoyed our home in Groningen. Perfect solution for a budget-friendly vacation!",
+          "author": "Family de Vries, Groningen"
+        },
+        {
+          "quote": "Communication was smooth and the house was exactly as described. Definitely recommended for anyone wanting to explore the Netherlands.",
+          "author": "Jan and Annemieke, Utrecht"
+        }
+      ]
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Login",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create account"
+    },
+    "signup": {
+      "title": "Sign up",
+      "name": "Name",
+      "email": "Email address",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "submit": "Sign up",
+      "hasAccount": "Already have an account?",
+      "login": "Login"
+    }
+  }
+}

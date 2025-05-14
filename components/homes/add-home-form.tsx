@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import type React from "react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,12 +13,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check } from "lucide-react"
-import { ImageUploader } from "./image-uploader"
+import { Upload, Check, X, ImageIcon, Loader2 } from "lucide-react"
+import Image from "next/image"
 
 export function AddHomeForm() {
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadingImages, setUploadingImages] = useState<boolean>(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { toast } = useToast()
 
@@ -68,11 +70,88 @@ export function AddHomeForm() {
     }))
   }
 
-  const handleImagesChange = (urls: string[]) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploadingImages(true)
+    const uploadedUrls: string[] = []
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+
+        // Genereer een upload URL van onze API
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            filename: file.name,
+            contentType: file.type,
+          }),
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || "Failed to get upload URL")
+        }
+
+        const { uploadUrl, url } = await response.json()
+
+        // Upload het bestand naar de verkregen URL
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        })
+
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload image")
+        }
+
+        uploadedUrls.push(url)
+      }
+
+      // Update de formulier state met de nieuwe afbeeldingen
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls],
+      }))
+
+      toast({
+        title: "Foto's geüpload",
+        description: `${uploadedUrls.length} foto('s) succesvol geüpload`,
+      })
+    } catch (error) {
+      console.error("Error uploading images:", error)
+      toast({
+        title: "Fout bij uploaden",
+        description:
+          error instanceof Error ? error.message : "Er is een fout opgetreden bij het uploaden van de foto's",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingImages(false)
+      // Reset het file input veld
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  const removeImage = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      images: urls,
+      images: prev.images.filter((_, i) => i !== index),
     }))
+  }
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -466,11 +545,76 @@ export function AddHomeForm() {
               <div className="space-y-6">
                 <div>
                   <Label className="mb-3 block">Foto's van je woning</Label>
-                  <ImageUploader onChange={handleImagesChange} value={formData.images} maxImages={10} />
+
+                  {/* Verborgen file input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                  />
+
+                  {/* Foto upload gebied */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Upload knop */}
+                    <div
+                      onClick={triggerFileInput}
+                      className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center h-40">
+                        {uploadingImages ? (
+                          <Loader2 className="h-10 w-10 text-gray-400 mb-2 animate-spin" />
+                        ) : (
+                          <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                        )}
+                        <p className="text-sm text-gray-600">
+                          {uploadingImages ? "Bezig met uploaden..." : "Klik om foto's te uploaden"}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">(of sleep bestanden hierheen)</p>
+                      </div>
+                    </div>
+
+                    {/* Geüploade foto's */}
+                    {formData.images.map((imageUrl, index) => (
+                      <div key={index} className="relative border rounded-lg overflow-hidden h-40">
+                        <Image
+                          src={imageUrl || "/placeholder.svg"}
+                          alt={`Woning foto ${index + 1}`}
+                          fill
+                          style={{ objectFit: "cover" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
+                          aria-label="Verwijder foto"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Placeholder slots voor extra foto's */}
+                    {formData.images.length > 0 && formData.images.length < 5 && (
+                      <div
+                        onClick={triggerFileInput}
+                        className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <div className="flex flex-col items-center justify-center h-40">
+                          <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-600">Voeg meer foto's toe</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <p className="text-sm text-gray-500 mt-2">
                     Upload minimaal 3 foto's van je woning. Zorg voor een foto van de buitenkant, woonkamer en
                     slaapkamer.
                   </p>
+
                   {formData.images.length < 3 && (
                     <p className="text-sm text-red-500 mt-1">
                       Je moet nog {3 - formData.images.length} foto('s) uploaden.

@@ -1,17 +1,10 @@
-import { neon } from "@neondatabase/serverless"
 import type { NextAuthOptions } from "next-auth"
-import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { executeQuery } from "./db"
 import bcrypt from "bcryptjs"
-
-const sql = neon(process.env.DATABASE_URL!)
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GithubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -25,60 +18,64 @@ export const authOptions: NextAuthOptions = {
 
         try {
           // Zoek de gebruiker op basis van e-mail
-          const user = await sql`
-            SELECT * FROM users WHERE email = ${credentials.email}
-          `.then((res) => res[0])
+          const users = await executeQuery("SELECT * FROM users WHERE email = $1", [credentials.email])
 
-          if (!user || !user.password) {
+          if (users.length === 0) {
+            console.log("Gebruiker niet gevonden:", credentials.email)
             return null
           }
 
-          // Controleer het wachtwoord
-          const passwordMatch = await bcrypt.compare(credentials.password, user.password)
+          const user = users[0]
 
+          // Controleer of het wachtwoord overeenkomt
+          const passwordMatch = await bcrypt.compare(credentials.password, user.password_hash)
           if (!passwordMatch) {
+            console.log("Wachtwoord komt niet overeen voor:", credentials.email)
             return null
           }
 
-          // Return het gebruikersobject zonder wachtwoord
+          // Geef de gebruikersgegevens terug
           return {
             id: user.id,
             name: user.name,
             email: user.email,
-            // Verwijder de verwijzing naar image als deze niet bestaat
-            // image: user.image,
+            image: user.image || null,
           }
         } catch (error) {
-          console.error("Auth error:", error)
+          console.error("Fout bij autorisatie:", error)
           return null
         }
       },
     }),
   ],
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 dagen
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
         token.name = user.name
         token.email = user.email
-        // Verwijder de verwijzing naar image als deze niet bestaat
-        // token.image = user.image;
+        token.picture = user.image
       }
       return token
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string
-        // Andere velden blijven behouden
+        session.user.name = token.name as string
+        session.user.email = token.email as string
+        session.user.image = token.picture as string | null
       }
       return session
     },
   },
   pages: {
     signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
+    error: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 }

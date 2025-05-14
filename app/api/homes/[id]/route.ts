@@ -1,49 +1,59 @@
-import { NextResponse } from "next/server"
-import { neon } from "@neondatabase/serverless"
+import { type NextRequest, NextResponse } from "next/server"
+import { executeQuery } from "@/lib/db"
 
-const sql = neon(process.env.DATABASE_URL!)
-
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+// GET /api/homes/[id] - Haal een specifieke woning op
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const id = params.id
+    const homeId = params.id
 
-    // Haal de woning op met eigenaar informatie
-    const home = await sql`
-      SELECT h.*, 
-        u.id as owner_id, 
-        u.name as owner_name, 
-        u.email as owner_email
-        FROM homes h
-        LEFT JOIN users u ON h.user_id = u.id
-        WHERE h.id = ${id}
-    `
+    console.log(`Fetching home with ID: ${homeId}`)
 
-    if (!home || home.length === 0) {
-      return NextResponse.json({ error: "Woning niet gevonden" }, { status: 404 })
+    // Haal de woning op met de correcte kolomnamen
+    const home = await executeQuery(
+      `SELECT h.*, u.name as host_name
+       FROM homes h
+       JOIN users u ON h.user_id = u.id
+       WHERE h.id = $1`,
+      [homeId],
+    )
+
+    if (home.length === 0) {
+      console.log(`Home with ID ${homeId} not found`)
+      return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    // Haal beschikbaarheid op
-    const availability = await sql`
-      SELECT * FROM availability WHERE home_id = ${id}
-    `
+    console.log(`Found home: ${home[0].title}`)
 
-    // Haal reviews op met gebruikersinformatie
-    const reviews = await sql`
-      SELECT r.*, 
-        u.id as user_id, 
-        u.name as user_name
-        FROM reviews r
-        LEFT JOIN users u ON r.user_id = u.id
-        WHERE r.home_id = ${id}
-    `
+    // Haal de beschikbaarheden op
+    const availabilities = await executeQuery(
+      "SELECT * FROM availabilities WHERE home_id = $1 ORDER BY start_date ASC",
+      [homeId],
+    )
 
-    return NextResponse.json({
-      home: home[0],
-      availability,
+    console.log(`Found ${availabilities.length} availabilities`)
+
+    // Haal de beoordelingen op
+    const reviews = await executeQuery(
+      `SELECT r.*, u.name as reviewer_name
+       FROM reviews r
+       JOIN users u ON r.author_id = u.id
+       WHERE r.home_id = $1
+       ORDER BY r.created_at DESC`,
+      [homeId],
+    )
+
+    console.log(`Found ${reviews.length} reviews`)
+
+    // Combineer de gegevens
+    const result = {
+      ...home[0],
+      availabilities,
       reviews,
-    })
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Error fetching home:", error)
-    return NextResponse.json({ error: "Er is een fout opgetreden bij het ophalen van de woning" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to fetch home" }, { status: 500 })
   }
 }

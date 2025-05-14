@@ -1,40 +1,36 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
+import { put } from "@vercel/blob"
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
+import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { v4 as uuidv4 } from "uuid"
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
 
-  // Controleer of de gebruiker is ingelogd
-  if (!session) {
-    return NextResponse.json({ error: "Je moet ingelogd zijn om bestanden te uploaden" }, { status: 401 })
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
-    const body = (await request.json()) as HandleUploadBody
+    const { filename, contentType } = await request.json()
 
-    // Valideer bestandstype (alleen afbeeldingen)
-    if (!body.contentType?.startsWith("image/")) {
-      return NextResponse.json({ error: "Alleen afbeeldingen zijn toegestaan" }, { status: 400 })
+    if (!filename || !contentType) {
+      return NextResponse.json({ error: "Filename and contentType are required" }, { status: 400 })
     }
 
-    const response = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
-        return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-        }
-      },
+    // Genereer een unieke bestandsnaam om overschrijvingen te voorkomen
+    const uniqueFilename = `${uuidv4()}-${filename}`
+    const pathname = `homes/${session.user.id}/${uniqueFilename}`
+
+    // Genereer een uploadable URL
+    const { url, uploadUrl } = await put(pathname, {
+      contentType,
+      access: "public",
     })
 
-    return NextResponse.json(response)
+    return NextResponse.json({ url, uploadUrl })
   } catch (error) {
-    console.error("Error handling upload:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Er is een fout opgetreden" },
-      { status: 500 },
-    )
+    console.error("Error generating upload URL:", error)
+    return NextResponse.json({ error: "Failed to generate upload URL" }, { status: 500 })
   }
 }
