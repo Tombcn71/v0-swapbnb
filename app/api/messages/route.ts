@@ -63,15 +63,15 @@ export async function GET(request: NextRequest) {
          CASE
            WHEN m.sender_id = $1 THEN m.receiver_id
            ELSE m.sender_id
-         END as other_user_id,
+         END as user_id,
          CASE
            WHEN m.sender_id = $1 THEN receiver.name
            ELSE sender.name
-         END as other_user_name,
+         END as user_name,
          CASE
            WHEN m.sender_id = $1 THEN receiver.email
            ELSE sender.email
-         END as other_user_email,
+         END as user_email,
          (
            SELECT content
            FROM messages
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
               OR (sender_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END AND receiver_id = $1)
            ORDER BY created_at DESC
            LIMIT 1
-         ) as last_message_content,
+         ) as last_message,
          (
            SELECT created_at
            FROM messages
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
            FROM messages
            WHERE receiver_id = $1 
              AND sender_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END
-             AND is_read = false
+             AND read = false
          ) as unread_count
        FROM messages m
        JOIN users sender ON m.sender_id = sender.id
@@ -202,10 +202,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Markeer alle ongelezen berichten van deze afzender als gelezen
-    await executeQuery(
-      "UPDATE messages SET is_read = true WHERE sender_id = $1 AND receiver_id = $2 AND is_read = false",
-      [senderId, session.user.id],
-    )
+    await executeQuery("UPDATE messages SET read = true WHERE sender_id = $1 AND receiver_id = $2 AND read = false", [
+      senderId,
+      session.user.id,
+    ])
 
     return NextResponse.json({ success: true })
   } catch (error) {
