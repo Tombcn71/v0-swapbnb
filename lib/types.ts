@@ -33,15 +33,16 @@ export interface Home {
   title: string
   description: string
   address: string
-  city: string
-  postalCode: string
+  city?: string
+  postalCode?: string
   bedrooms: number
   bathrooms: number
   maxGuests: number
   userId: string
-  userName: string
+  ownerName?: string
+  ownerEmail?: string
   images: string[]
-  amenities: Record<string, boolean>
+  amenities?: Record<string, boolean>
   rating?: number
   reviewCount?: number
 }

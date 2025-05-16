@@ -15,11 +15,10 @@ export default async function HomePage({ params }: { params: { id: string } }) {
         h.title, 
         h.description, 
         h.address, 
-        h.image_url as "imageUrl", 
+        h.images, 
         h.bedrooms, 
         h.bathrooms, 
         h.max_guests as "maxGuests", 
-        h.price_per_night as "pricePerNight", 
         h.user_id as "userId",
         u.name as "ownerName",
         u.email as "ownerEmail"
@@ -32,7 +31,15 @@ export default async function HomePage({ params }: { params: { id: string } }) {
       return notFound()
     }
 
-    const home = rows[0]
+    // Process the home data to ensure it has the expected format
+    const home = {
+      ...rows[0],
+      // If images is stored as a JSON string, parse it
+      // If it's already an array, use it as is
+      // If it's null/undefined, provide an empty array
+      images: typeof rows[0].images === "string" ? JSON.parse(rows[0].images) : rows[0].images || [],
+    }
+
     const isOwner = userId === home.userId
 
     return <HomeDetailClient home={home} isOwner={isOwner} />

@@ -14,8 +14,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Home } from "@/lib/types"
-import { toast } from "@/components/ui/use-toast"
-import { Loader2, UploadCloud } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { Loader2, UploadCloud, X } from "lucide-react"
 import Image from "next/image"
 
 const formSchema = z.object({
@@ -25,7 +25,6 @@ const formSchema = z.object({
   bedrooms: z.coerce.number().int().min(1, "At least 1 bedroom is required"),
   bathrooms: z.coerce.number().min(0.5, "At least 0.5 bathroom is required"),
   maxGuests: z.coerce.number().int().min(1, "At least 1 guest is required"),
-  pricePerNight: z.coerce.number().min(1, "Price per night is required"),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -37,10 +36,11 @@ interface EditHomeFormProps {
 export function EditHomeForm({ home }: EditHomeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("details")
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(home.imageUrl || null)
+  const [images, setImages] = useState<string[]>(home.images || [])
+  const [newImageFile, setNewImageFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -51,29 +51,23 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
       bedrooms: home.bedrooms,
       bathrooms: home.bathrooms,
       maxGuests: home.maxGuests,
-      pricePerNight: home.pricePerNight,
     },
   })
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+      setNewImageFile(file)
     }
   }
 
   const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return home.imageUrl
+    if (!newImageFile) return null
 
     setIsUploading(true)
     try {
       const formData = new FormData()
-      formData.append("file", imageFile)
+      formData.append("file", newImageFile)
 
       const response = await fetch("/api/upload", {
         method: "POST",
@@ -99,20 +93,28 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
     }
   }
 
+  const addImage = async () => {
+    if (!newImageFile) return
+
+    const imageUrl = await uploadImage()
+    if (imageUrl) {
+      setImages([...images, imageUrl])
+      setNewImageFile(null)
+      // Reset the file input
+      const fileInput = document.getElementById("image-upload") as HTMLInputElement
+      if (fileInput) {
+        fileInput.value = ""
+      }
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index))
+  }
+
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
     try {
-      // Upload image if a new one was selected
-      let imageUrl = home.imageUrl
-      if (imageFile) {
-        imageUrl = await uploadImage()
-        if (!imageUrl && imageFile) {
-          // If image upload failed but a new image was selected, stop the submission
-          setIsSubmitting(false)
-          return
-        }
-      }
-
       // Update home data
       const response = await fetch(`/api/homes/${home.id}`, {
         method: "PUT",
@@ -121,7 +123,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         },
         body: JSON.stringify({
           ...values,
-          imageUrl,
+          images,
         }),
       })
 
@@ -155,8 +157,9 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Property Details</TabsTrigger>
+            <TabsTrigger value="images">Images</TabsTrigger>
             <TabsTrigger value="availability">Availability</TabsTrigger>
           </TabsList>
 
@@ -206,7 +209,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="bedrooms"
@@ -248,58 +251,6 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="pricePerNight"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price per Night ($)</FormLabel>
-                          <FormControl>
-                            <Input type="number" min="1" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <FormLabel>Property Image</FormLabel>
-                    <div className="flex flex-col items-center space-y-4">
-                      {imagePreview && (
-                        <div className="relative w-full h-64 rounded-md overflow-hidden">
-                          <Image
-                            src={imagePreview || "/placeholder.svg"}
-                            alt="Property preview"
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-
-                      <div className="w-full">
-                        <label
-                          htmlFor="image-upload"
-                          className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100"
-                        >
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <UploadCloud className="w-8 h-8 text-gray-400" />
-                            <p className="mb-2 text-sm text-gray-500">
-                              <span className="font-semibold">Click to upload</span> or drag and drop
-                            </p>
-                            <p className="text-xs text-gray-500">PNG, JPG, WEBP up to 10MB</p>
-                          </div>
-                          <Input
-                            id="image-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleImageChange}
-                          />
-                        </label>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -307,13 +258,94 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                   <Button type="button" variant="outline" onClick={() => router.back()}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting || isUploading}>
-                    {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes
                   </Button>
                 </div>
               </form>
             </Form>
+          </TabsContent>
+
+          <TabsContent value="images" className="pt-4">
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium mb-4">Property Images</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  {images.map((imageUrl, index) => (
+                    <div key={index} className="relative rounded-md overflow-hidden h-48">
+                      <Image
+                        src={imageUrl || "/placeholder.svg"}
+                        alt={`Property image ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full"
+                        onClick={() => removeImage(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  {images.length === 0 && (
+                    <div className="col-span-3 bg-gray-100 rounded-md p-8 text-center">
+                      <p className="text-gray-500">No images yet. Add some images to showcase your property.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label
+                        htmlFor="image-upload"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-md cursor-pointer bg-gray-50 hover:bg-gray-100"
+                      >
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <UploadCloud className="w-8 h-8 text-gray-400" />
+                          <p className="mb-2 text-sm text-gray-500">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500">PNG, JPG, WEBP up to 10MB</p>
+                        </div>
+                        <Input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageChange}
+                        />
+                      </label>
+                    </div>
+
+                    <Button onClick={addImage} disabled={!newImageFile || isUploading} className="h-32">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        "Add Image"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <Button type="button" variant="outline" onClick={() => setActiveTab("details")}>
+                  Back to Details
+                </Button>
+                <Button type="button" onClick={() => setActiveTab("availability")}>
+                  Next: Availability
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="availability" className="pt-4">
@@ -325,9 +357,13 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                 </p>
               </div>
 
-              <div className="flex justify-end">
-                <Button type="button" onClick={() => router.push(`/homes/${home.id}`)}>
-                  Go to Property Page
+              <div className="flex justify-between">
+                <Button type="button" variant="outline" onClick={() => setActiveTab("images")}>
+                  Back to Images
+                </Button>
+                <Button type="button" onClick={() => form.handleSubmit(onSubmit)()}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save All Changes
                 </Button>
               </div>
             </div>

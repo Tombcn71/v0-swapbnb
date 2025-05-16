@@ -11,11 +11,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         h.title, 
         h.description, 
         h.address, 
-        h.image_url as "imageUrl", 
+        h.images, 
         h.bedrooms, 
         h.bathrooms, 
         h.max_guests as "maxGuests", 
-        h.price_per_night as "pricePerNight", 
         h.user_id as "userId",
         u.name as "ownerName",
         u.email as "ownerEmail"
@@ -28,7 +27,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    return NextResponse.json(rows[0])
+    // Process the home data to ensure it has the expected format
+    const home = {
+      ...rows[0],
+      // If images is stored as a JSON string, parse it
+      // If it's already an array, use it as is
+      // If it's null/undefined, provide an empty array
+      images: typeof rows[0].images === "string" ? JSON.parse(rows[0].images) : rows[0].images || [],
+    }
+
+    return NextResponse.json(home)
   } catch (error) {
     console.error("Error fetching home:", error)
     return NextResponse.json({ error: "Failed to fetch home" }, { status: 500 })
@@ -57,7 +65,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const body = await request.json()
-    const { title, description, address, bedrooms, bathrooms, maxGuests, pricePerNight, imageUrl } = body
+    const { title, description, address, bedrooms, bathrooms, maxGuests, images } = body
 
     // Update the home
     const { rows } = await sql`
@@ -69,8 +77,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         bedrooms = ${bedrooms},
         bathrooms = ${bathrooms},
         max_guests = ${maxGuests},
-        price_per_night = ${pricePerNight},
-        image_url = ${imageUrl},
+        images = ${JSON.stringify(images || [])},
         updated_at = NOW()
       WHERE id = ${params.id}
       RETURNING 
@@ -78,15 +85,20 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         title, 
         description, 
         address, 
-        image_url as "imageUrl", 
+        images, 
         bedrooms, 
         bathrooms, 
         max_guests as "maxGuests", 
-        price_per_night as "pricePerNight", 
         user_id as "userId"
     `
 
-    return NextResponse.json(rows[0])
+    // Process the returned data
+    const updatedHome = {
+      ...rows[0],
+      images: typeof rows[0].images === "string" ? JSON.parse(rows[0].images) : rows[0].images || [],
+    }
+
+    return NextResponse.json(updatedHome)
   } catch (error) {
     console.error("Error updating home:", error)
     return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
