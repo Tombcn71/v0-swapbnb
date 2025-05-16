@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth"
 import { redirect, notFound } from "next/navigation"
 import { EditHomeForm } from "@/components/homes/edit-home-form"
 import { authOptions } from "@/lib/auth"
-import { sql } from "@/lib/db"
+import { executeQuery } from "@/lib/db"
 
 export default async function EditHomePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -12,36 +12,49 @@ export default async function EditHomePage({ params }: { params: { id: string } 
   }
 
   try {
-    const { rows } = await sql`
-      SELECT 
+    // Use executeQuery instead of sql to maintain consistency with other parts of the app
+    const home = await executeQuery(
+      `SELECT 
         h.id, 
         h.title, 
         h.description, 
-        h.address, 
-        h.image_url as "imageUrl", 
+        h.address,
+        h.city,
+        h.postal_code as "postalCode",
+        h.images, 
         h.bedrooms, 
         h.bathrooms, 
         h.max_guests as "maxGuests", 
-        h.price_per_night as "pricePerNight", 
+        h.price_per_night as "pricePerNight",
+        h.amenities,
         h.user_id as "userId"
       FROM homes h
-      WHERE h.id = ${params.id}
-    `
+      WHERE h.id = $1`,
+      [params.id],
+    )
 
-    if (rows.length === 0) {
+    if (home.length === 0) {
       return notFound()
     }
 
-    const home = rows[0]
+    // Process the home data to ensure it has the expected format
+    const processedHome = {
+      ...home[0],
+      // Parse the images JSON if it's a string
+      images: typeof home[0].images === "string" ? JSON.parse(home[0].images) : home[0].images || [],
+      // Parse the amenities JSON if it's a string
+      amenities: typeof home[0].amenities === "string" ? JSON.parse(home[0].amenities) : home[0].amenities || {},
+    }
 
     // Check if the current user is the owner of the home
-    if (home.userId !== session.user.id) {
+    if (processedHome.userId !== session.user.id) {
       redirect("/")
     }
 
     return (
       <div className="container mx-auto px-4 py-8">
-        <EditHomeForm home={home} />
+        <h1 className="text-2xl font-bold mb-6">Woning bewerken</h1>
+        <EditHomeForm home={processedHome} />
       </div>
     )
   } catch (error) {

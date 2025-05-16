@@ -1,57 +1,33 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
+
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/hooks/use-toast"
-import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, X, ImageIcon, Loader2, Calendar } from "lucide-react"
-import Image from "next/image"
-import { upload } from "@vercel/blob/client"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AddAvailabilityForm } from "@/components/homes/add-availability-form"
+import { HomeAvailability } from "@/components/homes/home-availability"
+import type { Home } from "@/lib/types"
+import { X, Upload } from "lucide-react"
+import Image from "next/image"
 
 interface EditHomeFormProps {
-  home: any
+  home: Home
 }
 
 export function EditHomeForm({ home }: EditHomeFormProps) {
-  const [activeTab, setActiveTab] = useState("basic")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [uploadingImages, setUploadingImages] = useState<boolean>(false)
-  const [availabilities, setAvailabilities] = useState<{ id?: string; startDate: Date; endDate: Date }[]>([])
-  const [isLoadingAvailabilities, setIsLoadingAvailabilities] = useState(true)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { toast } = useToast()
-
-  // Parse amenities if it's a string
-  const initialAmenities =
-    typeof home.amenities === "string"
-      ? JSON.parse(home.amenities)
-      : home.amenities || {
-          wifi: false,
-          kitchen: false,
-          heating: false,
-          tv: false,
-          washer: false,
-          dryer: false,
-          airconditioning: false,
-          parking: false,
-          elevator: false,
-          garden: false,
-          bbq: false,
-          pets: false,
-        }
-
-  // Parse images if it's a string
-  const initialImages = typeof home.images === "string" ? JSON.parse(home.images) : home.images || []
+  const [activeTab, setActiveTab] = useState("basic")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadingImages, setUploadingImages] = useState(false)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -59,65 +35,42 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
     description: home.description || "",
     address: home.address || "",
     city: home.city || "",
-    postalCode: home.postal_code || "",
-    bedrooms: String(home.bedrooms) || "2",
-    bathrooms: String(home.bathrooms) || "1",
-    maxGuests: String(home.max_guests) || "4",
-    amenities: initialAmenities,
-    images: initialImages,
+    postalCode: home.postalCode || home.postal_code || "",
+    bedrooms: home.bedrooms || 1,
+    bathrooms: home.bathrooms || 1,
+    maxGuests: home.maxGuests || home.max_guests || 1,
+    amenities: home.amenities || {
+      wifi: false,
+      kitchen: false,
+      heating: false,
+      tv: false,
+      washer: false,
+      dryer: false,
+      airconditioning: false,
+      parking: false,
+      elevator: false,
+      garden: false,
+      bbq: false,
+      petsAllowed: false,
+    },
+    images: Array.isArray(home.images) ? [...home.images] : [],
   })
 
-  // Fetch availabilities
-  useEffect(() => {
-    const fetchAvailabilities = async () => {
-      try {
-        setIsLoadingAvailabilities(true)
-        const response = await fetch(`/api/availabilities?homeId=${home.id}`)
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch availabilities")
-        }
-
-        const data = await response.json()
-
-        // Convert string dates to Date objects
-        const formattedAvailabilities = data.map((avail: any) => ({
-          id: avail.id,
-          startDate: new Date(avail.start_date),
-          endDate: new Date(avail.end_date),
-        }))
-
-        setAvailabilities(formattedAvailabilities)
-      } catch (error) {
-        console.error("Error fetching availabilities:", error)
-        toast({
-          title: "Fout bij laden",
-          description: "Kon de beschikbaarheden niet laden",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoadingAvailabilities(false)
-      }
-    }
-
-    fetchAvailabilities()
-  }, [home.id, toast])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: Number.parseInt(value) }))
   }
 
-  const handleAmenityChange = (amenity: string, checked: boolean) => {
+  const handleAmenityChange = (name: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       amenities: {
         ...prev.amenities,
-        [amenity]: checked,
+        [name]: checked,
       },
     }))
   }
@@ -127,135 +80,70 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
     if (!files || files.length === 0) return
 
     setUploadingImages(true)
-    const uploadedUrls: string[] = []
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData()
+        formData.append("file", file)
 
-        // Upload the file directly to Vercel Blob
-        const blob = await upload(file.name, file, {
-          access: "public",
-          handleUploadUrl: "/api/upload",
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
         })
 
-        uploadedUrls.push(blob.url)
-      }
+        if (!response.ok) {
+          throw new Error("Failed to upload image")
+        }
 
-      // Update the form state with the new images
+        const data = await response.json()
+        return data.url
+      })
+
+      const uploadedUrls = await Promise.all(uploadPromises)
+
       setFormData((prev) => ({
         ...prev,
         images: [...prev.images, ...uploadedUrls],
       }))
 
       toast({
-        title: "Foto's geüpload",
-        description: `${uploadedUrls.length} foto('s) succesvol geüpload`,
+        title: "Afbeeldingen geüpload",
+        description: `${uploadedUrls.length} afbeelding(en) succesvol geüpload`,
       })
     } catch (error) {
       console.error("Error uploading images:", error)
       toast({
         title: "Fout bij uploaden",
-        description:
-          error instanceof Error ? error.message : "Er is een fout opgetreden bij het uploaden van de foto's",
+        description: "Er is een fout opgetreden bij het uploaden van de afbeeldingen",
         variant: "destructive",
       })
     } finally {
       setUploadingImages(false)
-      // Reset the file input field
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
     }
   }
 
-  const removeImage = (index: number) => {
+  const handleRemoveImage = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }))
   }
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleAddAvailability = async (startDate: Date, endDate: Date) => {
-    try {
-      const response = await fetch("/api/availabilities", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          homeId: home.id,
-          startDate: startDate.toISOString().split("T")[0],
-          endDate: endDate.toISOString().split("T")[0],
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to add availability")
-      }
-
-      const newAvailability = await response.json()
-
-      setAvailabilities((prev) => [
-        ...prev,
-        {
-          id: newAvailability.id,
-          startDate: new Date(newAvailability.start_date),
-          endDate: new Date(newAvailability.end_date),
-        },
-      ])
-
-      toast({
-        title: "Beschikbaarheid toegevoegd",
-        description: "De beschikbaarheid is succesvol toegevoegd",
-      })
-    } catch (error) {
-      console.error("Error adding availability:", error)
-      toast({
-        title: "Fout bij toevoegen",
-        description: error instanceof Error ? error.message : "Kon de beschikbaarheid niet toevoegen",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleRemoveAvailability = async (id: string) => {
-    try {
-      const response = await fetch(`/api/availabilities/${id}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to delete availability")
-      }
-
-      setAvailabilities((prev) => prev.filter((avail) => avail.id !== id))
-
-      toast({
-        title: "Beschikbaarheid verwijderd",
-        description: "De beschikbaarheid is succesvol verwijderd",
-      })
-    } catch (error) {
-      console.error("Error removing availability:", error)
-      toast({
-        title: "Fout bij verwijderen",
-        description: "Kon de beschikbaarheid niet verwijderen",
-        variant: "destructive",
-      })
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (formData.images.length < 3) {
+      toast({
+        title: "Niet genoeg afbeeldingen",
+        description: "Voeg minimaal 3 afbeeldingen toe van je woning",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      // Update the home
       const response = await fetch(`/api/homes/${home.id}`, {
         method: "PATCH",
         headers: {
@@ -266,18 +154,17 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
           description: formData.description,
           address: formData.address,
           city: formData.city,
-          postalCode: formData.postalCode,
-          bedrooms: Number.parseInt(formData.bedrooms),
-          bathrooms: Number.parseInt(formData.bathrooms),
-          maxGuests: Number.parseInt(formData.maxGuests),
+          postal_code: formData.postalCode,
+          bedrooms: formData.bedrooms,
+          bathrooms: formData.bathrooms,
+          max_guests: formData.maxGuests,
           amenities: formData.amenities,
           images: formData.images,
         }),
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Er is iets misgegaan bij het bijwerken van de woning")
+        throw new Error("Failed to update home")
       }
 
       toast({
@@ -285,14 +172,13 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         description: "Je woning is succesvol bijgewerkt",
       })
 
-      // Navigate back to the home details page
       router.push(`/homes/${home.id}`)
       router.refresh()
     } catch (error) {
       console.error("Error updating home:", error)
       toast({
-        title: "Er is iets misgegaan",
-        description: error instanceof Error ? error.message : "Probeer het later opnieuw",
+        title: "Fout bij bijwerken",
+        description: "Er is een fout opgetreden bij het bijwerken van de woning",
         variant: "destructive",
       })
     } finally {
@@ -300,481 +186,394 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
     }
   }
 
+  const nextTab = () => {
+    if (activeTab === "basic") setActiveTab("details")
+    else if (activeTab === "details") setActiveTab("availability")
+    else if (activeTab === "availability") setActiveTab("photos")
+  }
+
+  const prevTab = () => {
+    if (activeTab === "photos") setActiveTab("availability")
+    else if (activeTab === "availability") setActiveTab("details")
+    else if (activeTab === "details") setActiveTab("basic")
+  }
+
   return (
-    <form onSubmit={handleSubmit}>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-        <TabsList className="mb-4">
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-4 mb-8">
           <TabsTrigger value="basic">Basisinformatie</TabsTrigger>
           <TabsTrigger value="details">Details & Voorzieningen</TabsTrigger>
           <TabsTrigger value="availability">Beschikbaarheid</TabsTrigger>
           <TabsTrigger value="photos">Foto's</TabsTrigger>
         </TabsList>
 
-        {/* Basic information tab */}
-        <TabsContent value="basic">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="title">Titel van je woning</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    placeholder="Bijv. Gezellig appartement in Amsterdam"
-                    value={formData.title}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
+        <form onSubmit={handleSubmit}>
+          <TabsContent value="basic" className="space-y-4">
+            <div>
+              <Label htmlFor="title">Titel</Label>
+              <Input
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Geef je woning een titel"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="description">Beschrijving</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="Beschrijf je woning"
+                rows={5}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="address">Adres</Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                placeholder="Straat en huisnummer"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="city">Plaats</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  placeholder="Plaats"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="postalCode">Postcode</Label>
+                <Input
+                  id="postalCode"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleInputChange}
+                  placeholder="Postcode"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <Button type="button" onClick={nextTab}>
+                Volgende
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="details" className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="bedrooms">Aantal slaapkamers</Label>
+                <Select
+                  value={formData.bedrooms.toString()}
+                  onValueChange={(value) => handleSelectChange("bedrooms", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteer aantal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="4">4</SelectItem>
+                    <SelectItem value="5">5+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="bathrooms">Aantal badkamers</Label>
+                <Select
+                  value={formData.bathrooms.toString()}
+                  onValueChange={(value) => handleSelectChange("bathrooms", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteer aantal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="4">4+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="maxGuests">Maximum aantal gasten</Label>
+                <Select
+                  value={formData.maxGuests.toString()}
+                  onValueChange={(value) => handleSelectChange("maxGuests", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecteer aantal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="4">4</SelectItem>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="6">6+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="text-lg font-medium mb-4">Voorzieningen</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="wifi"
+                    checked={formData.amenities.wifi}
+                    onCheckedChange={(checked) => handleAmenityChange("wifi", checked as boolean)}
                   />
+                  <Label htmlFor="wifi">WiFi</Label>
                 </div>
 
-                <div>
-                  <Label htmlFor="description">Beschrijving</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    placeholder="Beschrijf je woning, de buurt en wat bezoekers kunnen verwachten"
-                    value={formData.description}
-                    onChange={handleChange}
-                    required
-                    rows={5}
-                    className="mt-1"
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="kitchen"
+                    checked={formData.amenities.kitchen}
+                    onCheckedChange={(checked) => handleAmenityChange("kitchen", checked as boolean)}
                   />
+                  <Label htmlFor="kitchen">Keuken</Label>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="address">Adres</Label>
-                    <Input
-                      id="address"
-                      name="address"
-                      placeholder="Straatnaam en huisnummer"
-                      value={formData.address}
-                      onChange={handleChange}
-                      required
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="city">Stad</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      placeholder="Bijv. Amsterdam"
-                      value={formData.city}
-                      onChange={handleChange}
-                      required
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="postalCode">Postcode</Label>
-                  <Input
-                    id="postalCode"
-                    name="postalCode"
-                    placeholder="Bijv. 1234 AB"
-                    value={formData.postalCode}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="heating"
+                    checked={formData.amenities.heating}
+                    onCheckedChange={(checked) => handleAmenityChange("heating", checked as boolean)}
                   />
+                  <Label htmlFor="heating">Verwarming</Label>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    onClick={() => setActiveTab("details")}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    Volgende: Details & Voorzieningen
-                  </Button>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="tv"
+                    checked={formData.amenities.tv}
+                    onCheckedChange={(checked) => handleAmenityChange("tv", checked as boolean)}
+                  />
+                  <Label htmlFor="tv">TV</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="washer"
+                    checked={formData.amenities.washer}
+                    onCheckedChange={(checked) => handleAmenityChange("washer", checked as boolean)}
+                  />
+                  <Label htmlFor="washer">Wasmachine</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="dryer"
+                    checked={formData.amenities.dryer}
+                    onCheckedChange={(checked) => handleAmenityChange("dryer", checked as boolean)}
+                  />
+                  <Label htmlFor="dryer">Droger</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="airconditioning"
+                    checked={formData.amenities.airconditioning}
+                    onCheckedChange={(checked) => handleAmenityChange("airconditioning", checked as boolean)}
+                  />
+                  <Label htmlFor="airconditioning">Airconditioning</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="parking"
+                    checked={formData.amenities.parking}
+                    onCheckedChange={(checked) => handleAmenityChange("parking", checked as boolean)}
+                  />
+                  <Label htmlFor="parking">Parkeren</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="elevator"
+                    checked={formData.amenities.elevator}
+                    onCheckedChange={(checked) => handleAmenityChange("elevator", checked as boolean)}
+                  />
+                  <Label htmlFor="elevator">Lift</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="garden"
+                    checked={formData.amenities.garden}
+                    onCheckedChange={(checked) => handleAmenityChange("garden", checked as boolean)}
+                  />
+                  <Label htmlFor="garden">Tuin</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="bbq"
+                    checked={formData.amenities.bbq}
+                    onCheckedChange={(checked) => handleAmenityChange("bbq", checked as boolean)}
+                  />
+                  <Label htmlFor="bbq">BBQ</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="petsAllowed"
+                    checked={formData.amenities.petsAllowed}
+                    onCheckedChange={(checked) => handleAmenityChange("petsAllowed", checked as boolean)}
+                  />
+                  <Label htmlFor="petsAllowed">Huisdieren toegestaan</Label>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
 
-        {/* Details & Amenities tab */}
-        <TabsContent value="details">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <Label htmlFor="bedrooms">Aantal slaapkamers</Label>
-                    <Select value={formData.bedrooms} onValueChange={(value) => handleSelectChange("bedrooms", value)}>
-                      <SelectTrigger id="bedrooms" className="mt-1">
-                        <SelectValue placeholder="Selecteer aantal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 slaapkamer</SelectItem>
-                        <SelectItem value="2">2 slaapkamers</SelectItem>
-                        <SelectItem value="3">3 slaapkamers</SelectItem>
-                        <SelectItem value="4">4 slaapkamers</SelectItem>
-                        <SelectItem value="5">5+ slaapkamers</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <div className="flex justify-between mt-6">
+              <Button type="button" variant="outline" onClick={prevTab}>
+                Terug
+              </Button>
+              <Button type="button" onClick={nextTab}>
+                Volgende
+              </Button>
+            </div>
+          </TabsContent>
 
-                  <div>
-                    <Label htmlFor="bathrooms">Aantal badkamers</Label>
-                    <Select
-                      value={formData.bathrooms}
-                      onValueChange={(value) => handleSelectChange("bathrooms", value)}
-                    >
-                      <SelectTrigger id="bathrooms" className="mt-1">
-                        <SelectValue placeholder="Selecteer aantal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 badkamer</SelectItem>
-                        <SelectItem value="2">2 badkamers</SelectItem>
-                        <SelectItem value="3">3 badkamers</SelectItem>
-                        <SelectItem value="4">4+ badkamers</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <TabsContent value="availability" className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium mb-4">Beschikbaarheid</h3>
+              <p className="text-gray-600 mb-4">Geef aan wanneer je woning beschikbaar is voor uitwisseling.</p>
 
-                  <div>
-                    <Label htmlFor="maxGuests">Maximum aantal gasten</Label>
-                    <Select
-                      value={formData.maxGuests}
-                      onValueChange={(value) => handleSelectChange("maxGuests", value)}
-                    >
-                      <SelectTrigger id="maxGuests" className="mt-1">
-                        <SelectValue placeholder="Selecteer aantal" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 gast</SelectItem>
-                        <SelectItem value="2">2 gasten</SelectItem>
-                        <SelectItem value="3">3 gasten</SelectItem>
-                        <SelectItem value="4">4 gasten</SelectItem>
-                        <SelectItem value="5">5 gasten</SelectItem>
-                        <SelectItem value="6">6+ gasten</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="mb-3 block">Voorzieningen</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="wifi"
-                        checked={formData.amenities.wifi}
-                        onCheckedChange={(checked) => handleAmenityChange("wifi", checked === true)}
-                      />
-                      <label htmlFor="wifi" className="text-sm font-medium leading-none">
-                        WiFi
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="kitchen"
-                        checked={formData.amenities.kitchen}
-                        onCheckedChange={(checked) => handleAmenityChange("kitchen", checked === true)}
-                      />
-                      <label htmlFor="kitchen" className="text-sm font-medium leading-none">
-                        Keuken
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="heating"
-                        checked={formData.amenities.heating}
-                        onCheckedChange={(checked) => handleAmenityChange("heating", checked === true)}
-                      />
-                      <label htmlFor="heating" className="text-sm font-medium leading-none">
-                        Verwarming
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="tv"
-                        checked={formData.amenities.tv}
-                        onCheckedChange={(checked) => handleAmenityChange("tv", checked === true)}
-                      />
-                      <label htmlFor="tv" className="text-sm font-medium leading-none">
-                        TV
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="washer"
-                        checked={formData.amenities.washer}
-                        onCheckedChange={(checked) => handleAmenityChange("washer", checked === true)}
-                      />
-                      <label htmlFor="washer" className="text-sm font-medium leading-none">
-                        Wasmachine
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="dryer"
-                        checked={formData.amenities.dryer}
-                        onCheckedChange={(checked) => handleAmenityChange("dryer", checked === true)}
-                      />
-                      <label htmlFor="dryer" className="text-sm font-medium leading-none">
-                        Droger
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="airconditioning"
-                        checked={formData.amenities.airconditioning}
-                        onCheckedChange={(checked) => handleAmenityChange("airconditioning", checked === true)}
-                      />
-                      <label htmlFor="airconditioning" className="text-sm font-medium leading-none">
-                        Airconditioning
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="parking"
-                        checked={formData.amenities.parking}
-                        onCheckedChange={(checked) => handleAmenityChange("parking", checked === true)}
-                      />
-                      <label htmlFor="parking" className="text-sm font-medium leading-none">
-                        Parkeerplaats
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="elevator"
-                        checked={formData.amenities.elevator}
-                        onCheckedChange={(checked) => handleAmenityChange("elevator", checked === true)}
-                      />
-                      <label htmlFor="elevator" className="text-sm font-medium leading-none">
-                        Lift
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="garden"
-                        checked={formData.amenities.garden}
-                        onCheckedChange={(checked) => handleAmenityChange("garden", checked === true)}
-                      />
-                      <label htmlFor="garden" className="text-sm font-medium leading-none">
-                        Tuin
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="bbq"
-                        checked={formData.amenities.bbq}
-                        onCheckedChange={(checked) => handleAmenityChange("bbq", checked === true)}
-                      />
-                      <label htmlFor="bbq" className="text-sm font-medium leading-none">
-                        BBQ
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="pets"
-                        checked={formData.amenities.pets}
-                        onCheckedChange={(checked) => handleAmenityChange("pets", checked === true)}
-                      />
-                      <label htmlFor="pets" className="text-sm font-medium leading-none">
-                        Huisdieren toegestaan
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={() => setActiveTab("basic")}>
-                    Terug: Basisinformatie
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setActiveTab("availability")}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    Volgende: Beschikbaarheid
-                  </Button>
-                </div>
+              <div className="mb-6">
+                <HomeAvailability homeId={home.id} isOwner={true} />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* Availability tab */}
-        <TabsContent value="availability">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Beschikbaarheid beheren</h2>
-                  <p className="text-gray-600 mb-4">
-                    Beheer wanneer je woning beschikbaar is voor huizenruil. Je kunt meerdere periodes toevoegen.
-                  </p>
-
-                  <div className="space-y-4">
-                    {isLoadingAvailabilities ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                      </div>
-                    ) : availabilities.length > 0 ? (
-                      <div className="mb-4">
-                        <h3 className="text-md font-medium mb-2">Huidige beschikbaarheid:</h3>
-                        <div className="space-y-2">
-                          {availabilities.map((availability) => (
-                            <div
-                              key={availability.id}
-                              className="flex items-center space-x-2 p-3 border rounded-md bg-gray-50"
-                            >
-                              <div className="flex-grow">
-                                <div className="flex items-center">
-                                  <Calendar className="h-4 w-4 text-gray-600 mr-2" />
-                                  <p className="font-medium">
-                                    {availability.startDate.toLocaleDateString("nl-NL")} tot{" "}
-                                    {availability.endDate.toLocaleDateString("nl-NL")}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => availability.id && handleRemoveAvailability(availability.id)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
-                        <p className="text-yellow-800">
-                          Je hebt nog geen beschikbaarheid toegevoegd. Voeg minimaal één periode toe.
-                        </p>
-                      </div>
-                    )}
-
-                    <AddAvailabilityForm onAdd={handleAddAvailability} />
-                  </div>
-                </div>
-
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={() => setActiveTab("details")}>
-                    Terug: Details & Voorzieningen
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setActiveTab("photos")}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    Volgende: Foto's
-                  </Button>
-                </div>
+              <div className="mt-8">
+                <h4 className="font-medium mb-2">Nieuwe beschikbaarheid toevoegen</h4>
+                <AddAvailabilityForm homeId={home.id} onSuccess={() => router.refresh()} />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
 
-        {/* Photos tab */}
-        <TabsContent value="photos">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-6">
-                <div>
-                  <Label className="mb-3 block">Foto's van je woning</Label>
+            <div className="flex justify-between mt-6">
+              <Button type="button" variant="outline" onClick={prevTab}>
+                Terug
+              </Button>
+              <Button type="button" onClick={nextTab}>
+                Volgende
+              </Button>
+            </div>
+          </TabsContent>
 
-                  {/* Hidden file input */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                  />
+          <TabsContent value="photos" className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium mb-4">Foto's</h3>
+              <p className="text-gray-600 mb-4">
+                Upload minimaal 3 foto's van je woning. De eerste foto wordt gebruikt als hoofdafbeelding.
+              </p>
 
-                  {/* Photo upload area */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Upload button */}
-                    <div
-                      onClick={triggerFileInput}
-                      className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors"
-                    >
-                      <div className="flex flex-col items-center justify-center h-40">
-                        {uploadingImages ? (
-                          <Loader2 className="h-10 w-10 text-gray-400 mb-2 animate-spin" />
-                        ) : (
-                          <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                        )}
-                        <p className="text-sm text-gray-600">
-                          {uploadingImages ? "Bezig met uploaden..." : "Klik om foto's te uploaden"}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">(of sleep bestanden hierheen)</p>
-                      </div>
-                    </div>
-
-                    {/* Uploaded photos */}
-                    {formData.images.map((imageUrl, index) => (
-                      <div key={index} className="relative border rounded-lg overflow-hidden h-40">
-                        <Image
-                          src={imageUrl || "/placeholder.svg"}
-                          alt={`Woning foto ${index + 1}`}
-                          fill
-                          style={{ objectFit: "cover" }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
-                          aria-label="Verwijder foto"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-
-                    {/* Placeholder slots for additional photos */}
-                    {formData.images.length > 0 && formData.images.length < 5 && (
-                      <div
-                        onClick={triggerFileInput}
-                        className="border-2 border-dashed rounded-lg p-4 text-center hover:bg-gray-50 cursor-pointer transition-colors"
+              {formData.images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  {formData.images.map((image, index) => (
+                    <div key={index} className="relative h-40 rounded-lg overflow-hidden group">
+                      <Image
+                        src={image || "/placeholder.svg"}
+                        alt={`Woning foto ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Verwijder foto"
                       >
-                        <div className="flex flex-col items-center justify-center h-40">
-                          <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
-                          <p className="text-sm text-gray-600">Voeg meer foto's toe</p>
+                        <X className="h-4 w-4" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2">
+                          Hoofdafbeelding
                         </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="text-sm text-gray-500 mt-2">
-                    Upload minimaal 3 foto's van je woning. Zorg voor een foto van de buitenkant, woonkamer en
-                    slaapkamer.
-                  </p>
-
-                  {formData.images.length < 3 && (
-                    <p className="text-sm text-red-500 mt-1">
-                      Je moet nog {3 - formData.images.length} foto('s) uploaden.
-                    </p>
-                  )}
+                      )}
+                    </div>
+                  ))}
                 </div>
+              )}
 
-                <div className="flex justify-between">
-                  <Button type="button" variant="outline" onClick={() => setActiveTab("availability")}>
-                    Terug: Beschikbaarheid
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting || formData.images.length < 3}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    {isSubmitting ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
-                  </Button>
+              <div className="mt-4">
+                <Label htmlFor="images" className="sr-only">
+                  Foto's uploaden
+                </Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="mt-4">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer rounded-md bg-white font-medium text-primary hover:text-primary/80"
+                    >
+                      <span>Upload foto's</span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        className="sr-only"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImages}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF tot 10MB</p>
+                  </div>
+                  {uploadingImages && <p className="mt-2 text-sm text-gray-500">Bezig met uploaden...</p>}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+
+              {formData.images.length < 3 && (
+                <p className="text-amber-600 mt-2">
+                  Nog {3 - formData.images.length} foto's nodig (minimaal 3 vereist)
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-between mt-6">
+              <Button type="button" variant="outline" onClick={prevTab}>
+                Terug
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || formData.images.length < 3}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {isSubmitting ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
+              </Button>
+            </div>
+          </TabsContent>
+        </form>
       </Tabs>
-    </form>
+    </div>
   )
 }

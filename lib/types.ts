@@ -36,18 +36,24 @@ export interface Home {
   city: string
   postal_code?: string
   postalCode?: string
+  images: string[] | string
   bedrooms: number
   bathrooms: number
   max_guests?: number
   maxGuests?: number
-  userId?: string
+  price_per_night?: number
+  pricePerNight?: number
+  amenities: any
   user_id?: string
-  userName?: string
+  userId?: string
   host_name?: string
-  images: any // This can be a string (JSON) or an array
-  amenities: any // This can be a string (JSON) or an object
+  hostName?: string
   rating?: number
   reviewCount?: number
+  created_at?: string
+  createdAt?: string
+  updated_at?: string
+  updatedAt?: string
 }
 
 export interface Availability {
