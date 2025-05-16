@@ -13,10 +13,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Home ID is required" }, { status: 400 })
     }
 
+    console.log(`Fetching availabilities for home ID: ${homeId}`) // Debug log
+
     const availabilities = await executeQuery(
       "SELECT * FROM availabilities WHERE home_id = $1 ORDER BY start_date ASC",
       [homeId],
     )
+
+    console.log(`Found ${availabilities.length} availabilities`) // Debug log
 
     return NextResponse.json(availabilities)
   } catch (error) {
@@ -62,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Maak de beschikbaarheid aan
     const result = await executeQuery(
-      "INSERT INTO availabilities (home_id, start_date, end_date) VALUES ($1, $2, $3) RETURNING *",
+      "INSERT INTO availabilities (home_id, start_date, end_date, status) VALUES ($1, $2, $3, 'available') RETURNING *",
       [homeId, startDate, endDate],
     )
 
