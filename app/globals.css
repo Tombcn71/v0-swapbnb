@@ -54,3 +54,17 @@
 body {
   @apply bg-background text-foreground;
 }
+
+.popover-content {
+  z-index: 50 !important;
+}
+
+/* Make sure the calendar is interactive */
+.rdp-button {
+  cursor: pointer !important;
+}
+
+/* Ensure the calendar is visible */
+.rdp {
+  margin: 0 !important;
+}

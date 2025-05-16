@@ -5,7 +5,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { nl } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { addMonths } from "date-fns"
+import { addMonths, format } from "date-fns"
+import type { DateRange } from "react-day-picker"
 
 interface HomeAvailabilityProps {
   homeId: string
@@ -75,6 +76,16 @@ export function HomeAvailability({ homeId }: HomeAvailabilityProps) {
     })
   }
 
+  // Create date ranges for the calendar
+  const getDateRanges = (): DateRange[] => {
+    return availabilities
+      .filter((a) => a.status === "available")
+      .map((a) => ({
+        from: new Date(a.start_date),
+        to: new Date(a.end_date),
+      }))
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -104,21 +115,27 @@ export function HomeAvailability({ homeId }: HomeAvailabilityProps) {
       </div>
       <div className="border rounded-lg p-4">
         <Calendar
-          mode="single"
+          mode="multiple"
           month={selectedMonth}
           onMonthChange={setSelectedMonth}
           className="rounded-md"
           locale={nl}
-          modifiers={{
-            available: (date) => isDateAvailable(date),
-          }}
+          selected={getDateRanges().flatMap((range) => {
+            const dates = []
+            const current = new Date(range.from)
+            while (current <= range.to) {
+              dates.push(new Date(current))
+              current.setDate(current.getDate() + 1)
+            }
+            return dates
+          })}
           modifiersStyles={{
-            available: { backgroundColor: "#dcfce7" },
+            selected: { backgroundColor: "#dcfce7", color: "#000" },
           }}
-          disabled={(date) => !isDateAvailable(date)}
           numberOfMonths={1}
           fromMonth={new Date()} // Sta niet toe om naar het verleden te navigeren
           toMonth={addMonths(new Date(), 24)} // Sta toe om tot 2 jaar in de toekomst te navigeren
+          disabled={(date) => !isDateAvailable(date)}
         />
       </div>
       <p className="text-sm text-gray-600 mt-4">
@@ -134,8 +151,8 @@ export function HomeAvailability({ homeId }: HomeAvailabilityProps) {
               <div className="flex justify-between items-center">
                 <div>
                   <span className="font-medium">
-                    {new Date(availability.start_date).toLocaleDateString("nl-NL")} tot{" "}
-                    {new Date(availability.end_date).toLocaleDateString("nl-NL")}
+                    {format(new Date(availability.start_date), "d MMMM yyyy", { locale: nl })} tot{" "}
+                    {format(new Date(availability.end_date), "d MMMM yyyy", { locale: nl })}
                   </span>
                 </div>
                 <Badge variant={availability.status === "available" ? "outline" : "secondary"} className="bg-green-50">

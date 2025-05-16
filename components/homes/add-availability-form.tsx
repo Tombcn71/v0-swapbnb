@@ -9,6 +9,7 @@ import { CalendarIcon, Plus } from "lucide-react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
+import type { DateRange } from "react-day-picker"
 
 interface AddAvailabilityFormProps {
   onAdd: (startDate: Date, endDate: Date) => void
@@ -16,24 +17,17 @@ interface AddAvailabilityFormProps {
 
 export function AddAvailabilityForm({ onAdd }: AddAvailabilityFormProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined)
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  })
   const { toast } = useToast()
 
   const handleAddAvailability = () => {
-    if (!startDate || !endDate) {
+    if (!dateRange?.from || !dateRange?.to) {
       toast({
         title: "Selecteer data",
         description: "Selecteer zowel een begin- als einddatum",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (endDate < startDate) {
-      toast({
-        title: "Ongeldige datums",
-        description: "De einddatum moet na de begindatum liggen",
         variant: "destructive",
       })
       return
@@ -43,7 +37,7 @@ export function AddAvailabilityForm({ onAdd }: AddAvailabilityFormProps) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    if (startDate < today) {
+    if (dateRange.from < today) {
       toast({
         title: "Ongeldige begindatum",
         description: "De begindatum kan niet in het verleden liggen",
@@ -52,17 +46,15 @@ export function AddAvailabilityForm({ onAdd }: AddAvailabilityFormProps) {
       return
     }
 
-    onAdd(startDate, endDate)
-    setStartDate(undefined)
-    setEndDate(undefined)
+    onAdd(dateRange.from, dateRange.to)
+    setDateRange({ from: undefined, to: undefined })
     setIsOpen(false)
   }
 
   const toggleForm = () => {
     setIsOpen(!isOpen)
     if (!isOpen) {
-      setStartDate(undefined)
-      setEndDate(undefined)
+      setDateRange({ from: undefined, to: undefined })
     }
   }
 
@@ -82,69 +74,55 @@ export function AddAvailabilityForm({ onAdd }: AddAvailabilityFormProps) {
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Begindatum</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? (
-                          format(startDate, "d MMMM yyyy", { locale: nl })
+              <div>
+                <label className="block text-sm font-medium mb-2">Selecteer beschikbaarheidsperiode</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "d MMM yyyy", { locale: nl })} -{" "}
+                            {format(dateRange.to, "d MMM yyyy", { locale: nl })}
+                          </>
                         ) : (
-                          <span>Selecteer begindatum</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                        locale={nl}
-                        disabled={(date) => {
-                          const today = new Date()
-                          today.setHours(0, 0, 0, 0)
-                          return date < today
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Einddatum</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "d MMMM yyyy", { locale: nl }) : <span>Selecteer einddatum</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        initialFocus
-                        locale={nl}
-                        disabled={(date) => {
-                          const today = new Date()
-                          today.setHours(0, 0, 0, 0)
-                          return date < today || (startDate ? date < startDate : false)
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                          format(dateRange.from, "d MMMM yyyy", { locale: nl })
+                        )
+                      ) : (
+                        <span>Selecteer een periode</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={new Date()}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      locale={nl}
+                      disabled={(date) => {
+                        const today = new Date()
+                        today.setHours(0, 0, 0, 0)
+                        return date < today
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={toggleForm}>
                   Annuleren
                 </Button>
-                <Button type="button" onClick={handleAddAvailability} className="bg-google-blue hover:bg-blue-600">
+                <Button
+                  type="button"
+                  onClick={handleAddAvailability}
+                  className="bg-google-blue hover:bg-blue-600"
+                  disabled={!dateRange?.from || !dateRange?.to}
+                >
                   Toevoegen
                 </Button>
               </div>
