@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { executeQuery } from "@/lib/db"
+import { sql } from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
@@ -15,10 +15,17 @@ export async function GET(request: NextRequest) {
 
     console.log(`Fetching availabilities for home ID: ${homeId}`) // Debug log
 
-    const availabilities = await executeQuery(
-      "SELECT * FROM availabilities WHERE home_id = $1 ORDER BY start_date ASC",
-      [homeId],
-    )
+    const { rows: availabilities } = await sql`
+      SELECT 
+        id, 
+        home_id as "homeId", 
+        start_date as "startDate", 
+        end_date as "endDate", 
+        status
+      FROM availabilities 
+      WHERE home_id = ${homeId} 
+      ORDER BY start_date ASC
+    `
 
     console.log(`Found ${availabilities.length} availabilities`) // Debug log
 
@@ -38,45 +45,69 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { homeId, startDate, endDate } = await request.json()
+    const body = await request.json()
+    const { homeId, startDate, endDate } = body
 
     // Valideer input
     if (!homeId || !startDate || !endDate) {
-      return NextResponse.json({ error: "Home ID, start date, and end date are required" }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: "Home ID, start date, and end date are required",
+          received: { homeId, startDate, endDate },
+        },
+        { status: 400 },
+      )
     }
 
     console.log(`Creating availability for home ${homeId}: ${startDate} to ${endDate}`)
 
     // Controleer of de woning bestaat en van de gebruiker is
-    const homes = await executeQuery("SELECT * FROM homes WHERE id = $1 AND user_id = $2", [homeId, session.user.id])
+    const { rows: homes } = await sql`
+      SELECT * FROM homes WHERE id = ${homeId} AND user_id = ${session.user.id}
+    `
 
     if (homes.length === 0) {
       return NextResponse.json({ error: "Home not found or you are not the owner" }, { status: 404 })
     }
 
     // Controleer of er overlappende beschikbaarheden zijn
-    const overlapping = await executeQuery(
-      `SELECT * FROM availabilities 
-       WHERE home_id = $1 
-       AND ((start_date <= $2 AND end_date >= $2) OR (start_date <= $3 AND end_date >= $3) OR (start_date >= $2 AND end_date <= $3))`,
-      [homeId, startDate, endDate],
-    )
+    const { rows: overlapping } = await sql`
+      SELECT * FROM availabilities 
+      WHERE home_id = ${homeId} 
+      AND (
+        (start_date <= ${startDate} AND end_date >= ${startDate}) 
+        OR (start_date <= ${endDate} AND end_date >= ${endDate}) 
+        OR (start_date >= ${startDate} AND end_date <= ${endDate})
+      )
+    `
 
     if (overlapping.length > 0) {
       return NextResponse.json({ error: "Overlapping availability periods" }, { status: 400 })
     }
 
     // Maak de beschikbaarheid aan
-    const result = await executeQuery(
-      "INSERT INTO availabilities (home_id, start_date, end_date, status) VALUES ($1, $2, $3, 'available') RETURNING *",
-      [homeId, startDate, endDate],
-    )
+    const { rows: result } = await sql`
+      INSERT INTO availabilities (home_id, start_date, end_date, status) 
+      VALUES (${homeId}, ${startDate}, ${endDate}, 'available') 
+      RETURNING 
+        id, 
+        home_id as "homeId", 
+        start_date as "startDate", 
+        end_date as "endDate", 
+        status
+    `
 
     console.log(`Created availability: ${JSON.stringify(result[0])}`)
 
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {
     console.error("Error creating availability:", error)
-    return NextResponse.json({ error: "Failed to create availability" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to create availability",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
