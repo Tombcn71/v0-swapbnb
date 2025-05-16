@@ -4,37 +4,50 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
-import { MessageSquare, Calendar, RefreshCw } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { CalendarIcon, Send } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
+import type { Home } from "@/lib/types"
 
 interface HomeContactProps {
-  ownerId: string
-  ownerName: string
-  homeId: string
+  home: Home
+  userId?: string
 }
 
-export function HomeContact({ ownerId, ownerName, homeId }: HomeContactProps) {
+export function HomeContact({ home, userId }: HomeContactProps) {
   const [message, setMessage] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
+  const [date, setDate] = useState<Date | undefined>(undefined)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!message.trim()) {
+    if (!userId) {
       toast({
-        title: "Bericht is verplicht",
-        description: "Voer een bericht in voor de eigenaar",
+        title: "Je bent niet ingelogd",
+        description: "Log in om een bericht te sturen",
         variant: "destructive",
       })
       return
     }
 
-    setIsLoading(true)
+    if (!message) {
+      toast({
+        title: "Bericht is leeg",
+        description: "Voer een bericht in",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
 
     try {
       const response = await fetch("/api/messages", {
@@ -43,8 +56,9 @@ export function HomeContact({ ownerId, ownerName, homeId }: HomeContactProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          receiverId: ownerId,
+          recipientId: home.user_id || home.userId,
           content: message,
+          homeId: home.id,
         }),
       })
 
@@ -54,61 +68,86 @@ export function HomeContact({ ownerId, ownerName, homeId }: HomeContactProps) {
 
       toast({
         title: "Bericht verzonden",
-        description: `Je bericht is verzonden naar ${ownerName}`,
+        description: "Je bericht is succesvol verzonden",
       })
 
-      // Navigeer naar de berichtenpagina
-      router.push(`/messages/${ownerId}`)
+      setMessage("")
+      router.refresh()
     } catch (error) {
+      console.error("Error sending message:", error)
       toast({
-        title: "Er is iets misgegaan",
-        description: "Probeer het later opnieuw",
+        title: "Fout bij verzenden",
+        description: "Er is een fout opgetreden bij het verzenden van je bericht",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit(e)
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-4">
-        <label htmlFor="message" className="block text-sm font-medium mb-2">
-          Bericht aan {ownerName}
-        </label>
-        <Textarea
-          id="message"
-          placeholder={`Hallo ${ownerName}, ik ben geïnteresseerd in een huizenruil...`}
-          rows={5}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          required
-        />
-      </div>
-      <div className="space-y-3">
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          <MessageSquare className="mr-2 h-4 w-4" />
-          {isLoading ? "Bericht verzenden..." : "Stuur bericht"}
-        </Button>
-        <Button type="button" variant="outline" className="w-full" asChild>
-          <Link href={`/homes/${homeId}/exchange`}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Vraag uitwisseling aan
-          </Link>
-        </Button>
-        <Button type="button" variant="outline" className="w-full">
-          <Calendar className="mr-2 h-4 w-4" />
-          Bekijk beschikbaarheid
-        </Button>
-      </div>
-    </form>
+    <Card className="sticky top-4">
+      <CardHeader>
+        <CardTitle>Contact opnemen</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {userId ? (
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="message" className="block text-sm font-medium mb-1">
+                  Stuur een bericht naar {home.host_name}
+                </label>
+                <Textarea
+                  id="message"
+                  placeholder="Stel een vraag of vraag naar beschikbaarheid..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="date" className="block text-sm font-medium mb-1">
+                  Gewenste datum (optioneel)
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal" id="date">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "PPP") : <span>Kies een datum</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
+              {isSubmitting ? (
+                "Verzenden..."
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" /> Bericht versturen
+                </>
+              )}
+            </Button>
+          </form>
+        ) : (
+          <div className="text-center py-4">
+            <p className="mb-4">Log in om contact op te nemen met de eigenaar</p>
+            <Button asChild className="w-full">
+              <Link href="/login">Inloggen</Link>
+            </Button>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex flex-col items-start">
+        <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
+      </CardFooter>
+    </Card>
   )
 }

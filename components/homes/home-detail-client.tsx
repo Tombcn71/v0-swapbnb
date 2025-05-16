@@ -36,11 +36,8 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
   const router = useRouter()
   const { toast } = useToast()
 
-  // Parse images if it's a string
-  const parsedImages = typeof home.images === "string" ? JSON.parse(home.images) : home.images || []
-
-  // Use the images array from the home data or a fallback
-  const images = parsedImages.length > 0 ? parsedImages : ["/placeholder.svg?key=d9tko"]
+  // Ensure images is always an array
+  const images = Array.isArray(home.images) && home.images.length > 0 ? home.images : ["/cozy-suburban-house.png"]
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
@@ -50,8 +47,8 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  // Parse amenities if it's a string
-  const amenities = typeof home.amenities === "string" ? JSON.parse(home.amenities) : home.amenities || {}
+  // Ensure amenities is always an object
+  const amenities = home.amenities && typeof home.amenities === "object" ? home.amenities : {}
 
   const handleDeleteHome = async () => {
     if (!isOwner) return
@@ -156,9 +153,9 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
           <Image
             src={
               images[currentImageIndex] ||
-              `/abstract-geometric-shapes.png?height=800&width=1200&query=${home.title || "/placeholder.svg"} main`
+              `/abstract-geometric-shapes.png?height=800&width=1200&query=${home.title || "house"}`
             }
-            alt={home.title}
+            alt={home.title || "Property image"}
             fill
             className="object-cover"
           />
@@ -166,32 +163,43 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
         <div className="grid grid-cols-2 gap-4">
           <div className="relative h-44 rounded-lg overflow-hidden">
             <Image
-              src={images[1] || `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title} living`}
-              alt={`${home.title} - Woonkamer`}
+              src={
+                images[1] || `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title || "house"} living`
+              }
+              alt={`${home.title || "Property"} - Woonkamer`}
               fill
               className="object-cover"
             />
           </div>
           <div className="relative h-44 rounded-lg overflow-hidden">
             <Image
-              src={images[2] || `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title} bedroom`}
-              alt={`${home.title} - Slaapkamer`}
+              src={
+                images[2] ||
+                `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title || "house"} bedroom`
+              }
+              alt={`${home.title || "Property"} - Slaapkamer`}
               fill
               className="object-cover"
             />
           </div>
           <div className="relative h-44 rounded-lg overflow-hidden">
             <Image
-              src={images[3] || `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title} kitchen`}
-              alt={`${home.title} - Keuken`}
+              src={
+                images[3] ||
+                `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title || "house"} kitchen`
+              }
+              alt={`${home.title || "Property"} - Keuken`}
               fill
               className="object-cover"
             />
           </div>
           <div className="relative h-44 rounded-lg overflow-hidden">
             <Image
-              src={images[4] || `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title} bathroom`}
-              alt={`${home.title} - Badkamer`}
+              src={
+                images[4] ||
+                `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title || "house"} bathroom`
+              }
+              alt={`${home.title || "Property"} - Badkamer`}
               fill
               className="object-cover"
             />
@@ -204,17 +212,17 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
           <div className="flex items-center mb-6">
             <div className="relative h-12 w-12 rounded-full overflow-hidden mr-4">
               <Image
-                src={`/abstract-geometric-shapes.png?height=100&width=100&query=${home.host_name}`}
-                alt={home.host_name}
+                src={`/abstract-geometric-shapes.png?height=100&width=100&query=${home.host_name || "host"}`}
+                alt={home.host_name || "Host"}
                 fill
                 className="object-cover"
               />
             </div>
             <div>
-              <h2 className="font-semibold">Woning van {home.host_name}</h2>
+              <h2 className="font-semibold">Woning van {home.host_name || "Eigenaar"}</h2>
               <p className="text-gray-600 text-sm">
                 {home.bedrooms} slaapkamer{home.bedrooms !== 1 && "s"} · {home.bathrooms} badkamer
-                {home.bathrooms !== 1 && "s"} · Max. {home.max_guests} gasten
+                {home.bathrooms !== 1 && "s"} · Max. {home.max_guests || home.maxGuests} gasten
               </p>
             </div>
           </div>
@@ -242,7 +250,7 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
                 </span>
               </div>
               <div className="flex items-center">
-                <span>Max. {home.max_guests} gasten</span>
+                <span>Max. {home.max_guests || home.maxGuests} gasten</span>
               </div>
               <div className="flex items-center">
                 <span>{home.city}</span>
@@ -286,7 +294,7 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
               <TabsTrigger value="reviews">Beoordelingen</TabsTrigger>
             </TabsList>
             <TabsContent value="availability">
-              <HomeAvailability homeId={home.id} />
+              <HomeAvailability homeId={home.id} isOwner={isOwner} />
             </TabsContent>
             <TabsContent value="reviews">
               <HomeReviews homeId={home.id} />

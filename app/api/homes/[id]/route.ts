@@ -46,14 +46,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     console.log(`Found ${reviews.length} reviews`)
 
-    // Combine the data
-    const result = {
+    // Process the home data to ensure it has the expected format
+    const processedHome = {
       ...home[0],
+      // Parse the images JSON if it's a string
+      images: typeof home[0].images === "string" ? JSON.parse(home[0].images) : home[0].images || [],
+      // Parse the amenities JSON if it's a string
+      amenities: typeof home[0].amenities === "string" ? JSON.parse(home[0].amenities) : home[0].amenities || {},
       availabilities,
       reviews,
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(processedHome)
   } catch (error) {
     console.error("Error fetching home:", error)
     return NextResponse.json({ error: "Failed to fetch home" }, { status: 500 })
@@ -124,7 +128,20 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       [homeId],
     )
 
-    return NextResponse.json(updatedHome[0])
+    // Process the home data
+    const processedHome = {
+      ...updatedHome[0],
+      // Parse the images JSON if it's a string
+      images:
+        typeof updatedHome[0].images === "string" ? JSON.parse(updatedHome[0].images) : updatedHome[0].images || [],
+      // Parse the amenities JSON if it's a string
+      amenities:
+        typeof updatedHome[0].amenities === "string"
+          ? JSON.parse(updatedHome[0].amenities)
+          : updatedHome[0].amenities || {},
+    }
+
+    return NextResponse.json(processedHome)
   } catch (error) {
     console.error("Error updating home:", error)
     return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
