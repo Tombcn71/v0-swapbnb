@@ -36,18 +36,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const body = await request.json()
 
     // Verify the user owns this home
-    const { rows } = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [homeId])
+    const homes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [homeId])
 
-    if (rows.length === 0) {
+    if (!homes || homes.length === 0) {
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    if (rows[0].user_id !== session.user.id) {
+    if (homes[0].user_id !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
     // Update the home
-    const { title, description, address, city, postal_code, bedrooms, bathrooms, max_guests, amenities, images } = body
+    const { title, description, address, city, postalCode, bedrooms, bathrooms, maxGuests, amenities, images } = body
 
     const result = await executeQuery(
       `UPDATE homes
@@ -70,15 +70,19 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         description,
         address,
         city,
-        postal_code,
+        postalCode,
         bedrooms,
         bathrooms,
-        max_guests,
+        maxGuests,
         JSON.stringify(amenities),
         JSON.stringify(images),
         homeId,
       ],
     )
+
+    if (!result || result.length === 0) {
+      return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
+    }
 
     return NextResponse.json(result[0])
   } catch (error) {
@@ -98,13 +102,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const homeId = params.id
 
     // Verify the user owns this home
-    const { rows } = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [homeId])
+    const homes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [homeId])
 
-    if (rows.length === 0) {
+    if (!homes || homes.length === 0) {
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    if (rows[0].user_id !== session.user.id) {
+    if (homes[0].user_id !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
