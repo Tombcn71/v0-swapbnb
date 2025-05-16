@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth"
 import { redirect, notFound } from "next/navigation"
 import { EditHomeForm } from "@/components/homes/edit-home-form"
 import { authOptions } from "@/lib/auth"
-import { sql } from "@/lib/db"
+import { executeQuery } from "@/lib/db"
 
 export default async function EditHomePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -12,12 +12,9 @@ export default async function EditHomePage({ params }: { params: { id: string } 
   }
 
   try {
-    console.log("Edit page - Home ID:", params.id)
-    console.log("Edit page - User ID:", session.user.id)
-
-    // Use sql template literal instead of executeQuery
-    const { rows: homes } = await sql`
-      SELECT 
+    // Use executeQuery to maintain consistency with other parts of the app
+    const homes = await executeQuery(
+      `SELECT 
         h.id, 
         h.title, 
         h.description, 
@@ -31,32 +28,25 @@ export default async function EditHomePage({ params }: { params: { id: string } 
         h.amenities,
         h.user_id as "userId"
       FROM homes h
-      WHERE h.id = ${params.id}
-    `
+      WHERE h.id = $1`,
+      [params.id],
+    )
 
     if (!homes || homes.length === 0) {
       return notFound()
     }
 
-    const home = homes[0]
-
     // Process the home data to ensure it has the expected format
     const processedHome = {
-      ...home,
+      ...homes[0],
       // Parse the images JSON if it's a string
-      images: typeof home.images === "string" ? JSON.parse(home.images) : home.images || [],
+      images: typeof homes[0].images === "string" ? JSON.parse(homes[0].images) : homes[0].images || [],
       // Parse the amenities JSON if it's a string
-      amenities: typeof home.amenities === "string" ? JSON.parse(home.amenities) : home.amenities || {},
+      amenities: typeof homes[0].amenities === "string" ? JSON.parse(homes[0].amenities) : homes[0].amenities || {},
     }
-
-    console.log("Edit page - Home owner ID:", processedHome.userId)
-    console.log("Edit page - Are IDs equal?", processedHome.userId === session.user.id)
-    console.log("Edit page - Home owner ID type:", typeof processedHome.userId)
-    console.log("Edit page - Session user ID type:", typeof session.user.id)
 
     // Convert both IDs to strings for comparison
     if (String(processedHome.userId) !== String(session.user.id)) {
-      console.log("Edit page - User is not the owner, redirecting")
       redirect("/")
     }
 

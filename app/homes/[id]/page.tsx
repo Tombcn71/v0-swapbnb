@@ -9,7 +9,6 @@ export default async function HomePage({ params }: { params: { id: string } }) {
   const userId = session?.user?.id
 
   try {
-    // Simple query to get the home data
     const homes = await executeQuery(
       `SELECT h.*, u.name as host_name
        FROM homes h
@@ -24,7 +23,7 @@ export default async function HomePage({ params }: { params: { id: string } }) {
 
     const home = homes[0]
 
-    // Process images and amenities if they're stored as JSON strings
+    // Process the home data to ensure it has the expected format
     const processedHome = {
       ...home,
       images: typeof home.images === "string" ? JSON.parse(home.images) : home.images || [],
