@@ -1,7 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { sql } from "@/lib/db"
+import { neon } from "@neondatabase/serverless"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+
+// Directe database verbinding
+const db = neon(process.env.DATABASE_URL!)
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -18,19 +21,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // Controleer of de beschikbaarheid bestaat en van de gebruiker is
-    const checkResult = await sql`
-      SELECT a.id 
-      FROM availabilities a
-      JOIN homes h ON a.home_id = h.id
-      WHERE a.id = ${id}::uuid AND h.user_id = ${session.user.id}::uuid
-    `
+    const availabilities = await db.query(
+      `SELECT a.id FROM availabilities a
+       JOIN homes h ON a.home_id = h.id
+       WHERE a.id = $1 AND h.user_id = $2`,
+      [id, session.user.id],
+    )
 
-    if (checkResult.rows.length === 0) {
+    if (!availabilities || availabilities.length === 0) {
       return NextResponse.json({ error: "Availability not found or you are not the owner" }, { status: 404 })
     }
 
     // Verwijder de beschikbaarheid
-    await sql`DELETE FROM availabilities WHERE id = ${id}::uuid`
+    await db.query(`DELETE FROM availabilities WHERE id = $1`, [id])
 
     return NextResponse.json({ success: true })
   } catch (error) {
