@@ -50,7 +50,7 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
         const data = await response.json()
         console.log("Fetched availabilities:", data)
 
-        setAvailabilities(data)
+        setAvailabilities(data || [])
       } catch (err) {
         console.error("Error fetching availabilities:", err)
         setError("Error loading availabilities. Please try again later.")
@@ -101,11 +101,22 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
     }
   }
 
+  // Function to safely parse a date string
+  const parseDate = (dateStr: string | undefined): Date => {
+    if (!dateStr) return new Date()
+    try {
+      return new Date(dateStr)
+    } catch (e) {
+      console.error("Error parsing date:", dateStr, e)
+      return new Date()
+    }
+  }
+
   // Function to determine if a date is within any availability period
   const isDateAvailable = (date: Date) => {
     return availabilities.some((availability) => {
-      const startDate = new Date(availability.start_date || availability.startDate || "")
-      const endDate = new Date(availability.end_date || availability.endDate || "")
+      const startDate = parseDate(availability.start_date || availability.startDate)
+      const endDate = parseDate(availability.end_date || availability.endDate)
       return date >= startDate && date <= endDate
     })
   }
@@ -166,15 +177,15 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-medium">
-                        {format(new Date(availability.start_date || availability.startDate || ""), "PPP", {
+                        {format(parseDate(availability.start_date || availability.startDate), "PPP", {
                           locale: nl,
                         })}{" "}
-                        - {format(new Date(availability.end_date || availability.endDate || ""), "PPP", { locale: nl })}
+                        - {format(parseDate(availability.end_date || availability.endDate), "PPP", { locale: nl })}
                       </p>
                       <p className="text-sm text-gray-500">
                         {Math.ceil(
-                          (new Date(availability.end_date || availability.endDate || "").getTime() -
-                            new Date(availability.start_date || availability.startDate || "").getTime()) /
+                          (parseDate(availability.end_date || availability.endDate).getTime() -
+                            parseDate(availability.start_date || availability.startDate).getTime()) /
                             (1000 * 60 * 60 * 24),
                         )}{" "}
                         dagen

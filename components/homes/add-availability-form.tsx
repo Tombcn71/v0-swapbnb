@@ -49,6 +49,12 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
     try {
       setIsSubmitting(true)
 
+      // Format dates to ISO string
+      const startDate = dateRange.from.toISOString()
+      const endDate = dateRange.to.toISOString()
+
+      console.log("Sending availability data:", { homeId, startDate, endDate })
+
       const response = await fetch("/api/availabilities", {
         method: "POST",
         headers: {
@@ -56,24 +62,24 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
         },
         body: JSON.stringify({
           homeId,
-          startDate: dateRange.from.toISOString(),
-          endDate: dateRange.to.toISOString(),
+          startDate,
+          endDate,
         }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to add availability")
-      }
+      const responseData = await response.json()
+      console.log("API response:", responseData)
 
-      const newAvailability = await response.json()
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to add availability")
+      }
 
       toast({
         title: "Beschikbaarheid toegevoegd",
         description: "De beschikbaarheidsperiode is succesvol toegevoegd",
       })
 
-      onSuccess(newAvailability)
+      onSuccess(responseData)
       setDateRange({ from: undefined, to: undefined })
     } catch (error) {
       console.error("Error adding availability:", error)
@@ -133,7 +139,6 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
         <Button
           type="button"
           onClick={handleAddAvailability}
-          className="bg-google-blue hover:bg-blue-600"
           disabled={!dateRange?.from || !dateRange?.to || isSubmitting}
         >
           {isSubmitting ? "Bezig met toevoegen..." : "Toevoegen"}
