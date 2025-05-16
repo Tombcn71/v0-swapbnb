@@ -1,12 +1,15 @@
 import { getServerSession } from "next-auth"
-import { notFound } from "next/navigation"
-import { HomeDetailClient } from "@/components/homes/home-detail-client"
+import { redirect, notFound } from "next/navigation"
+import { EditHomeForm } from "@/components/homes/edit-home-form"
 import { authOptions } from "@/lib/auth"
 import { sql } from "@/lib/db"
 
-export default async function HomePage({ params }: { params: { id: string } }) {
+export default async function EditHomePage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
-  const userId = session?.user?.id
+
+  if (!session) {
+    redirect("/login")
+  }
 
   try {
     const { rows } = await sql`
@@ -20,11 +23,8 @@ export default async function HomePage({ params }: { params: { id: string } }) {
         h.bathrooms, 
         h.max_guests as "maxGuests", 
         h.price_per_night as "pricePerNight", 
-        h.user_id as "userId",
-        u.name as "ownerName",
-        u.email as "ownerEmail"
+        h.user_id as "userId"
       FROM homes h
-      JOIN users u ON h.user_id = u.id
       WHERE h.id = ${params.id}
     `
 
@@ -33,9 +33,17 @@ export default async function HomePage({ params }: { params: { id: string } }) {
     }
 
     const home = rows[0]
-    const isOwner = userId === home.userId
 
-    return <HomeDetailClient home={home} isOwner={isOwner} />
+    // Check if the current user is the owner of the home
+    if (home.userId !== session.user.id) {
+      redirect("/")
+    }
+
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <EditHomeForm home={home} />
+      </div>
+    )
   } catch (error) {
     console.error("Error fetching home:", error)
     return notFound()

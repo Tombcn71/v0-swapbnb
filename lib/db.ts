@@ -1,7 +1,9 @@
 import { neon } from "@neondatabase/serverless"
+import { NeonHttpDatabase } from "drizzle-neon"
+import { drizzle } from "drizzle-orm/neon-http"
 
 // Create a SQL client with the connection string
-const sql = neon(process.env.DATABASE_URL!)
+export const sql = neon(process.env.DATABASE_URL!)
 
 // Helper function to execute raw SQL queries
 export async function executeQuery(query: string, params: any[] = []) {
@@ -22,3 +24,7 @@ export async function executeQuery(query: string, params: any[] = []) {
     throw error
   }
 }
+
+// Drizzle Neon HTTP Database
+const client = new NeonHttpDatabase(process.env.DATABASE_URL!)
+export const db = drizzle(client)
