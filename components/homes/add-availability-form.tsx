@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -22,6 +22,21 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
     to: undefined,
   })
   const { toast } = useToast()
+
+  // Log for debugging
+  console.log("AddAvailabilityForm - received homeId:", homeId)
+
+  // Validate homeId on mount
+  useEffect(() => {
+    if (!homeId) {
+      console.error("AddAvailabilityForm - No homeId provided")
+      toast({
+        title: "Fout",
+        description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",
+        variant: "destructive",
+      })
+    }
+  }, [homeId, toast])
 
   const handleAddAvailability = async () => {
     if (!homeId) {
@@ -101,6 +116,10 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (!homeId) {
+    return <div className="text-red-500 p-4">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</div>
   }
 
   return (

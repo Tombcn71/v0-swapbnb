@@ -36,10 +36,21 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
   const router = useRouter()
   const { toast } = useToast()
 
+  // Log for debugging
+  console.log("HomeAvailability - received homeId:", homeId)
+
   useEffect(() => {
     async function fetchAvailabilities() {
+      if (!homeId) {
+        console.error("HomeAvailability - No homeId provided")
+        setError("Woning ID ontbreekt. Probeer de pagina te vernieuwen.")
+        setIsLoading(false)
+        return
+      }
+
       try {
         setIsLoading(true)
+        console.log(`Fetching availabilities for homeId: ${homeId}`)
         const response = await fetch(`/api/availabilities?homeId=${homeId}`)
 
         if (!response.ok) {
@@ -127,6 +138,10 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
 
   if (error) {
     return <div className="text-red-500 p-4">{error}</div>
+  }
+
+  if (!homeId) {
+    return <div className="text-red-500 p-4">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</div>
   }
 
   return (

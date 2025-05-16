@@ -9,6 +9,9 @@ export default async function HomePage({ params }: { params: { id: string } }) {
   const userId = session?.user?.id
 
   try {
+    // Log for debugging
+    console.log("HomePage - params.id:", params.id)
+
     // Using the original query structure that was working before
     const home = await executeQuery(
       `SELECT h.*, u.name as host_name
@@ -25,6 +28,7 @@ export default async function HomePage({ params }: { params: { id: string } }) {
     // Process the home data to ensure it has the expected format
     const processedHome = {
       ...home[0],
+      id: home[0].id, // Ensure ID is included
       // Parse the images JSON if it's a string
       images: typeof home[0].images === "string" ? JSON.parse(home[0].images) : home[0].images || [],
       // Parse the amenities JSON if it's a string
@@ -33,6 +37,9 @@ export default async function HomePage({ params }: { params: { id: string } }) {
 
     // Check if the current user is the owner
     const isOwner = userId === home[0].user_id
+
+    // Log for debugging
+    console.log("HomePage - processedHome.id:", processedHome.id)
 
     return <HomeDetailClient home={processedHome} userId={userId} isOwner={isOwner} />
   } catch (error) {
