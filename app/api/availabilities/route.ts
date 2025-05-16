@@ -51,11 +51,21 @@ export async function POST(request: NextRequest) {
     console.log("Received availability data:", { homeId, startDate, endDate })
 
     // Valideer input
-    if (!homeId || !startDate || !endDate) {
+    if (!homeId) {
       return NextResponse.json(
         {
-          error: "Home ID, start date, and end date are required",
-          received: { homeId, startDate, endDate },
+          error: "Home ID is required",
+          received: { homeId },
+        },
+        { status: 400 },
+      )
+    }
+
+    if (!startDate || !endDate) {
+      return NextResponse.json(
+        {
+          error: "Start date and end date are required",
+          received: { startDate, endDate },
         },
         { status: 400 },
       )
@@ -75,7 +85,14 @@ export async function POST(request: NextRequest) {
     console.log(`Found ${homes?.length || 0} homes for user ${session.user.id}`)
 
     if (!homes || homes.length === 0) {
-      return NextResponse.json({ error: "Home not found or you are not the owner" }, { status: 404 })
+      return NextResponse.json(
+        {
+          error: "Home not found or you are not the owner",
+          homeId: homeId,
+          userId: session.user.id,
+        },
+        { status: 404 },
+      )
     }
 
     // Controleer of er overlappende beschikbaarheden zijn

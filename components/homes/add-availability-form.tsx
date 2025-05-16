@@ -24,6 +24,15 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
   const { toast } = useToast()
 
   const handleAddAvailability = async () => {
+    if (!homeId) {
+      toast({
+        title: "Fout",
+        description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (!dateRange?.from || !dateRange?.to) {
       toast({
         title: "Selecteer data",
