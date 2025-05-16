@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         end_date as "endDate", 
         status
       FROM availabilities 
-      WHERE home_id = ${homeId} 
+      WHERE home_id = ${homeId}::uuid 
       ORDER BY start_date ASC
     `
 
@@ -78,16 +78,16 @@ export async function POST(request: NextRequest) {
     console.log(`Creating availability for home ${homeId}: ${formattedStartDate} to ${formattedEndDate}`)
 
     // Controleer of de woning bestaat en van de gebruiker is
-    // Use a direct comparison without type conversion
+    // Cast both homeId and userId to UUID
     const { rows: homes } = await sql`
-      SELECT * FROM homes WHERE id = ${homeId} AND user_id = ${session.user.id}::text
+      SELECT * FROM homes WHERE id = ${homeId}::uuid AND user_id = ${session.user.id}::uuid
     `
 
     console.log(`Found ${homes?.length || 0} homes for user ${session.user.id}`)
 
     if (!homes || homes.length === 0) {
       // For debugging, check if the home exists at all
-      const { rows: homeExists } = await sql`SELECT * FROM homes WHERE id = ${homeId}`
+      const { rows: homeExists } = await sql`SELECT * FROM homes WHERE id = ${homeId}::uuid`
 
       if (homeExists && homeExists.length > 0) {
         console.log(`Home exists but owner is ${homeExists[0].user_id}, not ${session.user.id}`)
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     // Controleer of er overlappende beschikbaarheden zijn
     const { rows: overlapping } = await sql`
       SELECT * FROM availabilities 
-      WHERE home_id = ${homeId} 
+      WHERE home_id = ${homeId}::uuid 
       AND (
         (start_date <= ${formattedStartDate}::date AND end_date >= ${formattedStartDate}::date) 
         OR (start_date <= ${formattedEndDate}::date AND end_date >= ${formattedEndDate}::date) 
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     console.log("Inserting new availability")
     const { rows: result } = await sql`
       INSERT INTO availabilities (home_id, start_date, end_date, status) 
-      VALUES (${homeId}, ${formattedStartDate}::date, ${formattedEndDate}::date, 'available') 
+      VALUES (${homeId}::uuid, ${formattedStartDate}::date, ${formattedEndDate}::date, 'available') 
       RETURNING 
         id, 
         home_id as "homeId", 
