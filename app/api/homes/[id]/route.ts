@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const body = await request.json()
 
     // Verify the user owns this home
-    const homes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [homeId])
+    const homes = await executeQuery("SELECT * FROM homes WHERE id = $1", [homeId])
 
     if (!homes || homes.length === 0) {
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
@@ -46,8 +46,48 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
+    // Get the current home data to use as fallback for required fields
+    const currentHome = homes[0]
+
     // Update the home
-    const { title, description, address, city, postalCode, bedrooms, bathrooms, maxGuests, amenities, images } = body
+    const {
+      title = currentHome.title,
+      description = currentHome.description,
+      address = currentHome.address,
+      city = currentHome.city,
+      postalCode,
+      bedrooms = currentHome.bedrooms,
+      bathrooms = currentHome.bathrooms,
+      maxGuests,
+      amenities,
+      images,
+    } = body
+
+    // Ensure postal_code is not null by using the current value as fallback
+    const postal_code = postalCode || currentHome.postal_code
+
+    // Ensure max_guests is not null by using the current value as fallback
+    const max_guests = maxGuests || currentHome.max_guests
+
+    // Validate required fields
+    if (!title || !description || !address || !city || !postal_code || !bedrooms || !bathrooms || !max_guests) {
+      return NextResponse.json(
+        {
+          error: "All required fields must be provided",
+          missingFields: {
+            title: !title,
+            description: !description,
+            address: !address,
+            city: !city,
+            postal_code: !postal_code,
+            bedrooms: !bedrooms,
+            bathrooms: !bathrooms,
+            max_guests: !max_guests,
+          },
+        },
+        { status: 400 },
+      )
+    }
 
     const result = await executeQuery(
       `UPDATE homes
@@ -70,12 +110,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         description,
         address,
         city,
-        postalCode,
+        postal_code,
         bedrooms,
         bathrooms,
-        maxGuests,
-        JSON.stringify(amenities),
-        JSON.stringify(images),
+        max_guests,
+        JSON.stringify(amenities || currentHome.amenities),
+        JSON.stringify(images || currentHome.images),
         homeId,
       ],
     )
@@ -87,7 +127,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return NextResponse.json(result[0])
   } catch (error) {
     console.error("Error updating home:", error)
-    return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to update home", details: error.message }, { status: 500 })
   }
 }
 
