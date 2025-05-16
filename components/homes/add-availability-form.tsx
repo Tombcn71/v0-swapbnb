@@ -85,12 +85,14 @@ export function AddAvailabilityForm({ homeId, onAdd, onSuccess }: AddAvailabilit
         }),
       })
 
-      const responseData = await response.json()
-      console.log("API response:", responseData)
-
       if (!response.ok) {
-        throw new Error(responseData.error || "Failed to add availability")
+        const errorData = await response.json()
+        console.error("API error response:", errorData)
+        throw new Error(errorData.error || "Failed to add availability")
       }
+
+      const responseData = await response.json()
+      console.log("API success response:", responseData)
 
       toast({
         title: "Beschikbaarheid toegevoegd",

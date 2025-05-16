@@ -36,22 +36,11 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
   const router = useRouter()
   const { toast } = useToast()
 
-  // Log for debugging
-  useEffect(() => {
-    console.log("HomeAvailability - received homeId:", homeId)
-
-    if (!homeId) {
-      console.error("HomeAvailability - No homeId provided")
-      setError("Woning ID ontbreekt. Probeer de pagina te vernieuwen.")
-      setIsLoading(false)
-    }
-  }, [homeId])
-
+  // Fetch availabilities
   useEffect(() => {
     async function fetchAvailabilities() {
       if (!homeId) {
-        console.error("HomeAvailability - No homeId provided for fetching")
-        setError("Woning ID ontbreekt. Probeer de pagina te vernieuwen.")
+        setError("Woning ID ontbreekt")
         setIsLoading(false)
         return
       }
@@ -62,25 +51,21 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
         const response = await fetch(`/api/availabilities?homeId=${homeId}`)
 
         if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to fetch availabilities")
+          throw new Error(`Failed to fetch availabilities: ${response.status}`)
         }
 
         const data = await response.json()
         console.log("Fetched availabilities:", data)
-
         setAvailabilities(data || [])
       } catch (err) {
         console.error("Error fetching availabilities:", err)
-        setError("Error loading availabilities. Please try again later.")
+        setError("Error loading availabilities")
       } finally {
         setIsLoading(false)
       }
     }
 
-    if (homeId) {
-      fetchAvailabilities()
-    }
+    fetchAvailabilities()
   }, [homeId])
 
   const handleAddAvailability = (newAvailability: Availability) => {
@@ -101,8 +86,7 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to delete availability")
+        throw new Error("Failed to delete availability")
       }
 
       setAvailabilities(availabilities.filter((avail) => avail.id !== id))
@@ -115,8 +99,7 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
       console.error("Error deleting availability:", err)
       toast({
         title: "Fout bij verwijderen",
-        description:
-          err instanceof Error ? err.message : "Er is een fout opgetreden bij het verwijderen van de beschikbaarheid",
+        description: "Er is een fout opgetreden bij het verwijderen van de beschikbaarheid",
         variant: "destructive",
       })
     }
@@ -151,15 +134,6 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
         <strong className="font-bold">Fout: </strong>
         <span className="block sm:inline">{error}</span>
-      </div>
-    )
-  }
-
-  if (!homeId) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-        <strong className="font-bold">Fout: </strong>
-        <span className="block sm:inline">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</span>
       </div>
     )
   }
