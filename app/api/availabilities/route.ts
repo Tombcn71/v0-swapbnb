@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`Fetching availabilities for home ID: ${homeId}`) // Debug log
 
-    const { rows: availabilities } = await sql`
+    const availabilities = await sql`
       SELECT 
         id, 
         home_id as "homeId", 
@@ -62,16 +62,16 @@ export async function POST(request: NextRequest) {
     console.log(`Creating availability for home ${homeId}: ${startDate} to ${endDate}`)
 
     // Controleer of de woning bestaat en van de gebruiker is
-    const { rows: homes } = await sql`
+    const homes = await sql`
       SELECT * FROM homes WHERE id = ${homeId} AND user_id = ${session.user.id}
     `
 
-    if (homes.length === 0) {
+    if (!homes || homes.length === 0) {
       return NextResponse.json({ error: "Home not found or you are not the owner" }, { status: 404 })
     }
 
     // Controleer of er overlappende beschikbaarheden zijn
-    const { rows: overlapping } = await sql`
+    const overlapping = await sql`
       SELECT * FROM availabilities 
       WHERE home_id = ${homeId} 
       AND (
@@ -81,12 +81,12 @@ export async function POST(request: NextRequest) {
       )
     `
 
-    if (overlapping.length > 0) {
+    if (overlapping && overlapping.length > 0) {
       return NextResponse.json({ error: "Overlapping availability periods" }, { status: 400 })
     }
 
     // Maak de beschikbaarheid aan
-    const { rows: result } = await sql`
+    const result = await sql`
       INSERT INTO availabilities (home_id, start_date, end_date, status) 
       VALUES (${homeId}, ${startDate}, ${endDate}, 'available') 
       RETURNING 
