@@ -7,15 +7,20 @@ export const sql = neon(process.env.DATABASE_URL!)
 // Helper function to execute raw SQL queries
 export async function executeQuery(query: string, params: any[] = []) {
   try {
-    // Log de query voor debugging
+    // Log the query for debugging
     console.log(`Executing query: ${query.substring(0, 100)}...`)
     console.log("Params:", params)
 
-    // Gebruik sql.query in plaats van directe aanroep van sql
+    // Use sql.query instead of direct call of sql
     const result = await sql.query(query, params)
 
-    // Log het resultaat voor debugging
+    // Log the result for debugging
     console.log(`Query result: ${result.length} rows`)
+
+    // For debugging, log the first row if available
+    if (result.length > 0) {
+      console.log("First row sample:", JSON.stringify(result[0]).substring(0, 200))
+    }
 
     return result
   } catch (error) {

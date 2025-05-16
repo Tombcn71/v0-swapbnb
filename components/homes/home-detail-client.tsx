@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -9,6 +9,7 @@ import { HomeAvailability } from "./home-availability"
 import { HomeReviews } from "./home-reviews"
 import { HomeContact } from "./home-contact"
 import { PencilIcon, BedIcon, BathIcon, UsersIcon, MapPinIcon } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface HomeDetailClientProps {
   home: any
@@ -18,6 +19,7 @@ interface HomeDetailClientProps {
 
 export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProps) {
   const [activeImage, setActiveImage] = useState(0)
+  const { toast } = useToast()
 
   // Ensure we have the home ID as a string
   const homeId = home?.id?.toString() || ""
@@ -30,8 +32,31 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
       : []
 
   // Log for debugging
-  console.log("HomeDetailClient - homeId:", homeId)
-  console.log("HomeDetailClient - home object:", home)
+  useEffect(() => {
+    console.log("HomeDetailClient - home object:", home)
+    console.log("HomeDetailClient - homeId:", homeId)
+
+    if (!homeId) {
+      console.error("HomeDetailClient - No homeId available")
+      toast({
+        title: "Fout",
+        description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",
+        variant: "destructive",
+      })
+    }
+  }, [home, homeId, toast])
+
+  // If no homeId is available, show an error message
+  if (!homeId) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Fout: </strong>
+          <span className="block sm:inline">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

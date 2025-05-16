@@ -37,12 +37,20 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
   const { toast } = useToast()
 
   // Log for debugging
-  console.log("HomeAvailability - received homeId:", homeId)
+  useEffect(() => {
+    console.log("HomeAvailability - received homeId:", homeId)
+
+    if (!homeId) {
+      console.error("HomeAvailability - No homeId provided")
+      setError("Woning ID ontbreekt. Probeer de pagina te vernieuwen.")
+      setIsLoading(false)
+    }
+  }, [homeId])
 
   useEffect(() => {
     async function fetchAvailabilities() {
       if (!homeId) {
-        console.error("HomeAvailability - No homeId provided")
+        console.error("HomeAvailability - No homeId provided for fetching")
         setError("Woning ID ontbreekt. Probeer de pagina te vernieuwen.")
         setIsLoading(false)
         return
@@ -70,7 +78,9 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
       }
     }
 
-    fetchAvailabilities()
+    if (homeId) {
+      fetchAvailabilities()
+    }
   }, [homeId])
 
   const handleAddAvailability = (newAvailability: Availability) => {
@@ -137,11 +147,21 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
   }
 
   if (error) {
-    return <div className="text-red-500 p-4">{error}</div>
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong className="font-bold">Fout: </strong>
+        <span className="block sm:inline">{error}</span>
+      </div>
+    )
   }
 
   if (!homeId) {
-    return <div className="text-red-500 p-4">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</div>
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong className="font-bold">Fout: </strong>
+        <span className="block sm:inline">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</span>
+      </div>
+    )
   }
 
   return (
