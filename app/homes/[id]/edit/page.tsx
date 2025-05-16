@@ -46,7 +46,7 @@ export default async function EditHomePage({ params }: { params: { id: string } 
     }
 
     // Convert both IDs to strings for comparison
-    if (String(processedHome.userId) !== String(session.user.id)) {
+    if (processedHome.userId != session.user.id) {
       redirect("/")
     }
 

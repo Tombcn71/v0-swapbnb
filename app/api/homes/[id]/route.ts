@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     console.log("Session user ID type:", typeof userId)
 
     // Convert both IDs to strings for comparison
-    if (String(homes[0].user_id) !== String(userId)) {
+    if (homes[0].user_id != userId) {
       return NextResponse.json({ error: "Home not found or you're not the owner" }, { status: 403 })
     }
 
