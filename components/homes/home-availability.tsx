@@ -126,20 +126,25 @@ export function HomeAvailability({ homeId }: HomeAvailabilityProps) {
         bespreken.
       </p>
 
-      {/* Debug informatie */}
-      <div className="mt-8 p-4 border rounded-lg bg-gray-50">
-        <h3 className="font-medium mb-2">Beschikbare periodes:</h3>
-        <ul className="space-y-2">
+      <div className="mt-8">
+        <h3 className="font-medium mb-4">Beschikbare periodes:</h3>
+        <div className="space-y-2">
           {availabilities.map((availability) => (
-            <li key={availability.id} className="text-sm">
-              {new Date(availability.start_date).toLocaleDateString("nl-NL")} tot{" "}
-              {new Date(availability.end_date).toLocaleDateString("nl-NL")}
-              {availability.status !== "available" && (
-                <span className="ml-2 text-red-500">({availability.status})</span>
-              )}
-            </li>
+            <div key={availability.id} className="p-3 border rounded-md bg-gray-50">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-medium">
+                    {new Date(availability.start_date).toLocaleDateString("nl-NL")} tot{" "}
+                    {new Date(availability.end_date).toLocaleDateString("nl-NL")}
+                  </span>
+                </div>
+                <Badge variant={availability.status === "available" ? "outline" : "secondary"} className="bg-green-50">
+                  {availability.status === "available" ? "Beschikbaar" : "Niet beschikbaar"}
+                </Badge>
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </div>
   )

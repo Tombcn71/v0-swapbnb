@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Check, X, ImageIcon, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { upload } from "@vercel/blob/client"
+import { AddAvailabilityForm } from "@/components/homes/add-availability-form"
 
 export function AddHomeForm() {
   const [step, setStep] = useState(1)
@@ -50,6 +51,7 @@ export function AddHomeForm() {
       pets: false,
     },
     images: [] as string[],
+    availabilities: [] as { startDate: Date; endDate: Date }[],
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -136,6 +138,7 @@ export function AddHomeForm() {
     try {
       console.log("Submitting home data:", formData)
 
+      // First, create the home
       const response = await fetch("/api/homes", {
         method: "POST",
         headers: {
@@ -161,15 +164,38 @@ export function AddHomeForm() {
         throw new Error(errorData.error || "Er is iets misgegaan bij het toevoegen van de woning")
       }
 
-      const data = await response.json()
-      console.log("Home added successfully:", data)
+      const homeData = await response.json()
+      console.log("Home added successfully:", homeData)
+
+      // Then, create availabilities for the home
+      if (formData.availabilities.length > 0) {
+        for (const availability of formData.availabilities) {
+          const availabilityResponse = await fetch("/api/availabilities", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              homeId: homeData.id,
+              startDate: availability.startDate.toISOString().split("T")[0],
+              endDate: availability.endDate.toISOString().split("T")[0],
+            }),
+          })
+
+          if (!availabilityResponse.ok) {
+            const errorData = await availabilityResponse.json()
+            console.error("Error adding availability:", errorData)
+            // Continue with other availabilities even if one fails
+          }
+        }
+      }
 
       toast({
         title: "Woning toegevoegd",
         description: "Je woning is succesvol toegevoegd aan SwapBnB",
       })
 
-      // Navigeer naar de dashboard pagina
+      // Navigate to the dashboard page
       router.push("/listings")
       router.refresh()
     } catch (error) {
@@ -227,6 +253,17 @@ export function AddHomeForm() {
               } mr-3`}
             >
               {step > 3 ? <Check className="h-5 w-5" /> : "3"}
+            </div>
+            <span className="font-medium">Beschikbaarheid</span>
+          </div>
+          <div className="hidden sm:block w-24 h-0.5 bg-gray-200"></div>
+          <div className="flex items-center">
+            <div
+              className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                step >= 4 ? "bg-google-blue text-white" : "bg-gray-200"
+              } mr-3`}
+            >
+              {step > 4 ? <Check className="h-5 w-5" /> : "4"}
             </div>
             <span className="font-medium">Foto's & Bevestiging</span>
           </div>
@@ -515,6 +552,69 @@ export function AddHomeForm() {
         )}
 
         {step === 3 && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Beschikbaarheid instellen</h2>
+                  <p className="text-gray-600 mb-4">
+                    Geef aan wanneer je woning beschikbaar is voor huizenruil. Je kunt meerdere periodes toevoegen.
+                  </p>
+
+                  <div className="space-y-4">
+                    {formData.availabilities.map((availability, index) => (
+                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-md bg-gray-50">
+                        <div className="flex-grow">
+                          <p className="font-medium">
+                            {availability.startDate.toLocaleDateString("nl-NL")} tot{" "}
+                            {availability.endDate.toLocaleDateString("nl-NL")}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              availabilities: prev.availabilities.filter((_, i) => i !== index),
+                            }))
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <AddAvailabilityForm
+                      onAdd={(startDate, endDate) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          availabilities: [...prev.availabilities, { startDate, endDate }],
+                        }))
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={prevStep}>
+                    Vorige stap
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={nextStep}
+                    className="bg-google-blue hover:bg-blue-600"
+                    disabled={formData.availabilities.length === 0}
+                  >
+                    Volgende stap
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === 4 && (
           <Card>
             <CardContent className="pt-6">
               <div className="space-y-6">

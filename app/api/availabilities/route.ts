@@ -45,10 +45,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Home ID, start date, and end date are required" }, { status: 400 })
     }
 
-    // Controleer of de woning bestaat en van de gebruiker is
-    const home = await executeQuery("SELECT * FROM homes WHERE id = $1 AND owner_id = $2", [homeId, session.user.id])
+    console.log(`Creating availability for home ${homeId}: ${startDate} to ${endDate}`)
 
-    if (home.length === 0) {
+    // Controleer of de woning bestaat en van de gebruiker is
+    const homes = await executeQuery("SELECT * FROM homes WHERE id = $1 AND user_id = $2", [homeId, session.user.id])
+
+    if (homes.length === 0) {
       return NextResponse.json({ error: "Home not found or you are not the owner" }, { status: 404 })
     }
 
@@ -69,6 +71,8 @@ export async function POST(request: NextRequest) {
       "INSERT INTO availabilities (home_id, start_date, end_date, status) VALUES ($1, $2, $3, 'available') RETURNING *",
       [homeId, startDate, endDate],
     )
+
+    console.log(`Created availability: ${JSON.stringify(result[0])}`)
 
     return NextResponse.json(result[0], { status: 201 })
   } catch (error) {
