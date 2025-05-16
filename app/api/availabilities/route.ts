@@ -78,13 +78,23 @@ export async function POST(request: NextRequest) {
     console.log(`Creating availability for home ${homeId}: ${formattedStartDate} to ${formattedEndDate}`)
 
     // Controleer of de woning bestaat en van de gebruiker is
+    // Use a direct comparison without type conversion
     const { rows: homes } = await sql`
-      SELECT * FROM homes WHERE id = ${homeId} AND user_id = ${session.user.id}
+      SELECT * FROM homes WHERE id = ${homeId} AND user_id = ${session.user.id}::text
     `
 
     console.log(`Found ${homes?.length || 0} homes for user ${session.user.id}`)
 
     if (!homes || homes.length === 0) {
+      // For debugging, check if the home exists at all
+      const { rows: homeExists } = await sql`SELECT * FROM homes WHERE id = ${homeId}`
+
+      if (homeExists && homeExists.length > 0) {
+        console.log(`Home exists but owner is ${homeExists[0].user_id}, not ${session.user.id}`)
+      } else {
+        console.log(`No home found with ID ${homeId}`)
+      }
+
       return NextResponse.json(
         {
           error: "Home not found or you are not the owner",
