@@ -13,6 +13,7 @@ export default async function EditHomePage({ params }: { params: { id: string } 
 
   try {
     // Use executeQuery instead of sql to maintain consistency with other parts of the app
+    // Removed price_per_night from the query since it doesn't exist in the database
     const home = await executeQuery(
       `SELECT 
         h.id, 
@@ -24,8 +25,7 @@ export default async function EditHomePage({ params }: { params: { id: string } 
         h.images, 
         h.bedrooms, 
         h.bathrooms, 
-        h.max_guests as "maxGuests", 
-        h.price_per_night as "pricePerNight",
+        h.max_guests as "maxGuests",
         h.amenities,
         h.user_id as "userId"
       FROM homes h
