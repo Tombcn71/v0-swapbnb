@@ -55,7 +55,8 @@ body {
   @apply bg-background text-foreground;
 }
 
-.popover-content {
+/* Fix z-index issues with popovers and calendars */
+[data-radix-popper-content-wrapper] {
   z-index: 50 !important;
 }
 
@@ -67,4 +68,25 @@ body {
 /* Ensure the calendar is visible */
 .rdp {
   margin: 0 !important;
+}
+
+/* Ensure calendar day cells are properly sized */
+.rdp-day {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+}
+
+/* Highlight selected dates */
+.rdp-day_selected {
+  background-color: var(--primary) !important;
+  color: white !important;
+}
+
+/* Ensure popover content is visible */
+.PopoverContent {
+  z-index: 50 !important;
+  background-color: white !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 }

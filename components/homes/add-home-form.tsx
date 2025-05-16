@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Check, X, ImageIcon, Loader2 } from "lucide-react"
+import { Upload, Check, X, ImageIcon, Loader2, Calendar } from "lucide-react"
 import Image from "next/image"
 import { upload } from "@vercel/blob/client"
 import { AddAvailabilityForm } from "@/components/homes/add-availability-form"
@@ -53,6 +53,12 @@ export function AddHomeForm() {
     images: [] as string[],
     availabilities: [] as { startDate: Date; endDate: Date }[],
   })
+
+  // Ensure the form is visible when loaded
+  useEffect(() => {
+    // Force a re-render to ensure all components are properly displayed
+    setStep(step)
+  }, [step])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -562,28 +568,44 @@ export function AddHomeForm() {
                   </p>
 
                   <div className="space-y-4">
-                    {formData.availabilities.map((availability, index) => (
-                      <div key={index} className="flex items-center space-x-2 p-3 border rounded-md bg-gray-50">
-                        <div className="flex-grow">
-                          <p className="font-medium">
-                            {availability.startDate.toLocaleDateString("nl-NL")} tot{" "}
-                            {availability.endDate.toLocaleDateString("nl-NL")}
-                          </p>
+                    {formData.availabilities.length > 0 ? (
+                      <div className="mb-4">
+                        <h3 className="text-md font-medium mb-2">Toegevoegde beschikbaarheid:</h3>
+                        <div className="space-y-2">
+                          {formData.availabilities.map((availability, index) => (
+                            <div key={index} className="flex items-center space-x-2 p-3 border rounded-md bg-gray-50">
+                              <div className="flex-grow">
+                                <div className="flex items-center">
+                                  <Calendar className="h-4 w-4 text-gray-600 mr-2" />
+                                  <p className="font-medium">
+                                    {availability.startDate.toLocaleDateString("nl-NL")} tot{" "}
+                                    {availability.endDate.toLocaleDateString("nl-NL")}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    availabilities: prev.availabilities.filter((_, i) => i !== index),
+                                  }))
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              availabilities: prev.availabilities.filter((_, i) => i !== index),
-                            }))
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                        <p className="text-yellow-800">
+                          Je hebt nog geen beschikbaarheid toegevoegd. Voeg minimaal één periode toe om door te gaan.
+                        </p>
+                      </div>
+                    )}
 
                     <AddAvailabilityForm
                       onAdd={(startDate, endDate) => {
@@ -703,6 +725,7 @@ export function AddHomeForm() {
                     <TabsList>
                       <TabsTrigger value="basic">Basisinformatie</TabsTrigger>
                       <TabsTrigger value="details">Details</TabsTrigger>
+                      <TabsTrigger value="availability">Beschikbaarheid</TabsTrigger>
                     </TabsList>
                     <TabsContent value="basic" className="space-y-4 mt-4">
                       <div className="grid grid-cols-2 gap-4">
@@ -776,6 +799,28 @@ export function AddHomeForm() {
                               </Badge>
                             ))}
                         </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="availability" className="space-y-4 mt-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Beschikbare periodes</p>
+                        {formData.availabilities.length > 0 ? (
+                          <div className="space-y-2 mt-2">
+                            {formData.availabilities.map((availability, index) => (
+                              <div key={index} className="p-2 border rounded-md bg-gray-50">
+                                <div className="flex items-center">
+                                  <Calendar className="h-4 w-4 text-gray-600 mr-2" />
+                                  <p>
+                                    {availability.startDate.toLocaleDateString("nl-NL")} tot{" "}
+                                    {availability.endDate.toLocaleDateString("nl-NL")}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-red-500 mt-1">Geen beschikbaarheid ingesteld</p>
+                        )}
                       </div>
                     </TabsContent>
                   </Tabs>
