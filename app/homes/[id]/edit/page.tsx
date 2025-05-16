@@ -12,6 +12,9 @@ export default async function EditHomePage({ params }: { params: { id: string } 
   }
 
   try {
+    console.log("Edit page - Home ID:", params.id)
+    console.log("Edit page - User ID:", session.user.id)
+
     // Use executeQuery instead of sql to maintain consistency with other parts of the app
     // Removed price_per_night from the query since it doesn't exist in the database
     const home = await executeQuery(
@@ -46,8 +49,14 @@ export default async function EditHomePage({ params }: { params: { id: string } 
       amenities: typeof home[0].amenities === "string" ? JSON.parse(home[0].amenities) : home[0].amenities || {},
     }
 
-    // Check if the current user is the owner of the home
-    if (processedHome.userId !== session.user.id) {
+    console.log("Edit page - Home owner ID:", processedHome.userId)
+    console.log("Edit page - Are IDs equal?", processedHome.userId === session.user.id)
+    console.log("Edit page - Home owner ID type:", typeof processedHome.userId)
+    console.log("Edit page - Session user ID type:", typeof session.user.id)
+
+    // Convert both IDs to strings for comparison
+    if (String(processedHome.userId) !== String(session.user.id)) {
+      console.log("Edit page - User is not the owner, redirecting")
       redirect("/")
     }
 

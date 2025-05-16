@@ -28,12 +28,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const homeId = params.id
-    const body = await request.json()
+    const userId = session.user.id
+
+    console.log("Session user ID:", userId)
 
     // Verify the user owns this home
     const homes = await executeQuery("SELECT * FROM homes WHERE id = $1", [homeId])
@@ -42,8 +44,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    if (homes[0].user_id !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+    console.log("Home owner ID:", homes[0].user_id)
+    console.log("Are IDs equal?", homes[0].user_id === userId)
+    console.log("Home owner ID type:", typeof homes[0].user_id)
+    console.log("Session user ID type:", typeof userId)
+
+    // Convert both IDs to strings for comparison
+    if (String(homes[0].user_id) !== String(userId)) {
+      return NextResponse.json({ error: "Home not found or you're not the owner" }, { status: 403 })
     }
 
     // Get the current home data to use as fallback for required fields
@@ -61,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       maxGuests,
       amenities,
       images,
-    } = body
+    } = await request.json()
 
     // Ensure postal_code is not null by using the current value as fallback
     const postal_code = postalCode || currentHome.postal_code
@@ -135,11 +143,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const homeId = params.id
+    const userId = session.user.id
 
     // Verify the user owns this home
     const homes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [homeId])
@@ -148,8 +157,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    if (homes[0].user_id !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+    // Convert both IDs to strings for comparison
+    if (String(homes[0].user_id) !== String(userId)) {
+      return NextResponse.json({ error: "Home not found or you're not the owner" }, { status: 403 })
     }
 
     // Delete related availabilities

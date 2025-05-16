@@ -31,6 +31,10 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
   const router = useRouter()
   const { toast } = useToast()
 
+  console.log("EditHomeForm - Home data:", home)
+  console.log("EditHomeForm - Home ID:", home.id)
+  console.log("EditHomeForm - User ID:", home.userId)
+
   // Parse amenities if it's a string
   const initialAmenities =
     typeof home.amenities === "string"
@@ -59,10 +63,10 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
     description: home.description || "",
     address: home.address || "",
     city: home.city || "",
-    postalCode: home.postal_code || "", // Use postal_code from the database
+    postalCode: home.postalCode || home.postal_code || "",
     bedrooms: String(home.bedrooms) || "2",
     bathrooms: String(home.bathrooms) || "1",
-    maxGuests: String(home.max_guests) || "4",
+    maxGuests: String(home.maxGuests || home.max_guests) || "4",
     amenities: initialAmenities,
     images: initialImages,
   })
@@ -267,6 +271,11 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         return
       }
 
+      console.log("Submitting form data:", {
+        ...formData,
+        homeId: home.id,
+      })
+
       // Update the home
       const response = await fetch(`/api/homes/${home.id}`, {
         method: "PATCH",
@@ -287,9 +296,11 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         }),
       })
 
+      const responseData = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Er is iets misgegaan bij het bijwerken van de woning")
+        console.error("Error response:", responseData)
+        throw new Error(responseData.error || "Er is iets misgegaan bij het bijwerken van de woning")
       }
 
       toast({
