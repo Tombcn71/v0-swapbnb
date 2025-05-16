@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     console.log(`Fetching home with ID: ${homeId}`)
 
-    // Updated query to use 'images' instead of 'image_url'
+    // Using the original query structure
     const home = await executeQuery(
       `SELECT h.*, u.name as host_name
        FROM homes h
@@ -46,16 +46,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     console.log(`Found ${reviews.length} reviews`)
 
-    // Process the home data to ensure it has the expected format
-    const processedHome = {
+    // Combine the data
+    const result = {
       ...home[0],
-      // Parse the images JSON if it's a string
-      images: typeof home[0].images === "string" ? JSON.parse(home[0].images) : home[0].images || [],
       availabilities,
       reviews,
     }
 
-    return NextResponse.json(processedHome)
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Error fetching home:", error)
     return NextResponse.json({ error: "Failed to fetch home" }, { status: 500 })
@@ -89,7 +87,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "All fields are required except amenities and images" }, { status: 400 })
     }
 
-    // Update the home - using 'images' instead of 'image_url'
+    // Update the home - using the original column names
     const result = await executeQuery(
       `UPDATE homes 
        SET title = $1, description = $2, address = $3, city = $4, postal_code = $5, 
@@ -126,14 +124,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       [homeId],
     )
 
-    // Process the home data
-    const processedHome = {
-      ...updatedHome[0],
-      images:
-        typeof updatedHome[0].images === "string" ? JSON.parse(updatedHome[0].images) : updatedHome[0].images || [],
-    }
-
-    return NextResponse.json(processedHome)
+    return NextResponse.json(updatedHome[0])
   } catch (error) {
     console.error("Error updating home:", error)
     return NextResponse.json({ error: "Failed to update home" }, { status: 500 })

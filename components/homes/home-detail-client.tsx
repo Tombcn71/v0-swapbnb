@@ -36,8 +36,11 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
   const router = useRouter()
   const { toast } = useToast()
 
+  // Parse images if it's a string
+  const parsedImages = typeof home.images === "string" ? JSON.parse(home.images) : home.images || []
+
   // Use the images array from the home data or a fallback
-  const images = home.images && home.images.length > 0 ? home.images : ["/placeholder.svg?key=d9tko"]
+  const images = parsedImages.length > 0 ? parsedImages : ["/placeholder.svg?key=d9tko"]
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
@@ -47,7 +50,8 @@ export function HomeDetailClient({ home, userId, isOwner = false }: HomeDetailCl
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  const amenities = home.amenities || {}
+  // Parse amenities if it's a string
+  const amenities = typeof home.amenities === "string" ? JSON.parse(home.amenities) : home.amenities || {}
 
   const handleDeleteHome = async () => {
     if (!isOwner) return

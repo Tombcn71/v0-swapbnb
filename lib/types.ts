@@ -34,15 +34,18 @@ export interface Home {
   description: string
   address: string
   city: string
+  postal_code?: string
   postalCode?: string
   bedrooms: number
   bathrooms: number
-  maxGuests: number
-  userId: string
+  max_guests?: number
+  maxGuests?: number
+  userId?: string
+  user_id?: string
   userName?: string
   host_name?: string
-  images: string[]
-  amenities: Record<string, boolean>
+  images: any // This can be a string (JSON) or an array
+  amenities: any // This can be a string (JSON) or an object
   rating?: number
   reviewCount?: number
 }
