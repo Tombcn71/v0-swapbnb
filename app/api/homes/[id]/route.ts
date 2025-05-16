@@ -1,140 +1,169 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
+import { executeQuery } from "@/lib/db"
+import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { sql } from "@/lib/db"
 
+// GET /api/homes/[id] - Fetch a specific home
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { rows } = await sql`
-      SELECT 
-        h.id, 
-        h.title, 
-        h.description, 
-        h.address, 
-        h.images, 
-        h.bedrooms, 
-        h.bathrooms, 
-        h.max_guests as "maxGuests", 
-        h.user_id as "userId",
-        u.name as "ownerName",
-        u.email as "ownerEmail"
-      FROM homes h
-      JOIN users u ON h.user_id = u.id
-      WHERE h.id = ${params.id}
-    `
+    const homeId = params.id
 
-    if (rows.length === 0) {
+    console.log(`Fetching home with ID: ${homeId}`)
+
+    // Updated query to use 'images' instead of 'image_url'
+    const home = await executeQuery(
+      `SELECT h.*, u.name as host_name
+       FROM homes h
+       JOIN users u ON h.user_id = u.id
+       WHERE h.id = $1`,
+      [homeId],
+    )
+
+    if (home.length === 0) {
+      console.log(`Home with ID ${homeId} not found`)
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
+    console.log(`Found home: ${home[0].title}`)
+
+    // Fetch availabilities
+    const availabilities = await executeQuery(
+      "SELECT * FROM availabilities WHERE home_id = $1 ORDER BY start_date ASC",
+      [homeId],
+    )
+
+    console.log(`Found ${availabilities.length} availabilities`)
+
+    // Fetch reviews
+    const reviews = await executeQuery(
+      `SELECT r.*, u.name as reviewer_name
+       FROM reviews r
+       JOIN users u ON r.author_id = u.id
+       WHERE r.home_id = $1
+       ORDER BY r.created_at DESC`,
+      [homeId],
+    )
+
+    console.log(`Found ${reviews.length} reviews`)
+
     // Process the home data to ensure it has the expected format
-    const home = {
-      ...rows[0],
-      // If images is stored as a JSON string, parse it
-      // If it's already an array, use it as is
-      // If it's null/undefined, provide an empty array
-      images: typeof rows[0].images === "string" ? JSON.parse(rows[0].images) : rows[0].images || [],
+    const processedHome = {
+      ...home[0],
+      // Parse the images JSON if it's a string
+      images: typeof home[0].images === "string" ? JSON.parse(home[0].images) : home[0].images || [],
+      availabilities,
+      reviews,
     }
 
-    return NextResponse.json(home)
+    return NextResponse.json(processedHome)
   } catch (error) {
     console.error("Error fetching home:", error)
     return NextResponse.json({ error: "Failed to fetch home" }, { status: 500 })
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
+// PATCH /api/homes/[id] - Update a home
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Check if the home exists and belongs to the user
-    const { rows: homeRows } = await sql`
-      SELECT user_id FROM homes WHERE id = ${params.id}
-    `
+    const session = await getServerSession(authOptions)
 
-    if (homeRows.length === 0) {
-      return NextResponse.json({ error: "Home not found" }, { status: 404 })
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (homeRows[0].user_id !== session.user.id) {
-      return NextResponse.json({ error: "You do not have permission to update this home" }, { status: 403 })
+    const homeId = params.id
+    const userId = session.user.id
+
+    // Check if the user is the owner of the home
+    const homes = await executeQuery("SELECT * FROM homes WHERE id = $1 AND user_id = $2", [homeId, userId])
+
+    if (homes.length === 0) {
+      return NextResponse.json({ error: "Home not found or you are not the owner" }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { title, description, address, bedrooms, bathrooms, maxGuests, images } = body
+    const { title, description, address, city, postalCode, bedrooms, bathrooms, maxGuests, amenities, images } =
+      await request.json()
 
-    // Update the home
-    const { rows } = await sql`
-      UPDATE homes
-      SET 
-        title = ${title},
-        description = ${description},
-        address = ${address},
-        bedrooms = ${bedrooms},
-        bathrooms = ${bathrooms},
-        max_guests = ${maxGuests},
-        images = ${JSON.stringify(images || [])},
-        updated_at = NOW()
-      WHERE id = ${params.id}
-      RETURNING 
-        id, 
-        title, 
-        description, 
-        address, 
-        images, 
-        bedrooms, 
-        bathrooms, 
-        max_guests as "maxGuests", 
-        user_id as "userId"
-    `
-
-    // Process the returned data
-    const updatedHome = {
-      ...rows[0],
-      images: typeof rows[0].images === "string" ? JSON.parse(rows[0].images) : rows[0].images || [],
+    // Validate input
+    if (!title || !description || !address || !city || !postalCode || !bedrooms || !bathrooms || !maxGuests) {
+      return NextResponse.json({ error: "All fields are required except amenities and images" }, { status: 400 })
     }
 
-    return NextResponse.json(updatedHome)
+    // Update the home - using 'images' instead of 'image_url'
+    const result = await executeQuery(
+      `UPDATE homes 
+       SET title = $1, description = $2, address = $3, city = $4, postal_code = $5, 
+           bedrooms = $6, bathrooms = $7, max_guests = $8, amenities = $9, images = $10, 
+           updated_at = NOW()
+       WHERE id = $11 AND user_id = $12
+       RETURNING *`,
+      [
+        title,
+        description,
+        address,
+        city,
+        postalCode,
+        bedrooms,
+        bathrooms,
+        maxGuests,
+        JSON.stringify(amenities || {}),
+        JSON.stringify(images || []),
+        homeId,
+        userId,
+      ],
+    )
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
+    }
+
+    // Fetch the updated home data
+    const updatedHome = await executeQuery(
+      `SELECT h.*, u.name as host_name
+       FROM homes h
+       JOIN users u ON h.user_id = u.id
+       WHERE h.id = $1`,
+      [homeId],
+    )
+
+    // Process the home data
+    const processedHome = {
+      ...updatedHome[0],
+      images:
+        typeof updatedHome[0].images === "string" ? JSON.parse(updatedHome[0].images) : updatedHome[0].images || [],
+    }
+
+    return NextResponse.json(processedHome)
   } catch (error) {
     console.error("Error updating home:", error)
     return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
   }
 }
 
+// DELETE /api/homes/[id] - Delete a home
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   try {
-    // Check if the home exists and belongs to the user
-    const { rows: homeRows } = await sql`
-      SELECT user_id FROM homes WHERE id = ${params.id}
-    `
+    const session = await getServerSession(authOptions)
 
-    if (homeRows.length === 0) {
-      return NextResponse.json({ error: "Home not found" }, { status: 404 })
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    if (homeRows[0].user_id !== session.user.id) {
-      return NextResponse.json({ error: "You do not have permission to delete this home" }, { status: 403 })
+    const homeId = params.id
+    const userId = session.user.id
+
+    // Check if the user is the owner of the home
+    const homes = await executeQuery("SELECT * FROM homes WHERE id = $1 AND user_id = $2", [homeId, userId])
+
+    if (homes.length === 0) {
+      return NextResponse.json({ error: "Home not found or you are not the owner" }, { status: 403 })
     }
 
-    // Delete all availabilities for this home
-    await sql`
-      DELETE FROM availabilities WHERE home_id = ${params.id}
-    `
+    // Delete availabilities first
+    await executeQuery("DELETE FROM availabilities WHERE home_id = $1", [homeId])
 
     // Delete the home
-    await sql`
-      DELETE FROM homes WHERE id = ${params.id}
-    `
+    await executeQuery("DELETE FROM homes WHERE id = $1 AND user_id = $2", [homeId, userId])
 
     return NextResponse.json({ success: true })
   } catch (error) {
