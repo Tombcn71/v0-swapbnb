@@ -21,8 +21,11 @@ export async function GET(request: NextRequest) {
       ORDER BY start_date ASC
     `
 
+    // Controleer of result.rows bestaat
+    const rows = result.rows || []
+
     // Transformeer de resultaten naar camelCase voor frontend
-    const availabilities = result.rows.map((row) => ({
+    const availabilities = rows.map((row) => ({
       id: row.id,
       homeId: row.home_id,
       startDate: row.start_date,
@@ -57,76 +60,78 @@ export async function POST(request: NextRequest) {
     const formattedStartDate = new Date(startDate).toISOString().split("T")[0]
     const formattedEndDate = new Date(endDate).toISOString().split("T")[0]
 
-    // Test query om te zien of de woning bestaat
-    console.log(`Testing if home ${homeId} exists...`)
-    const testQuery = `SELECT id, user_id FROM homes WHERE id = '${homeId}'`
-    console.log(`Test query: ${testQuery}`)
+    // Stap 1: Controleer of de woning bestaat
+    try {
+      const homeCheck = await sql`SELECT id, user_id FROM homes WHERE id = ${homeId}`
 
-    // Directe query zonder parameters om te debuggen
-    const directResult = await sql.unsafe(testQuery)
-    console.log(`Direct query result: ${JSON.stringify(directResult.rows)}`)
+      // Controleer of homeCheck.rows bestaat
+      if (!homeCheck || !homeCheck.rows || homeCheck.rows.length === 0) {
+        console.log(`No home found with ID ${homeId}`)
+        return NextResponse.json({ error: "Home not found" }, { status: 404 })
+      }
 
-    if (directResult.rows.length === 0) {
-      return NextResponse.json({ error: "Home not found (direct query)" }, { status: 404 })
-    }
+      // Stap 2: Controleer of de gebruiker de eigenaar is
+      const home = homeCheck.rows[0]
+      if (home.user_id !== session.user.id) {
+        console.log(`User ${session.user.id} is not the owner of home ${homeId} (owner: ${home.user_id})`)
+        return NextResponse.json(
+          {
+            error: "You are not the owner of this home",
+            homeOwnerId: home.user_id,
+            sessionUserId: session.user.id,
+          },
+          { status: 403 },
+        )
+      }
 
-    // Stap 1: Controleer of de woning bestaat met parameterized query
-    const homeCheck = await sql`SELECT id, user_id FROM homes WHERE id = ${homeId}`
-    console.log(`Parameterized query result: ${JSON.stringify(homeCheck.rows)}`)
+      // Stap 3: Controleer op overlappende beschikbaarheden
+      const overlapCheck = await sql`
+        SELECT id FROM availabilities 
+        WHERE home_id = ${homeId}
+        AND (
+          (start_date <= ${formattedStartDate}::date AND end_date >= ${formattedStartDate}::date) 
+          OR (start_date <= ${formattedEndDate}::date AND end_date >= ${formattedEndDate}::date) 
+          OR (start_date >= ${formattedStartDate}::date AND end_date <= ${formattedEndDate}::date)
+        )
+      `
 
-    if (homeCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Home not found (parameterized)" }, { status: 404 })
-    }
+      // Controleer of overlapCheck.rows bestaat
+      if (overlapCheck && overlapCheck.rows && overlapCheck.rows.length > 0) {
+        return NextResponse.json({ error: "Overlapping availability periods" }, { status: 400 })
+      }
 
-    // Stap 2: Controleer of de gebruiker de eigenaar is
-    const home = homeCheck.rows[0]
-    if (home.user_id !== session.user.id) {
+      // Stap 4: Voeg de beschikbaarheid toe
+      const insertResult = await sql`
+        INSERT INTO availabilities (home_id, start_date, end_date, status) 
+        VALUES (${homeId}, ${formattedStartDate}::date, ${formattedEndDate}::date, 'available') 
+        RETURNING id, home_id, start_date, end_date, status
+      `
+
+      // Controleer of insertResult.rows bestaat
+      if (!insertResult || !insertResult.rows || insertResult.rows.length === 0) {
+        throw new Error("Failed to create availability - no result returned")
+      }
+
+      // Transformeer het resultaat naar camelCase voor frontend
+      const newAvailability = {
+        id: insertResult.rows[0].id,
+        homeId: insertResult.rows[0].home_id,
+        startDate: insertResult.rows[0].start_date,
+        endDate: insertResult.rows[0].end_date,
+        status: insertResult.rows[0].status,
+      }
+
+      return NextResponse.json(newAvailability, { status: 201 })
+    } catch (dbError) {
+      console.error("Database error:", dbError)
       return NextResponse.json(
         {
-          error: "You are not the owner of this home",
-          homeOwnerId: home.user_id,
-          sessionUserId: session.user.id,
+          error: "Database error",
+          details: dbError instanceof Error ? dbError.message : String(dbError),
         },
-        { status: 403 },
+        { status: 500 },
       )
     }
-
-    // Stap 3: Controleer op overlappende beschikbaarheden
-    const overlapCheck = await sql`
-      SELECT id FROM availabilities 
-      WHERE home_id = ${homeId}
-      AND (
-        (start_date <= ${formattedStartDate}::date AND end_date >= ${formattedStartDate}::date) 
-        OR (start_date <= ${formattedEndDate}::date AND end_date >= ${formattedEndDate}::date) 
-        OR (start_date >= ${formattedStartDate}::date AND end_date <= ${formattedEndDate}::date)
-      )
-    `
-
-    if (overlapCheck.rows.length > 0) {
-      return NextResponse.json({ error: "Overlapping availability periods" }, { status: 400 })
-    }
-
-    // Stap 4: Voeg de beschikbaarheid toe
-    const insertResult = await sql`
-      INSERT INTO availabilities (home_id, start_date, end_date, status) 
-      VALUES (${homeId}, ${formattedStartDate}::date, ${formattedEndDate}::date, 'available') 
-      RETURNING id, home_id, start_date, end_date, status
-    `
-
-    if (insertResult.rows.length === 0) {
-      throw new Error("Failed to create availability")
-    }
-
-    // Transformeer het resultaat naar camelCase voor frontend
-    const newAvailability = {
-      id: insertResult.rows[0].id,
-      homeId: insertResult.rows[0].home_id,
-      startDate: insertResult.rows[0].start_date,
-      endDate: insertResult.rows[0].end_date,
-      status: insertResult.rows[0].status,
-    }
-
-    return NextResponse.json(newAvailability, { status: 201 })
   } catch (error) {
     console.error("Error creating availability:", error)
     return NextResponse.json(
