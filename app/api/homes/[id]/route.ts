@@ -1,23 +1,31 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { executeQuery } from "@/lib/db"
+import { sql } from "@/lib/db"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const home = await executeQuery(
-      `SELECT h.*, u.name as host_name
-       FROM homes h
-       JOIN users u ON h.user_id = u.id
-       WHERE h.id = $1`,
-      [params.id],
-    )
+    // Log the params ID for debugging
+    console.log("API GET home - params.id:", params.id)
 
-    if (home.length === 0) {
+    const { rows: homes } = await sql`
+      SELECT h.*, u.name as host_name
+      FROM homes h
+      JOIN users u ON h.user_id = u.id
+      WHERE h.id = ${params.id}
+    `
+
+    if (!homes || homes.length === 0) {
+      console.log("API - No home found with ID:", params.id)
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    return NextResponse.json(home[0])
+    const home = homes[0]
+
+    // Log the home data for debugging
+    console.log("API - Home found:", home.id)
+
+    return NextResponse.json(home)
   } catch (error) {
     console.error("Error fetching home:", error)
     return NextResponse.json({ error: "Failed to fetch home" }, { status: 500 })
@@ -38,7 +46,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     console.log("Session user ID:", userId)
 
     // Verify the user owns this home
-    const homes = await executeQuery("SELECT * FROM homes WHERE id = $1", [homeId])
+    const { rows: homes } = await sql`
+      SELECT * FROM homes WHERE id = ${homeId}
+    `
 
     if (!homes || homes.length === 0) {
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
@@ -97,36 +107,24 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       )
     }
 
-    const result = await executeQuery(
-      `UPDATE homes
-       SET 
-         title = $1,
-         description = $2,
-         address = $3,
-         city = $4,
-         postal_code = $5,
-         bedrooms = $6,
-         bathrooms = $7,
-         max_guests = $8,
-         amenities = $9,
-         images = $10,
-         updated_at = NOW()
-       WHERE id = $11
-       RETURNING *`,
-      [
-        title,
-        description,
-        address,
-        city,
-        postal_code,
-        bedrooms,
-        bathrooms,
-        max_guests,
-        JSON.stringify(amenities || currentHome.amenities),
-        JSON.stringify(images || currentHome.images),
-        homeId,
-      ],
-    )
+    // Update the home
+    const { rows: result } = await sql`
+      UPDATE homes
+      SET 
+        title = ${title},
+        description = ${description},
+        address = ${address},
+        city = ${city},
+        postal_code = ${postal_code},
+        bedrooms = ${bedrooms},
+        bathrooms = ${bathrooms},
+        max_guests = ${max_guests},
+        amenities = ${JSON.stringify(amenities || currentHome.amenities)},
+        images = ${JSON.stringify(images || currentHome.images)},
+        updated_at = NOW()
+      WHERE id = ${homeId}
+      RETURNING *
+    `
 
     if (!result || result.length === 0) {
       return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
@@ -151,7 +149,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const userId = session.user.id
 
     // Verify the user owns this home
-    const homes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [homeId])
+    const { rows: homes } = await sql`
+      SELECT user_id FROM homes WHERE id = ${homeId}
+    `
 
     if (!homes || homes.length === 0) {
       return NextResponse.json({ error: "Home not found" }, { status: 404 })
@@ -163,10 +163,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // Delete related availabilities
-    await executeQuery("DELETE FROM availabilities WHERE home_id = $1", [homeId])
+    await sql`DELETE FROM availabilities WHERE home_id = ${homeId}`
 
     // Delete the home
-    await executeQuery("DELETE FROM homes WHERE id = $1", [homeId])
+    await sql`DELETE FROM homes WHERE id = ${homeId}`
 
     return NextResponse.json({ success: true })
   } catch (error) {

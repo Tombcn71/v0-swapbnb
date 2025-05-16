@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -11,11 +11,12 @@ import { useToast } from "@/hooks/use-toast"
 import type { DateRange } from "react-day-picker"
 
 interface AddAvailabilityFormProps {
-  homeId: string
-  onSuccess: (availability: any) => void
+  homeId?: string
+  onAdd?: (startDate: Date, endDate: Date) => void
+  onSuccess?: (availability: any) => void
 }
 
-export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormProps) {
+export function AddAvailabilityForm({ homeId, onAdd, onSuccess }: AddAvailabilityFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
@@ -23,31 +24,7 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
   })
   const { toast } = useToast()
 
-  // Log for debugging
-  console.log("AddAvailabilityForm - received homeId:", homeId)
-
-  // Validate homeId on mount
-  useEffect(() => {
-    if (!homeId) {
-      console.error("AddAvailabilityForm - No homeId provided")
-      toast({
-        title: "Fout",
-        description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",
-        variant: "destructive",
-      })
-    }
-  }, [homeId, toast])
-
   const handleAddAvailability = async () => {
-    if (!homeId) {
-      toast({
-        title: "Fout",
-        description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",
-        variant: "destructive",
-      })
-      return
-    }
-
     if (!dateRange?.from || !dateRange?.to) {
       toast({
         title: "Selecteer data",
@@ -65,6 +42,23 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
       toast({
         title: "Ongeldige begindatum",
         description: "De begindatum kan niet in het verleden liggen",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // If onAdd is provided, use it directly (for the add home form)
+    if (onAdd) {
+      onAdd(dateRange.from, dateRange.to)
+      setDateRange({ from: undefined, to: undefined })
+      return
+    }
+
+    // Otherwise, make an API call (for the home detail page)
+    if (!homeId) {
+      toast({
+        title: "Fout",
+        description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",
         variant: "destructive",
       })
       return
@@ -103,7 +97,10 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
         description: "De beschikbaarheidsperiode is succesvol toegevoegd",
       })
 
-      onSuccess(responseData)
+      if (onSuccess) {
+        onSuccess(responseData)
+      }
+
       setDateRange({ from: undefined, to: undefined })
     } catch (error) {
       console.error("Error adding availability:", error)
@@ -116,10 +113,6 @@ export function AddAvailabilityForm({ homeId, onSuccess }: AddAvailabilityFormPr
     } finally {
       setIsSubmitting(false)
     }
-  }
-
-  if (!homeId) {
-    return <div className="text-red-500 p-4">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</div>
   }
 
   return (
