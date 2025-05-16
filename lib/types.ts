@@ -41,8 +41,6 @@ export interface Home {
   bathrooms: number
   max_guests?: number
   maxGuests?: number
-  price_per_night?: number
-  pricePerNight?: number
   amenities: any
   user_id?: string
   userId?: string
