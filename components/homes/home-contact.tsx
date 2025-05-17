@@ -24,28 +24,35 @@ export function HomeContact({ home, userId }: HomeContactProps) {
   const [message, setMessage] = useState("")
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [hasChatted, setHasChatted] = useState(false)
+  const [isCheckingChat, setIsCheckingChat] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
-  const [hasChatted, setHasChatted] = useState(false)
 
   // Controleer of er al een chatinteractie is geweest
   useEffect(() => {
     const checkChatHistory = async () => {
-      if (!userId) return
+      if (!userId) {
+        setIsCheckingChat(false)
+        return
+      }
 
+      setIsCheckingChat(true)
       try {
-        const response = await fetch(`/api/messages/check-history?recipientId=${home.user_id || home.userId}`)
+        const response = await fetch(`/api/messages/check-history?recipientId=${home.user_id}`)
         if (response.ok) {
           const data = await response.json()
           setHasChatted(data.hasHistory)
         }
       } catch (error) {
         console.error("Error checking chat history:", error)
+      } finally {
+        setIsCheckingChat(false)
       }
     }
 
     checkChatHistory()
-  }, [userId, home.user_id, home.userId])
+  }, [userId, home.user_id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,7 +83,7 @@ export function HomeContact({ home, userId }: HomeContactProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipientId: home.user_id || home.userId,
+          recipientId: home.user_id,
           content: message,
           homeId: home.id,
         }),
@@ -92,6 +99,7 @@ export function HomeContact({ home, userId }: HomeContactProps) {
       })
 
       setMessage("")
+      setHasChatted(true) // Update de status na het verzenden van een bericht
       router.refresh()
     } catch (error) {
       console.error("Error sending message:", error)
@@ -103,6 +111,28 @@ export function HomeContact({ home, userId }: HomeContactProps) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleSwapRequest = () => {
+    if (!userId) {
+      toast({
+        title: "Je bent niet ingelogd",
+        description: "Log in om een swap-verzoek in te dienen",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!hasChatted) {
+      toast({
+        title: "Chat eerst met de eigenaar",
+        description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    router.push(`/homes/${home.id}/swap-request`)
   }
 
   return (
@@ -169,22 +199,15 @@ export function HomeContact({ home, userId }: HomeContactProps) {
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
 
         <Button
-          onClick={() => {
-            if (!hasChatted) {
-              toast({
-                title: "Chat eerst met de eigenaar",
-                description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
-                variant: "destructive",
-              })
-              return
-            }
-            router.push(`/homes/${home.id}/swap-request`)
-          }}
+          onClick={handleSwapRequest}
           className="w-full bg-google-blue hover:bg-blue-600"
-          disabled={!userId || !hasChatted}
+          disabled={!userId || (!hasChatted && !isCheckingChat)}
         >
           Swap-verzoek indienen
         </Button>
+        {isCheckingChat && userId && (
+          <p className="text-xs text-gray-500 w-full text-center">Chatgeschiedenis controleren...</p>
+        )}
       </CardFooter>
     </Card>
   )

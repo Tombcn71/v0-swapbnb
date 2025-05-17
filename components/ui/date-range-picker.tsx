@@ -1,6 +1,7 @@
 "use client"
+
+import type * as React from "react"
 import { format } from "date-fns"
-import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import type { DateRange } from "react-day-picker"
 
@@ -10,39 +11,49 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface DatePickerWithRangeProps {
-  value?: DateRange
-  onChange: (value: DateRange | undefined) => void
-  availableDates?: { from: Date; to: Date }[]
+  className?: string
+  dateRange: DateRange | undefined
+  setDateRange: React.Dispatch<React.SetStateAction<DateRange | undefined>>
+  availableDateRanges?: DateRange[]
 }
 
-export function DatePickerWithRange({ value, onChange, availableDates = [] }: DatePickerWithRangeProps) {
+export function DatePickerWithRange({
+  className,
+  dateRange,
+  setDateRange,
+  availableDateRanges,
+}: DatePickerWithRangeProps) {
   // Functie om te controleren of een datum beschikbaar is
-  const isDateAvailable = (date: Date): boolean => {
-    if (availableDates.length === 0) return true
+  const isDateAvailable = (date: Date) => {
+    if (!availableDateRanges || availableDateRanges.length === 0) return true
 
-    return availableDates.some((range) => date >= range.from && date <= range.to)
+    return availableDateRanges.some((range) => {
+      const from = new Date(range.from)
+      const to = new Date(range.to)
+      return date >= from && date <= to
+    })
   }
 
   return (
-    <div className={cn("grid gap-2")}>
+    <div className={cn("grid gap-2", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant={"outline"}
-            className={cn("w-full justify-start text-left font-normal", !value && "text-muted-foreground")}
+            className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {value?.from ? (
-              value.to ? (
+            {dateRange?.from ? (
+              dateRange.to ? (
                 <>
-                  {format(value.from, "PPP", { locale: nl })} - {format(value.to, "PPP", { locale: nl })}
+                  {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
                 </>
               ) : (
-                format(value.from, "PPP", { locale: nl })
+                format(dateRange.from, "LLL dd, y")
               )
             ) : (
-              <span>Selecteer een datum</span>
+              <span>Selecteer datums</span>
             )}
           </Button>
         </PopoverTrigger>
@@ -50,11 +61,11 @@ export function DatePickerWithRange({ value, onChange, availableDates = [] }: Da
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={value?.from}
-            selected={value}
-            onSelect={onChange}
+            defaultMonth={dateRange?.from}
+            selected={dateRange}
+            onSelect={setDateRange}
             numberOfMonths={2}
-            disabled={availableDates.length > 0 ? (date) => !isDateAvailable(date) : undefined}
+            disabled={(date) => !isDateAvailable(date)}
           />
         </PopoverContent>
       </Popover>

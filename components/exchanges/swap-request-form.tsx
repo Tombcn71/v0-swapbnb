@@ -1,47 +1,40 @@
 "use client"
 
 import type React from "react"
-import type { DateRange } from "react-day-picker"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePickerWithRange } from "@/components/ui/date-range-picker"
+import { Textarea } from "@/components/ui/textarea"
 import { format } from "date-fns"
-import { nl } from "date-fns/locale"
-import { ArrowLeft, Calendar, Home, MapPin, Users } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
+import Image from "next/image"
+import type { Home, Availability } from "@/lib/types"
 
 interface SwapRequestFormProps {
-  home: any // In een echte applicatie zou dit een Home type zijn
-  userHomes: any[] // In een echte applicatie zou dit een Home[] type zijn
-  availabilities: any[] // In een echte applicatie zou dit een Availability[] type zijn
+  home: Home & { owner: { id: string; name: string; email: string } }
+  userHomes: Array<{ id: string; title: string; city: string }>
+  availabilities: Availability[]
 }
 
 export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequestFormProps) {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
-  const [message, setMessage] = useState("")
   const [selectedHomeId, setSelectedHomeId] = useState<string>("")
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>(undefined)
+  const [message, setMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [availableDates, setAvailableDates] = useState<{ from: Date; to: Date }[]>([])
   const router = useRouter()
   const { toast } = useToast()
 
-  useEffect(() => {
-    // Verwerk de beschikbaarheidsdata
-    if (availabilities && availabilities.length > 0) {
-      const dates = availabilities.map((avail) => ({
-        from: new Date(avail.start_date),
-        to: new Date(avail.end_date),
-      }))
-      setAvailableDates(dates)
-    }
-  }, [availabilities])
+  // Converteer beschikbaarheden naar datumbereiken
+  const availableDateRanges = availabilities.map((avail) => ({
+    from: new Date(avail.start_date),
+    to: new Date(avail.end_date),
+  }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +42,7 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
     if (!selectedHomeId) {
       toast({
         title: "Selecteer een woning",
-        description: "Selecteer een van je woningen voor de swap",
+        description: "Je moet een van je woningen selecteren voor de swap",
         variant: "destructive",
       })
       return
@@ -57,17 +50,8 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
 
     if (!dateRange?.from || !dateRange?.to) {
       toast({
-        title: "Selecteer data",
-        description: "Selecteer de begin- en einddatum voor je verblijf",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!message.trim()) {
-      toast({
-        title: "Bericht is verplicht",
-        description: "Voer een bericht in voor de eigenaar",
+        title: "Selecteer datums",
+        description: "Je moet een datumbereik selecteren voor de swap",
         variant: "destructive",
       })
       return
@@ -92,20 +76,23 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Er is iets misgegaan bij het aanvragen van de swap")
+        throw new Error(errorData.error || "Failed to create swap request")
       }
 
+      const data = await response.json()
+
       toast({
-        title: "Swap-verzoek verzonden",
-        description: `Je swap-verzoek voor ${home.title} is verzonden naar de eigenaar`,
+        title: "Swap-verzoek ingediend",
+        description: "Je swap-verzoek is succesvol ingediend",
       })
 
-      // Navigeer naar de uitwisselingspagina
-      router.push("/exchanges")
-    } catch (error: any) {
+      router.push(`/exchanges/${data.id}`)
+    } catch (error) {
+      console.error("Error creating swap request:", error)
       toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Probeer het later opnieuw",
+        title: "Fout bij indienen",
+        description:
+          error instanceof Error ? error.message : "Er is een fout opgetreden bij het indienen van je swap-verzoek",
         variant: "destructive",
       })
     } finally {
@@ -114,168 +101,112 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-2">
-        <Button variant="ghost" asChild className="mb-6">
-          <Link href={`/homes/${home.id}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Terug naar woningdetails
-          </Link>
-        </Button>
+    <div className="grid md:grid-cols-2 gap-8">
+      <div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Geselecteerde woning</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="aspect-video relative rounded-md overflow-hidden">
+                <Image
+                  src={home.image_url || "/placeholder.svg?height=400&width=600&query=house"}
+                  alt={home.title}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold">{home.title}</h3>
+                <p className="text-gray-500">
+                  {home.city}, {home.country}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium">Eigenaar:</p>
+                <p>{home.owner?.name || home.host_name}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        <h1 className="text-2xl font-bold mb-6">Swap-verzoek indienen</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Beschikbare periodes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {availabilities.length > 0 ? (
+              <ul className="space-y-2">
+                {availabilities.map((avail, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-gray-500" />
+                    <span>
+                      {format(new Date(avail.start_date), "d MMMM yyyy")} -{" "}
+                      {format(new Date(avail.end_date), "d MMMM yyyy")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">Geen beschikbare periodes gevonden</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Selecteer je woning</h2>
-              <p className="text-gray-600 mb-4">Kies welke van je woningen je wilt aanbieden voor deze swap.</p>
-
-              {userHomes.length === 0 ? (
-                <div className="bg-yellow-50 border border-yellow-100 rounded-md p-4 mb-4">
-                  <p className="text-yellow-800">
-                    Je hebt nog geen woningen toegevoegd.
-                    <Link href="/homes/add" className="text-blue-600 ml-1 underline">
-                      Voeg een woning toe
-                    </Link>
-                  </p>
-                </div>
-              ) : (
+      <div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Swap-verzoek indienen</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="home">Selecteer je woning</Label>
                 <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-                  <SelectTrigger>
+                  <SelectTrigger id="home">
                     <SelectValue placeholder="Selecteer een woning" />
                   </SelectTrigger>
                   <SelectContent>
                     {userHomes.map((userHome) => (
                       <SelectItem key={userHome.id} value={userHome.id}>
-                        {userHome.title} - {userHome.city}
+                        {userHome.title} ({userHome.city})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Selecteer data</h2>
-              <p className="text-gray-600 mb-4">Selecteer de begin- en einddatum voor je verblijf in {home.city}.</p>
-              <DatePickerWithRange
-                value={dateRange}
-                onChange={(range) => setDateRange(range)}
-                availableDates={availableDates}
-              />
-              {dateRange?.from && dateRange?.to && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
-                  <p className="text-blue-800 text-sm">
-                    Je hebt geselecteerd: {format(dateRange.from, "d MMMM yyyy", { locale: nl })} tot{" "}
-                    {format(dateRange.to, "d MMMM yyyy", { locale: nl })}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Bericht aan de eigenaar</h2>
-              <p className="text-gray-600 mb-4">
-                Leg uit waarom je geïnteresseerd bent in een huizenswap met{" "}
-                {home.user?.name || home.host_name || home.hostName}.
-              </p>
-              <Textarea
-                placeholder={`Hallo ${home.user?.name || home.host_name || home.hostName}, ik ben geïnteresseerd in een huizenswap met jouw woning in ${home.city}...`}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={6}
-                required
-              />
-            </CardContent>
-          </Card>
-
-          <div className="bg-blue-50 border border-blue-100 rounded-md p-4 mb-4">
-            <h3 className="font-semibold text-blue-800 mb-2">Servicekosten</h3>
-            <p className="text-blue-700 mb-2">
-              Na acceptatie van het swap-verzoek door beide partijen, wordt een servicekost van €25 in rekening
-              gebracht.
-            </p>
-            <p className="text-blue-700 text-sm">
-              Deze kosten dekken de administratie, verzekering en ondersteuning tijdens je verblijf.
-            </p>
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full bg-google-blue hover:bg-blue-600"
-            disabled={isSubmitting || userHomes.length === 0}
-          >
-            {isSubmitting ? "Aanvraag verzenden..." : "Verzend swap-verzoek"}
-          </Button>
-        </form>
-      </div>
-
-      <div>
-        <Card>
-          <CardContent className="p-0">
-            <div className="relative h-48 w-full">
-              <Image
-                src={
-                  Array.isArray(home.images) && home.images.length > 0
-                    ? home.images[0]
-                    : `/abstract-geometric-shapes.png?height=400&width=600&query=${home.title}`
-                }
-                alt={home.title}
-                fill
-                className="object-cover rounded-t-lg"
-              />
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-lg mb-2">{home.title}</h3>
-              <div className="flex items-center text-gray-600 mb-4">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{home.city}</span>
               </div>
 
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center">
-                  <Home className="h-5 w-5 text-gray-600 mr-3" />
-                  <span>
-                    {home.bedrooms} slaapkamer{home.bedrooms !== 1 && "s"}, {home.bathrooms} badkamer
-                    {home.bathrooms !== 1 && "s"}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 text-gray-600 mr-3" />
-                  <span>Maximaal {home.max_guests} gasten</span>
-                </div>
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 text-gray-600 mr-3" />
-                  <span>Selecteer beschikbare data</span>
-                </div>
+              <div className="space-y-2">
+                <Label>Selecteer datums</Label>
+                <DatePickerWithRange
+                  dateRange={dateRange}
+                  setDateRange={setDateRange}
+                  availableDateRanges={availableDateRanges}
+                />
               </div>
 
-              <div className="border-t pt-4">
-                <div className="flex items-center">
-                  <div className="relative h-10 w-10 rounded-full overflow-hidden mr-3">
-                    <Image
-                      src={
-                        home.user?.image ||
-                        `/abstract-geometric-shapes.png?height=40&width=40&query=${home.user?.name || home.host_name || home.hostName || "/placeholder.svg"}`
-                      }
-                      alt={home.user?.name || home.host_name || home.hostName || "Eigenaar"}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium">{home.user?.name || home.host_name || home.hostName}</p>
-                    <p className="text-sm text-gray-600">Eigenaar</p>
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="message">Bericht (optioneel)</Label>
+                <Textarea
+                  id="message"
+                  placeholder="Vertel iets over je swap-verzoek..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={4}
+                />
               </div>
-            </div>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Verzoek indienen..." : "Swap-verzoek indienen"}
+              </Button>
+            </form>
           </CardContent>
+          <CardFooter className="flex flex-col items-start text-sm text-gray-500">
+            <p>Door een swap-verzoek in te dienen, ga je akkoord met de voorwaarden.</p>
+            <p>Na acceptatie door beide partijen wordt een servicekosten in rekening gebracht.</p>
+          </CardFooter>
         </Card>
       </div>
     </div>

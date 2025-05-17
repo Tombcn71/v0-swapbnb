@@ -36,7 +36,7 @@ export default async function SwapRequestPage({ params }: SwapRequestPageProps) 
   home.owner = owners[0]
 
   // Haal de woningen van de gebruiker op
-  const userHomes = await executeQuery("SELECT id, title, city FROM homes WHERE owner_id = $1", [session.user.id])
+  const userHomes = await executeQuery("SELECT id, title, city FROM homes WHERE user_id = $1", [session.user.id])
 
   // Haal de beschikbaarheid van de woning op
   const availabilities = await executeQuery("SELECT * FROM availabilities WHERE home_id = $1", [params.id])
