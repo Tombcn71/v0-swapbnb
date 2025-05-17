@@ -1,46 +1,44 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client"
 import { NextResponse } from "next/server"
+import { put } from "@vercel/blob"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
 
-  if (!session || !session.user) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   try {
-    const body = (await request.json()) as HandleUploadBody
+    const formData = await request.formData()
+    const file = formData.get("file") as File
 
-    const jsonResponse = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (pathname) => {
-        return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-          maximumSizeInBytes: 10 * 1024 * 1024, // 10MB
-          addRandomSuffix: true,
-          tokenPayload: JSON.stringify({
-            userId: session.user.id,
-          }),
-        }
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        try {
-          console.log("Blob upload completed:", blob)
-          const { userId } = JSON.parse(tokenPayload)
-          console.log("User ID:", userId)
-          // Here you could update your database with the blob URL
-        } catch (error) {
-          console.error("Error in onUploadCompleted:", error)
-        }
-      },
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    // Controleer bestandstype
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "File must be an image" }, { status: 400 })
+    }
+
+    // Controleer bestandsgrootte (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 })
+    }
+
+    // Genereer een unieke bestandsnaam
+    const fileName = `profile-${session.user.id}-${Date.now()}.${file.type.split("/")[1]}`
+
+    // Upload naar Vercel Blob
+    const blob = await put(fileName, file, {
+      access: "public",
     })
 
-    return NextResponse.json(jsonResponse)
+    return NextResponse.json({ url: blob.url })
   } catch (error) {
-    console.error("Error handling upload:", error)
-    return NextResponse.json({ error: (error as Error).message }, { status: 400 })
+    console.error("Error uploading file:", error)
+    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 })
   }
 }

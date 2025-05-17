@@ -7,7 +7,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Star, Users, Home, MapPin } from "lucide-react"
+import { Star, Users, Home, MapPin, User } from "lucide-react"
 import { FavoriteButton } from "@/components/homes/favorite-button"
 
 // Type definitie voor een woning
@@ -26,6 +26,7 @@ interface Listing {
   rating?: number
   review_count?: number
   owner_name: string
+  owner_image?: string
 }
 
 export function ListingsGrid() {
@@ -128,10 +129,26 @@ export function ListingsGrid() {
                 </div>
               </CardContent>
               <CardFooter className="p-4 pt-0 flex justify-between items-center">
-                <div className="text-sm text-gray-600">
-                  {home.review_count ? `${home.review_count} beoordelingen` : `Aangeboden door ${home.owner_name}`}
+                <div className="flex items-center">
+                  <div className="relative h-6 w-6 rounded-full overflow-hidden mr-2 border border-gray-200">
+                    {home.owner_image ? (
+                      <Image
+                        src={home.owner_image || "/placeholder.svg"}
+                        alt={home.owner_name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-gray-100">
+                        <User className="h-3 w-3 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {home.review_count ? `${home.review_count} beoordelingen` : home.owner_name}
+                  </div>
                 </div>
-                <div className="text-teal-600 font-medium">Bekijk details</div>
+                <div className="text-blue-600 font-medium">Bekijk details</div>
               </CardFooter>
             </Link>
           </Card>

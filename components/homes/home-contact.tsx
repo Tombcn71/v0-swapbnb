@@ -3,13 +3,14 @@
 import type React from "react"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
-import { CalendarIcon, Send } from "lucide-react"
+import { CalendarIcon, Send, User } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -18,9 +19,10 @@ import type { Home } from "@/lib/types"
 interface HomeContactProps {
   home: Home
   userId?: string
+  hostImage?: string
 }
 
-export function HomeContact({ home, userId }: HomeContactProps) {
+export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
   const [message, setMessage] = useState("")
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -100,8 +102,27 @@ export function HomeContact({ home, userId }: HomeContactProps) {
 
   return (
     <Card className="sticky top-4">
-      <CardHeader>
-        <CardTitle>Contact opnemen</CardTitle>
+      <CardHeader className="pb-2">
+        <div className="flex items-center space-x-3">
+          <div className="relative h-12 w-12 rounded-full overflow-hidden border border-gray-200">
+            {hostImage ? (
+              <Image
+                src={hostImage || "/placeholder.svg"}
+                alt={home.host_name || home.hostName || ""}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-gray-100">
+                <User className="h-6 w-6 text-gray-400" />
+              </div>
+            )}
+          </div>
+          <div>
+            <CardTitle>Contact opnemen</CardTitle>
+            <p className="text-sm text-gray-500">met {home.host_name || home.hostName}</p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {userId ? (
@@ -162,7 +183,7 @@ export function HomeContact({ home, userId }: HomeContactProps) {
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
 
         {/* Eenvoudige knop die altijd de toast toont */}
-        <Button onClick={handleSwapRequestClick} className="w-full bg-gray-400 hover:bg-gray-500">
+        <Button onClick={handleSwapRequestClick} className="w-full bg-blue-600 hover:bg-blue-700">
           Swap-verzoek indienen
         </Button>
         <p className="text-xs text-gray-500 w-full text-center">
