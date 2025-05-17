@@ -1,11 +1,14 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, Users, Home, MapPin } from "lucide-react"
+import { FavoriteButton } from "@/components/homes/favorite-button"
 
 // Type definitie voor een woning
 interface Listing {
@@ -65,14 +68,20 @@ export function ListingsGrid() {
     return <div className="text-center py-10">Geen woningen gevonden. Voeg een woning toe om te beginnen.</div>
   }
 
+  // Voorkom dat de Link component de FavoriteButton click event afvangt
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
   return (
     <div>
       <p className="text-gray-600 mb-6">{homes.length} woningen gevonden</p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {homes.map((home) => (
-          <Link href={`/homes/${home.id}`} key={home.id} className="group">
-            <Card className="overflow-hidden h-full transition-all duration-200 hover:shadow-md">
-              <div className="relative h-48 w-full overflow-hidden">
+          <Card key={home.id} className="overflow-hidden h-full transition-all duration-200 hover:shadow-md">
+            <div className="relative h-48 w-full overflow-hidden">
+              <Link href={`/homes/${home.id}`}>
                 <Image
                   src={
                     home.images && home.images.length > 0
@@ -83,7 +92,13 @@ export function ListingsGrid() {
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
+              </Link>
+              {/* Favoriet hartje */}
+              <div className="absolute top-2 right-2 z-10" onClick={handleFavoriteClick}>
+                <FavoriteButton homeId={home.id} className="bg-white/80 hover:bg-white" />
               </div>
+            </div>
+            <Link href={`/homes/${home.id}`} className="block">
               <CardContent className="p-4">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-semibold text-lg line-clamp-1">{home.title}</h3>
@@ -118,8 +133,8 @@ export function ListingsGrid() {
                 </div>
                 <div className="text-teal-600 font-medium">Bekijk details</div>
               </CardFooter>
-            </Card>
-          </Link>
+            </Link>
+          </Card>
         ))}
       </div>
     </div>
