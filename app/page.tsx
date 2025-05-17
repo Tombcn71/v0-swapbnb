@@ -49,7 +49,7 @@ export default function Home() {
       {/* Hero Section */}
       <div className="relative w-full h-[80vh] md:h-[70vh]">
         <Image
-          src="https://images.pexels.com/photos/4784042/pexels-photo-4784042.jpeg?auto=compress&cs=tinysrgb&w=1600"
+          src="https://images.pexels.com/photos/6338457/pexels-photo-6338457.jpeg?auto=compress&cs=tinysrgb&w=1600"
           alt="Gelukkig gezin"
           fill
           priority
@@ -58,10 +58,11 @@ export default function Home() {
 
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <h1 className="mb-4 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
-            Swap je huis, er op uit in Nederland
+            Swap je huis, ontdek Nederland
           </h1>
           <p className="mb-6 text-lg md:text-xl text-white drop-shadow-lg max-w-3xl">
-Reis slim door Nederland: ervaar meer, betaal minder door short stay woningruil.          </p>
+            Reis slim door Nederland: ervaar meer, betaal minder door woningruil.
+          </p>
           <div className="flex gap-4">
             <Button asChild size="lg">
               <Link href="/listings">Ontdek woningen</Link>
