@@ -37,6 +37,8 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
     console.log("HomeDetailClient - home object:", home)
     console.log("HomeDetailClient - homeId:", homeId)
     console.log("HomeDetailClient - host_profile_image:", home.host_profile_image)
+    console.log("HomeDetailClient - userId:", userId)
+    console.log("HomeDetailClient - isOwner:", isOwner)
 
     if (!homeId) {
       console.error("HomeDetailClient - No homeId available")
@@ -46,7 +48,7 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
         variant: "destructive",
       })
     }
-  }, [home, homeId, toast])
+  }, [home, homeId, toast, userId, isOwner])
 
   // If no homeId is available, show an error message
   if (!homeId) {

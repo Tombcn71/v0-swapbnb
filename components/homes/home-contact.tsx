@@ -61,7 +61,10 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
   useEffect(() => {
     console.log("HomeContact - hostImage:", hostImage)
     console.log("HomeContact - hasChatted:", hasChatted)
-  }, [hostImage, hasChatted])
+    console.log("HomeContact - userId:", userId)
+    console.log("HomeContact - isOwner:", isOwner)
+    console.log("HomeContact - home:", home)
+  }, [hostImage, hasChatted, userId, isOwner, home])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,58 +173,60 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
         </div>
       </CardHeader>
       <CardContent>
-        {userId && !isOwner ? (
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium mb-1">
-                  Stuur een bericht naar {home.host_name || home.hostName}
-                </label>
-                <Textarea
-                  id="message"
-                  placeholder="Stel een vraag of vraag naar beschikbaarheid..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="date" className="block text-sm font-medium mb-1">
-                  Gewenste datum (optioneel)
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal" id="date">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : <span>Kies een datum</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                  </PopoverContent>
-                </Popover>
-              </div>
+        {userId ? (
+          isOwner ? (
+            <div className="text-center py-4">
+              <p className="mb-4">Dit is jouw woning</p>
+              <Button asChild className="w-full">
+                <Link href={`/homes/${home.id}/edit`}>Bewerk woning</Link>
+              </Button>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium mb-1">
+                    Stuur een bericht naar {home.host_name || home.hostName}
+                  </label>
+                  <Textarea
+                    id="message"
+                    placeholder="Stel een vraag of vraag naar beschikbaarheid..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
 
-            <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
-              {isSubmitting ? (
-                "Verzenden..."
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" /> Bericht versturen
-                </>
-              )}
-            </Button>
-          </form>
-        ) : isOwner ? (
-          <div className="text-center py-4">
-            <p className="mb-4">Dit is jouw woning</p>
-            <Button asChild className="w-full">
-              <Link href={`/homes/${home.id}/edit`}>Bewerk woning</Link>
-            </Button>
-          </div>
+                <div>
+                  <label htmlFor="date" className="block text-sm font-medium mb-1">
+                    Gewenste datum (optioneel)
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal" id="date">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : <span>Kies een datum</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  "Verzenden..."
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" /> Bericht versturen
+                  </>
+                )}
+              </Button>
+            </form>
+          )
         ) : (
           <div className="text-center py-4">
             <p className="mb-4">Log in om contact op te nemen met de eigenaar</p>
@@ -234,7 +239,7 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
       <CardFooter className="flex flex-col items-start space-y-4 w-full">
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
 
-        {!isOwner && (
+        {userId && !isOwner && (
           <>
             <Button
               onClick={handleSwapRequestClick}
@@ -244,10 +249,10 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
             >
               Swap-verzoek indienen
             </Button>
-            {isCheckingChat && userId && (
+            {isCheckingChat && (
               <p className="text-xs text-gray-500 w-full text-center">Chatgeschiedenis controleren...</p>
             )}
-            {!hasChatted && !isCheckingChat && userId && (
+            {!hasChatted && !isCheckingChat && (
               <p className="text-xs text-gray-500 w-full text-center">
                 Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
               </p>
