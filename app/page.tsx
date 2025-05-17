@@ -1,12 +1,52 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MapPinIcon, EuroIcon, UmbrellaIcon, BikeIcon } from "lucide-react"
+import { MapPinIcon, EuroIcon, UmbrellaIcon, BikeIcon, MenuIcon } from "lucide-react"
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section - Nog iets hoger */}
+      {/* Navigatiebalk */}
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center space-x-2">
+            <span className="text-xl font-bold text-blue-600">SwapBnB</span>
+          </Link>
+
+          {/* Desktop navigatie */}
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/listings" className="text-gray-700 hover:text-blue-600 font-medium">
+              Woningen
+            </Link>
+            <Link href="/how-it-works" className="text-gray-700 hover:text-blue-600 font-medium">
+              Hoe het werkt
+            </Link>
+            <Link href="/about" className="text-gray-700 hover:text-blue-600 font-medium">
+              Over ons
+            </Link>
+            <Link href="/contact" className="text-gray-700 hover:text-blue-600 font-medium">
+              Contact
+            </Link>
+          </nav>
+
+          {/* Knoppen */}
+          <div className="hidden md:flex items-center space-x-4">
+            <Button asChild variant="outline" size="sm">
+              <Link href="/login">Inloggen</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/signup">Registreren</Link>
+            </Button>
+          </div>
+
+          {/* Mobiele menu knop */}
+          <button className="md:hidden text-gray-700">
+            <MenuIcon className="h-6 w-6" />
+          </button>
+        </div>
+      </header>
+
+      {/* Hero Section */}
       <div className="relative w-full h-[80vh] md:h-[70vh]">
         <Image
           src="https://images.pexels.com/photos/6338457/pexels-photo-6338457.jpeg?auto=compress&cs=tinysrgb&w=1600"
@@ -34,7 +74,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Rest van de code blijft hetzelfde */}
       {/* Waarom SwapBnB Section - Focus op Nederland */}
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto">
