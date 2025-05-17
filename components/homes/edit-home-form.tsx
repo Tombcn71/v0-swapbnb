@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, X, ImageIcon, Loader2, Calendar } from "lucide-react"
+import { Upload, X, ImageIcon, Loader2, Calendar, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import { upload } from "@vercel/blob/client"
 import { AddAvailabilityForm } from "@/components/homes/add-availability-form"
@@ -27,6 +27,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
   const [uploadingImages, setUploadingImages] = useState<boolean>(false)
   const [availabilities, setAvailabilities] = useState<{ id?: string; startDate: Date; endDate: Date }[]>([])
   const [isLoadingAvailabilities, setIsLoadingAvailabilities] = useState(true)
+  const [hasChanges, setHasChanges] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { toast } = useToast()
@@ -87,8 +88,8 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         // Convert string dates to Date objects
         const formattedAvailabilities = data.map((avail: any) => ({
           id: avail.id,
-          startDate: new Date(avail.start_date),
-          endDate: new Date(avail.end_date),
+          startDate: new Date(avail.startDate || avail.start_date),
+          endDate: new Date(avail.endDate || avail.end_date),
         }))
 
         setAvailabilities(formattedAvailabilities)
@@ -110,10 +111,12 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    setHasChanges(true)
   }
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
+    setHasChanges(true)
   }
 
   const handleAmenityChange = (amenity: string, checked: boolean) => {
@@ -124,6 +127,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         [amenity]: checked,
       },
     }))
+    setHasChanges(true)
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,6 +155,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         ...prev,
         images: [...prev.images, ...uploadedUrls],
       }))
+      setHasChanges(true)
 
       toast({
         title: "Foto's geüpload",
@@ -178,6 +183,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }))
+    setHasChanges(true)
   }
 
   const triggerFileInput = () => {
@@ -209,8 +215,8 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         ...prev,
         {
           id: newAvailability.id,
-          startDate: new Date(newAvailability.start_date),
-          endDate: new Date(newAvailability.end_date),
+          startDate: new Date(newAvailability.startDate || newAvailability.start_date),
+          endDate: new Date(newAvailability.endDate || newAvailability.end_date),
         },
       ])
 
@@ -259,16 +265,32 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
     setIsSubmitting(true)
 
     try {
-      // Validate postal code
-      if (!formData.postalCode) {
-        toast({
-          title: "Ontbrekende postcode",
-          description: "Vul een postcode in",
-          variant: "destructive",
-        })
-        setIsSubmitting(false)
-        setActiveTab("basic")
-        return
+      // Alleen valideren als we op het basic tabblad zijn
+      if (activeTab === "basic") {
+        // Validate postal code
+        if (!formData.postalCode) {
+          toast({
+            title: "Ontbrekende postcode",
+            description: "Vul een postcode in",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          return
+        }
+      }
+
+      // Alleen valideren als we op het photos tabblad zijn
+      if (activeTab === "photos") {
+        // Validate images
+        if (formData.images.length < 3) {
+          toast({
+            title: "Niet genoeg foto's",
+            description: "Voeg minimaal 3 foto's toe",
+            variant: "destructive",
+          })
+          setIsSubmitting(false)
+          return
+        }
       }
 
       console.log("Submitting form data:", {
@@ -308,6 +330,8 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         description: "Je woning is succesvol bijgewerkt",
       })
 
+      setHasChanges(false)
+
       // Navigate back to the home details page
       router.push(`/homes/${home.id}`)
       router.refresh()
@@ -323,8 +347,31 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
     }
   }
 
+  const handleBackToHome = () => {
+    if (hasChanges) {
+      if (confirm("Je hebt onopgeslagen wijzigingen. Weet je zeker dat je wilt teruggaan?")) {
+        router.push(`/homes/${home.id}`)
+      }
+    } else {
+      router.push(`/homes/${home.id}`)
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit}>
+      <div className="flex justify-between items-center mb-4">
+        <Button type="button" variant="outline" onClick={handleBackToHome} className="flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Terug naar woning
+        </Button>
+
+        {hasChanges && (
+          <Button type="submit" disabled={isSubmitting} className="bg-google-blue hover:bg-blue-600">
+            {isSubmitting ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
+          </Button>
+        )}
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
         <TabsList className="mb-4">
           <TabsTrigger value="basic">Basisinformatie</TabsTrigger>
@@ -405,14 +452,24 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                   />
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    onClick={() => setActiveTab("details")}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    Volgende: Details & Voorzieningen
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handleBackToHome}>
+                    Annuleren
                   </Button>
+                  <div className="space-x-2">
+                    {hasChanges && (
+                      <Button type="submit" disabled={isSubmitting} className="bg-google-blue hover:bg-blue-600">
+                        {isSubmitting ? "Bezig met opslaan..." : "Opslaan"}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={() => setActiveTab("details")}
+                      className="bg-google-blue hover:bg-blue-600"
+                    >
+                      Volgende: Details & Voorzieningen
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -610,13 +667,20 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                   <Button type="button" variant="outline" onClick={() => setActiveTab("basic")}>
                     Terug: Basisinformatie
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setActiveTab("availability")}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    Volgende: Beschikbaarheid
-                  </Button>
+                  <div className="space-x-2">
+                    {hasChanges && (
+                      <Button type="submit" disabled={isSubmitting} className="bg-google-blue hover:bg-blue-600">
+                        {isSubmitting ? "Bezig met opslaan..." : "Opslaan"}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={() => setActiveTab("availability")}
+                      className="bg-google-blue hover:bg-blue-600"
+                    >
+                      Volgende: Beschikbaarheid
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -684,13 +748,18 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                   <Button type="button" variant="outline" onClick={() => setActiveTab("details")}>
                     Terug: Details & Voorzieningen
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={() => setActiveTab("photos")}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    Volgende: Foto's
-                  </Button>
+                  <div className="space-x-2">
+                    <Button type="button" variant="outline" onClick={handleBackToHome}>
+                      Terug naar woning
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setActiveTab("photos")}
+                      className="bg-google-blue hover:bg-blue-600"
+                    >
+                      Volgende: Foto's
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -785,13 +854,20 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                   <Button type="button" variant="outline" onClick={() => setActiveTab("availability")}>
                     Terug: Beschikbaarheid
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting || formData.images.length < 3}
-                    className="bg-google-blue hover:bg-blue-600"
-                  >
-                    {isSubmitting ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
-                  </Button>
+                  <div className="space-x-2">
+                    <Button type="button" variant="outline" onClick={handleBackToHome}>
+                      Terug naar woning
+                    </Button>
+                    {hasChanges && (
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting || formData.images.length < 3}
+                        className="bg-google-blue hover:bg-blue-600"
+                      >
+                        {isSubmitting ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
