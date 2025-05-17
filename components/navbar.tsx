@@ -3,14 +3,18 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MenuIcon } from "lucide-react"
+import { MenuIcon, LogOut } from "lucide-react"
 import { useState } from "react"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 
 export function Navbar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: "/" })
+  }
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -54,8 +58,9 @@ export function Navbar() {
               <Button asChild variant="outline" size="sm">
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
-              <Button asChild size="sm">
-                <Link href="/profile">Profiel</Link>
+              <Button onClick={handleSignOut} variant="destructive" size="sm" className="flex items-center gap-1">
+                <LogOut className="h-4 w-4" />
+                Uitloggen
               </Button>
             </>
           ) : (
@@ -117,10 +122,17 @@ export function Navbar() {
                       Dashboard
                     </Link>
                   </Button>
-                  <Button asChild size="sm" className="w-full">
-                    <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
-                      Profiel
-                    </Link>
+                  <Button
+                    onClick={() => {
+                      handleSignOut()
+                      setMobileMenuOpen(false)
+                    }}
+                    variant="destructive"
+                    size="sm"
+                    className="w-full flex items-center justify-center gap-1"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Uitloggen
                   </Button>
                 </div>
               ) : (
