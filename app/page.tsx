@@ -49,7 +49,7 @@ export default function Home() {
       {/* Hero Section */}
       <div className="relative w-full h-[80vh] md:h-[70vh]">
         <Image
-          src="https://plus.unsplash.com/premium_photo-1681884455370-0102a5363ff2?q=80&w=2972&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+          src="https://images.pexels.com/photos/4784042/pexels-photo-4784042.jpeg?auto=compress&cs=tinysrgb&w=1600"
           alt="Gelukkig gezin"
           fill
           priority
