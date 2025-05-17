@@ -6,8 +6,8 @@ import { MapPinIcon, EuroIcon, UmbrellaIcon, BikeIcon } from "lucide-react"
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <div className="relative w-full h-screen">
+      {/* Hero Section - Nog iets hoger */}
+      <div className="relative w-full h-[80vh] md:h-[70vh]">
         <Image
           src="https://images.pexels.com/photos/6338457/pexels-photo-6338457.jpeg?auto=compress&cs=tinysrgb&w=1600"
           alt="Gelukkig gezin"
@@ -17,8 +17,10 @@ export default function Home() {
         />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-          <h1 className="mb-6 text-5xl font-bold text-white drop-shadow-lg">Swap je huis, ontdek de wereld</h1>
-          <p className="mb-8 text-xl text-white drop-shadow-lg max-w-3xl">
+          <h1 className="mb-4 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
+            Swap je huis, ontdek de wereld
+          </h1>
+          <p className="mb-6 text-lg md:text-xl text-white drop-shadow-lg max-w-3xl">
             Ervaar het comfort van thuis, waar je ook bent.
           </p>
           <div className="flex gap-4">
@@ -32,6 +34,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Rest van de code blijft hetzelfde */}
       {/* Waarom SwapBnB Section - Focus op Nederland */}
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto">
