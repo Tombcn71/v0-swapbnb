@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { DashboardExchanges } from "@/components/dashboard/dashboard-exchanges"
+import { DashboardFavorites } from "@/components/dashboard/dashboard-favorites"
 import { MessageSquare, User, Plus, Home, MapPin } from "lucide-react"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
@@ -126,7 +127,10 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <h2 className="text-2xl font-bold mb-4">Aankomende Uitwisselingen</h2>
+      <h2 className="text-2xl font-bold mb-4">Favoriete Woningen</h2>
+      <DashboardFavorites />
+
+      <h2 className="text-2xl font-bold mt-8 mb-4">Aankomende Uitwisselingen</h2>
       <DashboardExchanges />
     </div>
   )

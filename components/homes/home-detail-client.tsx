@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { HomeAvailability } from "./home-availability"
 import { HomeReviews } from "./home-reviews"
 import { HomeContact } from "./home-contact"
+import { FavoriteButton } from "./favorite-button"
 import { PencilIcon, BedIcon, BathIcon, UsersIcon, MapPinIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -62,27 +63,35 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{home.title}</h1>
-        {isOwner && (
-          <Link href={`/homes/${homeId}/edit`}>
-            <Button variant="outline" className="flex items-center gap-2">
-              <PencilIcon className="h-4 w-4" />
-              Bewerken
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {!isOwner && <FavoriteButton homeId={homeId} />}
+          {isOwner && (
+            <Link href={`/homes/${homeId}/edit`}>
+              <Button variant="outline" className="flex items-center gap-2">
+                <PencilIcon className="h-4 w-4" />
+                Bewerken
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 relative">
             {images.length > 0 ? (
-              <Image
-                src={images[activeImage] || "/placeholder.svg"}
-                alt={home.title}
-                width={800}
-                height={500}
-                className="rounded-lg object-cover w-full h-[500px]"
-              />
+              <>
+                <Image
+                  src={images[activeImage] || "/placeholder.svg"}
+                  alt={home.title}
+                  width={800}
+                  height={500}
+                  className="rounded-lg object-cover w-full h-[500px]"
+                />
+                {!isOwner && (
+                  <FavoriteButton homeId={homeId} className="absolute top-4 right-4 bg-white/80 hover:bg-white" />
+                )}
+              </>
             ) : (
               <div className="bg-gray-200 rounded-lg w-full h-[500px] flex items-center justify-center">
                 <p className="text-gray-500">Geen afbeelding beschikbaar</p>
