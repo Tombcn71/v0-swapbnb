@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,10 +19,11 @@ import type { Home } from "@/lib/types"
 interface HomeContactProps {
   home: Home
   userId?: string
-  hostImage?: string // Dit is nu profile_image
+  hostImage?: string
+  isOwner?: boolean
 }
 
-export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
+export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactProps) {
   const [message, setMessage] = useState("")
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -31,6 +32,11 @@ export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
 
   // Voor testdoeleinden, hardcoded op false
   const hasChatted = false
+
+  // Log voor debugging
+  useEffect(() => {
+    console.log("HomeContact - hostImage:", hostImage)
+  }, [hostImage])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,7 +115,8 @@ export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
               <Image
                 src={hostImage || "/placeholder.svg"}
                 alt={home.host_name || home.hostName || ""}
-                fill
+                width={80}
+                height={80}
                 className="object-cover"
               />
             ) : (
@@ -125,7 +132,7 @@ export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {userId ? (
+        {userId && !isOwner ? (
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
@@ -170,6 +177,13 @@ export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
               )}
             </Button>
           </form>
+        ) : isOwner ? (
+          <div className="text-center py-4">
+            <p className="mb-4">Dit is jouw woning</p>
+            <Button asChild className="w-full">
+              <Link href={`/homes/${home.id}/edit`}>Bewerk woning</Link>
+            </Button>
+          </div>
         ) : (
           <div className="text-center py-4">
             <p className="mb-4">Log in om contact op te nemen met de eigenaar</p>
@@ -183,12 +197,16 @@ export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
 
         {/* Eenvoudige knop die altijd de toast toont */}
-        <Button onClick={handleSwapRequestClick} className="w-full bg-blue-600 hover:bg-blue-700">
-          Swap-verzoek indienen
-        </Button>
-        <p className="text-xs text-gray-500 w-full text-center">
-          Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
-        </p>
+        {!isOwner && (
+          <>
+            <Button onClick={handleSwapRequestClick} className="w-full bg-blue-600 hover:bg-blue-700">
+              Swap-verzoek indienen
+            </Button>
+            <p className="text-xs text-gray-500 w-full text-center">
+              Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
+            </p>
+          </>
+        )}
       </CardFooter>
     </Card>
   )

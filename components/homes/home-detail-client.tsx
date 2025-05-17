@@ -36,6 +36,7 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
   useEffect(() => {
     console.log("HomeDetailClient - home object:", home)
     console.log("HomeDetailClient - homeId:", homeId)
+    console.log("HomeDetailClient - host_profile_image:", home.host_profile_image)
 
     if (!homeId) {
       console.error("HomeDetailClient - No homeId available")
@@ -62,7 +63,19 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{home.title}</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">{home.title}</h1>
+          {home.host_profile_image && (
+            <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-gray-200 shadow-md">
+              <Image
+                src={home.host_profile_image || "/placeholder.svg"}
+                alt={home.host_name || ""}
+                fill
+                className="object-cover"
+              />
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {!isOwner && <FavoriteButton homeId={homeId} />}
           {isOwner && (
@@ -185,7 +198,7 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
         </div>
 
         <div>
-          <HomeContact home={home} userId={userId} isOwner={isOwner} />
+          <HomeContact home={home} userId={userId} isOwner={isOwner} hostImage={home.host_profile_image} />
         </div>
       </div>
     </div>
