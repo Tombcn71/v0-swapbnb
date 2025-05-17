@@ -28,51 +28,49 @@ export function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section with Image Background - No Side Bars */}
-      <div className="relative flex flex-col items-center justify-center">
-        {/* Hero Image with Overlay */}
-        <div className="relative w-full h-[500px] md:h-[600px]">
-          <Image
-            src="/family-travel-hero.jpg"
-            alt="Moeder en kind op reis met koffer"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/50" /> {/* Dark overlay for better text readability */}
-          {/* Hero Content */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
-            <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white">
-              Ruil je huis, ontdek de wereld
-            </h1>
-            <p className="mb-8 text-lg md:text-xl text-white max-w-3xl">
-              Ervaar het comfort van thuis, waar je ook bent. Ruil je woning en geniet van authentieke reiservaringen
-              zonder hotelkosten.
-            </p>
-            <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 justify-center">
-              <Button onClick={handleExploreClick} size="lg" className="text-lg px-8">
-                {isLoading ? "Laden..." : "Ontdek woningen"}
+      {/* Hero Section with Full Width Image - No Black Bars */}
+      <div className="w-screen relative overflow-hidden h-[500px] md:h-[600px]">
+        <Image
+          src="/family-travel-hero.jpg"
+          alt="Moeder en kind op reis met koffer"
+          fill
+          className="object-cover"
+          priority
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/25" /> {/* Even lighter overlay (25%) */}
+        {/* Hero Content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+          <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white drop-shadow-md">
+            Ruil je huis, ontdek de wereld
+          </h1>
+          <p className="mb-8 text-lg md:text-xl text-white max-w-3xl drop-shadow-md">
+            Ervaar het comfort van thuis, waar je ook bent. Ruil je woning en geniet van authentieke reiservaringen
+            zonder hotelkosten.
+          </p>
+          <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 justify-center">
+            <Button onClick={handleExploreClick} size="lg" className="text-lg px-8">
+              {isLoading ? "Laden..." : "Ontdek woningen"}
+            </Button>
+            {session ? (
+              <Button
+                onClick={handleDashboardClick}
+                variant="outline"
+                size="lg"
+                className="text-lg px-8 bg-white/10 backdrop-blur-sm hover:bg-white/20"
+              >
+                {isLoading ? "Laden..." : "Naar Dashboard"}
               </Button>
-              {session ? (
-                <Button
-                  onClick={handleDashboardClick}
-                  variant="outline"
-                  size="lg"
-                  className="text-lg px-8 bg-white/10 backdrop-blur-sm hover:bg-white/20"
-                >
-                  {isLoading ? "Laden..." : "Naar Dashboard"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleLoginClick}
-                  variant="outline"
-                  size="lg"
-                  className="text-lg px-8 bg-white/10 backdrop-blur-sm hover:bg-white/20"
-                >
-                  {isLoading ? "Laden..." : "Inloggen"}
-                </Button>
-              )}
-            </div>
+            ) : (
+              <Button
+                onClick={handleLoginClick}
+                variant="outline"
+                size="lg"
+                className="text-lg px-8 bg-white/10 backdrop-blur-sm hover:bg-white/20"
+              >
+                {isLoading ? "Laden..." : "Inloggen"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
