@@ -61,8 +61,7 @@ export default function Home() {
             Swap je huis, ontdek Nederland
           </h1>
           <p className="mb-6 text-lg md:text-xl text-white drop-shadow-lg max-w-3xl">
-            Reis slim door Nederland: ervaar meer, betaal minder door woningruil.
-          </p>
+Zeg maar dag tegen hotels en accomodaties die de prijzen verhogen net wanneer jij vrij hebt of je kinderen vakantie hebben          </p>
           <div className="flex gap-4">
             <Button asChild size="lg">
               <Link href="/listings">Ontdek woningen</Link>
