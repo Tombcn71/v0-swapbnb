@@ -84,16 +84,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Haal de host ID op van de host woning
-    const hostHomes = await executeQuery("SELECT owner_id FROM homes WHERE id = $1", [hostHomeId])
+    const hostHomes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [hostHomeId])
 
     if (hostHomes.length === 0) {
       return NextResponse.json({ error: "Host home not found" }, { status: 404 })
     }
 
-    const hostId = hostHomes[0].owner_id
+    const hostId = hostHomes[0].user_id
 
     // Controleer of de gebruiker de eigenaar is van de requester woning
-    const requesterHomes = await executeQuery("SELECT * FROM homes WHERE id = $1 AND owner_id = $2", [
+    const requesterHomes = await executeQuery("SELECT * FROM homes WHERE id = $1 AND user_id = $2", [
       requesterHomeId,
       userId,
     ])

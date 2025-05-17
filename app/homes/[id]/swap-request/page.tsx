@@ -27,12 +27,12 @@ export default async function SwapRequestPage({ params }: SwapRequestPageProps) 
   const home = homes[0]
 
   // Controleer of de gebruiker niet de eigenaar is
-  if (home.owner_id === session.user.id) {
+  if (home.user_id === session.user.id) {
     redirect(`/homes/${params.id}`)
   }
 
   // Haal de eigenaar op
-  const owners = await executeQuery("SELECT id, name, email FROM users WHERE id = $1", [home.owner_id])
+  const owners = await executeQuery("SELECT id, name, email FROM users WHERE id = $1", [home.user_id])
   home.owner = owners[0]
 
   // Haal de woningen van de gebruiker op
@@ -46,7 +46,7 @@ export default async function SwapRequestPage({ params }: SwapRequestPageProps) 
     `SELECT COUNT(*) as count
      FROM messages
      WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)`,
-    [session.user.id, home.owner_id],
+    [session.user.id, home.user_id],
   )
 
   const hasChatted = chatHistory[0].count > 0

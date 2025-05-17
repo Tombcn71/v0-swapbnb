@@ -181,10 +181,11 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
             <CardContent className="pt-6">
               <h2 className="text-xl font-semibold mb-4">Bericht aan de eigenaar</h2>
               <p className="text-gray-600 mb-4">
-                Leg uit waarom je geïnteresseerd bent in een huizenswap met {home.owner?.name}.
+                Leg uit waarom je geïnteresseerd bent in een huizenswap met{" "}
+                {home.user?.name || home.host_name || home.hostName}.
               </p>
               <Textarea
-                placeholder={`Hallo ${home.owner?.name}, ik ben geïnteresseerd in een huizenswap met jouw woning in ${home.city}...`}
+                placeholder={`Hallo ${home.user?.name || home.host_name || home.hostName}, ik ben geïnteresseerd in een huizenswap met jouw woning in ${home.city}...`}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={6}
@@ -259,16 +260,16 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
                   <div className="relative h-10 w-10 rounded-full overflow-hidden mr-3">
                     <Image
                       src={
-                        home.owner?.image ||
-                        `/abstract-geometric-shapes.png?height=40&width=40&query=${home.owner?.name || "/placeholder.svg"}`
+                        home.user?.image ||
+                        `/abstract-geometric-shapes.png?height=40&width=40&query=${home.user?.name || home.host_name || home.hostName || "/placeholder.svg"}`
                       }
-                      alt={home.owner?.name || "Eigenaar"}
+                      alt={home.user?.name || home.host_name || home.hostName || "Eigenaar"}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div>
-                    <p className="font-medium">{home.owner?.name}</p>
+                    <p className="font-medium">{home.user?.name || home.host_name || home.hostName}</p>
                     <p className="text-sm text-gray-600">Eigenaar</p>
                   </div>
                 </div>
