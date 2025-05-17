@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -24,35 +24,11 @@ export function HomeContact({ home, userId }: HomeContactProps) {
   const [message, setMessage] = useState("")
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [hasChatted, setHasChatted] = useState(false)
-  const [isCheckingChat, setIsCheckingChat] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
 
-  // Controleer of er al een chatinteractie is geweest
-  useEffect(() => {
-    const checkChatHistory = async () => {
-      if (!userId) {
-        setIsCheckingChat(false)
-        return
-      }
-
-      setIsCheckingChat(true)
-      try {
-        const response = await fetch(`/api/messages/check-history?recipientId=${home.user_id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setHasChatted(data.hasHistory)
-        }
-      } catch (error) {
-        console.error("Error checking chat history:", error)
-      } finally {
-        setIsCheckingChat(false)
-      }
-    }
-
-    checkChatHistory()
-  }, [userId, home.user_id])
+  // Voor testdoeleinden, hardcoded op false
+  const hasChatted = false
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,7 +59,7 @@ export function HomeContact({ home, userId }: HomeContactProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipientId: home.user_id,
+          recipientId: home.user_id || home.userId,
           content: message,
           homeId: home.id,
         }),
@@ -99,7 +75,6 @@ export function HomeContact({ home, userId }: HomeContactProps) {
       })
 
       setMessage("")
-      setHasChatted(true) // Update de status na het verzenden van een bericht
       router.refresh()
     } catch (error) {
       console.error("Error sending message:", error)
@@ -113,28 +88,14 @@ export function HomeContact({ home, userId }: HomeContactProps) {
     }
   }
 
-  const handleSwapRequest = () => {
-    // Altijd eerst controleren of er chatcontact is geweest, ongeacht de visuele status van de knop
-    if (!userId) {
-      toast({
-        title: "Je bent niet ingelogd",
-        description: "Log in om een swap-verzoek in te dienen",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!hasChatted) {
-      toast({
-        title: "Chat eerst met de eigenaar",
-        description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // Alleen als er chatcontact is geweest, navigeren we naar de swap-verzoek pagina
-    router.push(`/homes/${home.id}/swap-request`)
+  // Zeer eenvoudige functie die alleen de toast toont
+  const handleSwapRequestClick = () => {
+    console.log("Swap-verzoek knop geklikt")
+    toast({
+      title: "Chat eerst met de eigenaar",
+      description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
+      variant: "destructive",
+    })
   }
 
   return (
@@ -148,7 +109,7 @@ export function HomeContact({ home, userId }: HomeContactProps) {
             <div className="space-y-4">
               <div>
                 <label htmlFor="message" className="block text-sm font-medium mb-1">
-                  Stuur een bericht naar {home.host_name}
+                  Stuur een bericht naar {home.host_name || home.hostName}
                 </label>
                 <Textarea
                   id="message"
@@ -200,23 +161,13 @@ export function HomeContact({ home, userId }: HomeContactProps) {
       <CardFooter className="flex flex-col items-start space-y-4 w-full">
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
 
-        {/* Belangrijk: De knop is NIET disabled, zodat we altijd de toast kunnen tonen */}
-        <Button
-          onClick={handleSwapRequest}
-          className={`w-full ${
-            hasChatted ? "bg-google-blue hover:bg-blue-600" : "bg-gray-400 hover:bg-gray-500 cursor-not-allowed"
-          }`}
-        >
+        {/* Eenvoudige knop die altijd de toast toont */}
+        <Button onClick={handleSwapRequestClick} className="w-full bg-gray-400 hover:bg-gray-500">
           Swap-verzoek indienen
         </Button>
-        {isCheckingChat && userId && (
-          <p className="text-xs text-gray-500 w-full text-center">Chatgeschiedenis controleren...</p>
-        )}
-        {!hasChatted && !isCheckingChat && userId && (
-          <p className="text-xs text-gray-500 w-full text-center">
-            Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
-          </p>
-        )}
+        <p className="text-xs text-gray-500 w-full text-center">
+          Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
+        </p>
       </CardFooter>
     </Card>
   )
