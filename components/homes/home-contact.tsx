@@ -114,6 +114,7 @@ export function HomeContact({ home, userId }: HomeContactProps) {
   }
 
   const handleSwapRequest = () => {
+    // Altijd eerst controleren of er chatcontact is geweest, ongeacht de visuele status van de knop
     if (!userId) {
       toast({
         title: "Je bent niet ingelogd",
@@ -132,6 +133,7 @@ export function HomeContact({ home, userId }: HomeContactProps) {
       return
     }
 
+    // Alleen als er chatcontact is geweest, navigeren we naar de swap-verzoek pagina
     router.push(`/homes/${home.id}/swap-request`)
   }
 
@@ -198,15 +200,22 @@ export function HomeContact({ home, userId }: HomeContactProps) {
       <CardFooter className="flex flex-col items-start space-y-4 w-full">
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
 
+        {/* Belangrijk: De knop is NIET disabled, zodat we altijd de toast kunnen tonen */}
         <Button
           onClick={handleSwapRequest}
-          className="w-full bg-google-blue hover:bg-blue-600"
-          disabled={!userId || (!hasChatted && !isCheckingChat)}
+          className={`w-full ${
+            hasChatted ? "bg-google-blue hover:bg-blue-600" : "bg-gray-400 hover:bg-gray-500 cursor-not-allowed"
+          }`}
         >
           Swap-verzoek indienen
         </Button>
         {isCheckingChat && userId && (
           <p className="text-xs text-gray-500 w-full text-center">Chatgeschiedenis controleren...</p>
+        )}
+        {!hasChatted && !isCheckingChat && userId && (
+          <p className="text-xs text-gray-500 w-full text-center">
+            Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
+          </p>
         )}
       </CardFooter>
     </Card>
