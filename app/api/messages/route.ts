@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { recipientId, content, homeId } = body
+    const { recipientId, content } = body
 
     // Valideer input
     if (!recipientId || !content) {
@@ -145,10 +145,10 @@ export async function POST(request: NextRequest) {
     // Stuur het bericht
     const result = await executeQuery(
       `INSERT INTO messages 
-       (sender_id, receiver_id, content, read, home_id) 
-       VALUES ($1, $2, $3, false, $4) 
+       (sender_id, receiver_id, content, read) 
+       VALUES ($1, $2, $3, false) 
        RETURNING *`,
-      [session.user.id, recipientId, content, homeId || null],
+      [session.user.id, recipientId, content],
     )
 
     // Haal de volledige berichtgegevens op
