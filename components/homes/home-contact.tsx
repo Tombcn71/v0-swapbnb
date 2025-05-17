@@ -103,8 +103,8 @@ export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
   return (
     <Card className="sticky top-4">
       <CardHeader className="pb-2">
-        <div className="flex items-center space-x-3">
-          <div className="relative h-12 w-12 rounded-full overflow-hidden border border-gray-200">
+        <div className="flex items-center space-x-4">
+          <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-gray-200 shadow-md">
             {hostImage ? (
               <Image
                 src={hostImage || "/placeholder.svg"}
@@ -114,7 +114,7 @@ export function HomeContact({ home, userId, hostImage }: HomeContactProps) {
               />
             ) : (
               <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                <User className="h-6 w-6 text-gray-400" />
+                <User className="h-10 w-10 text-gray-400" />
               </div>
             )}
           </div>

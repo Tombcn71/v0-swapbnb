@@ -99,9 +99,9 @@ export function ListingsGrid() {
                 <FavoriteButton homeId={home.id} className="bg-white/80 hover:bg-white" />
               </div>
 
-              {/* Profielfoto in het hoekje */}
+              {/* Profielfoto in het hoekje - VEEL GROTER */}
               <div className="absolute bottom-2 left-2 z-10">
-                <div className="relative h-10 w-10 rounded-full overflow-hidden border-2 border-white shadow-md">
+                <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-white shadow-md">
                   {home.owner_profile_image ? (
                     <Image
                       src={home.owner_profile_image || "/placeholder.svg"}
@@ -111,7 +111,7 @@ export function ListingsGrid() {
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                      <User className="h-5 w-5 text-gray-400" />
+                      <User className="h-8 w-8 text-gray-400" />
                     </div>
                   )}
                 </div>
