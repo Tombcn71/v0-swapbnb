@@ -115,17 +115,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { receiverId, content } = await request.json()
+    const body = await request.json()
+    const { recipientId, content, homeId } = body
 
     // Valideer input
-    if (!receiverId || !content) {
-      return NextResponse.json({ error: "Receiver ID and content are required" }, { status: 400 })
+    if (!recipientId || !content) {
+      return NextResponse.json({ error: "Recipient ID and content are required" }, { status: 400 })
     }
 
     // Controleer of de receiver ID een geldige UUID is
-    if (!isValidUUID(receiverId)) {
-      console.error("Invalid UUID format for receiver ID:", receiverId)
-      return NextResponse.json({ error: "Invalid receiver ID format" }, { status: 400 })
+    if (!isValidUUID(recipientId)) {
+      console.error("Invalid UUID format for recipient ID:", recipientId)
+      return NextResponse.json({ error: "Invalid recipient ID format" }, { status: 400 })
     }
 
     // Controleer of de sessie gebruiker ID een geldige UUID is
@@ -135,19 +136,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Controleer of de ontvanger bestaat
-    const receivers = await executeQuery("SELECT * FROM users WHERE id = $1", [receiverId])
+    const receivers = await executeQuery("SELECT * FROM users WHERE id = $1", [recipientId])
 
     if (receivers.length === 0) {
-      return NextResponse.json({ error: "Receiver not found" }, { status: 404 })
+      return NextResponse.json({ error: "Recipient not found" }, { status: 404 })
     }
 
     // Stuur het bericht
     const result = await executeQuery(
       `INSERT INTO messages 
-       (sender_id, receiver_id, content, read) 
-       VALUES ($1, $2, $3, false) 
+       (sender_id, receiver_id, content, read, home_id) 
+       VALUES ($1, $2, $3, false, $4) 
        RETURNING *`,
-      [session.user.id, receiverId, content],
+      [session.user.id, recipientId, content, homeId || null],
     )
 
     // Haal de volledige berichtgegevens op

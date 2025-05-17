@@ -90,7 +90,7 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          receiverId: recipientId,
+          recipientId: recipientId,
           content: newMessage,
         }),
       })
