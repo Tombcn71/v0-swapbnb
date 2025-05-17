@@ -26,7 +26,7 @@ interface Listing {
   rating?: number
   review_count?: number
   owner_name: string
-  owner_profile_image?: string // Aangepast naar profile_image
+  owner_profile_image?: string
 }
 
 export function ListingsGrid() {
@@ -98,6 +98,24 @@ export function ListingsGrid() {
               <div className="absolute top-2 right-2 z-10" onClick={handleFavoriteClick}>
                 <FavoriteButton homeId={home.id} className="bg-white/80 hover:bg-white" />
               </div>
+
+              {/* Profielfoto in het hoekje */}
+              <div className="absolute bottom-2 left-2 z-10">
+                <div className="relative h-10 w-10 rounded-full overflow-hidden border-2 border-white shadow-md">
+                  {home.owner_profile_image ? (
+                    <Image
+                      src={home.owner_profile_image || "/placeholder.svg"}
+                      alt={home.owner_name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-gray-100">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
             <Link href={`/homes/${home.id}`} className="block">
               <CardContent className="p-4">
@@ -129,24 +147,8 @@ export function ListingsGrid() {
                 </div>
               </CardContent>
               <CardFooter className="p-4 pt-0 flex justify-between items-center">
-                <div className="flex items-center">
-                  <div className="relative h-6 w-6 rounded-full overflow-hidden mr-2 border border-gray-200">
-                    {home.owner_profile_image ? (
-                      <Image
-                        src={home.owner_profile_image || "/placeholder.svg"}
-                        alt={home.owner_name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                        <User className="h-3 w-3 text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {home.review_count ? `${home.review_count} beoordelingen` : home.owner_name}
-                  </div>
+                <div className="text-sm text-gray-600">
+                  {home.review_count ? `${home.review_count} beoordelingen` : `Aangeboden door ${home.owner_name}`}
                 </div>
                 <div className="text-blue-600 font-medium">Bekijk details</div>
               </CardFooter>
