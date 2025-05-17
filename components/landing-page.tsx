@@ -28,49 +28,56 @@ export function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section with Full Width Image - No Black Bars */}
-      <div className="w-screen relative overflow-hidden h-[500px] md:h-[600px]">
+      {/* Full-width Hero Image */}
+      <div className="w-full h-screen relative overflow-hidden">
         <Image
-          src="/family-travel-hero.jpg"
-          alt="Moeder en kind op reis met koffer"
-          fill
-          className="object-cover"
+          src="/happy-family-hero.jpg"
+          alt="Gelukkig gezin dat samen lacht"
+          layout="fill"
+          objectFit="cover"
+          objectPosition="center 30%"
           priority
-          sizes="100vw"
+          className="w-full h-full"
         />
-        <div className="absolute inset-0 bg-black/25" /> {/* Even lighter overlay (25%) */}
-        {/* Hero Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
-          <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-white drop-shadow-md">
-            Ruil je huis, ontdek de wereld
-          </h1>
-          <p className="mb-8 text-lg md:text-xl text-white max-w-3xl drop-shadow-md">
-            Ervaar het comfort van thuis, waar je ook bent. Ruil je woning en geniet van authentieke reiservaringen
-            zonder hotelkosten.
-          </p>
-          <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 justify-center">
-            <Button onClick={handleExploreClick} size="lg" className="text-lg px-8">
-              {isLoading ? "Laden..." : "Ontdek woningen"}
-            </Button>
-            {session ? (
+
+        {/* Content overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <div className="max-w-4xl">
+            <h1 className="mb-6 text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl text-white drop-shadow-lg">
+              Ruil je huis, ontdek de wereld
+            </h1>
+            <p className="mb-8 text-xl md:text-2xl text-white drop-shadow-lg max-w-3xl mx-auto">
+              Ervaar het comfort van thuis, waar je ook bent. Ruil je woning en geniet van authentieke reiservaringen
+              zonder hotelkosten.
+            </p>
+            <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-6 justify-center">
               <Button
-                onClick={handleDashboardClick}
-                variant="outline"
+                onClick={handleExploreClick}
                 size="lg"
-                className="text-lg px-8 bg-white/10 backdrop-blur-sm hover:bg-white/20"
+                className="text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700"
               >
-                {isLoading ? "Laden..." : "Naar Dashboard"}
+                {isLoading ? "Laden..." : "Ontdek woningen"}
               </Button>
-            ) : (
-              <Button
-                onClick={handleLoginClick}
-                variant="outline"
-                size="lg"
-                className="text-lg px-8 bg-white/10 backdrop-blur-sm hover:bg-white/20"
-              >
-                {isLoading ? "Laden..." : "Inloggen"}
-              </Button>
-            )}
+              {session ? (
+                <Button
+                  onClick={handleDashboardClick}
+                  variant="outline"
+                  size="lg"
+                  className="text-lg px-8 py-6 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white"
+                >
+                  {isLoading ? "Laden..." : "Naar Dashboard"}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleLoginClick}
+                  variant="outline"
+                  size="lg"
+                  className="text-lg px-8 py-6 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white"
+                >
+                  {isLoading ? "Laden..." : "Inloggen"}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
