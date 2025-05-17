@@ -10,7 +10,7 @@ export default async function HomePage({ params }: { params: { id: string } }) {
 
   try {
     const homes = await executeQuery(
-      `SELECT h.*, u.name as host_name
+      `SELECT h.*, u.name as host_name, u.profile_image as host_profile_image
        FROM homes h
        JOIN users u ON h.user_id = u.id
        WHERE h.id = $1`,

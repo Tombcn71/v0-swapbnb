@@ -19,7 +19,7 @@ import type { Home } from "@/lib/types"
 interface HomeContactProps {
   home: Home
   userId?: string
-  hostImage?: string
+  hostImage?: string // Dit is nu profile_image
 }
 
 export function HomeContact({ home, userId, hostImage }: HomeContactProps) {

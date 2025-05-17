@@ -20,7 +20,7 @@ interface ProfileFormProps {
 export function ProfileForm({ user }: ProfileFormProps) {
   const [name, setName] = useState(user.name || "")
   const [email, setEmail] = useState(user.email || "")
-  const [image, setImage] = useState<string | null>(user.image || null)
+  const [image, setImage] = useState<string | null>(user.profile_image || null) // Gebruik profile_image
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -79,7 +79,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     try {
       // Upload de afbeelding als er een nieuwe is geselecteerd
-      let imageUrl = user.image
+      let imageUrl = user.profile_image // Gebruik profile_image
       if (file) {
         imageUrl = await uploadImage()
         if (!imageUrl) {

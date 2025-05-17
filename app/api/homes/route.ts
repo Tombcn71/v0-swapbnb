@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const amenities = url.searchParams.get("amenities")?.split(",") || []
 
     let query = `
-      SELECT h.*, u.name as owner_name
+      SELECT h.*, u.name as owner_name, u.profile_image as owner_profile_image
       FROM homes h
       JOIN users u ON h.user_id = u.id
       WHERE 1=1
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     // Haal de volledige woninggegevens op
     const home = await executeQuery(
-      `SELECT h.*, u.name as owner_name
+      `SELECT h.*, u.name as owner_name, u.profile_image as owner_profile_image
        FROM homes h
        JOIN users u ON h.user_id = u.id
        WHERE h.id = $1`,

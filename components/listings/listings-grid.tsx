@@ -26,7 +26,7 @@ interface Listing {
   rating?: number
   review_count?: number
   owner_name: string
-  owner_image?: string
+  owner_profile_image?: string // Aangepast naar profile_image
 }
 
 export function ListingsGrid() {
@@ -131,9 +131,9 @@ export function ListingsGrid() {
               <CardFooter className="p-4 pt-0 flex justify-between items-center">
                 <div className="flex items-center">
                   <div className="relative h-6 w-6 rounded-full overflow-hidden mr-2 border border-gray-200">
-                    {home.owner_image ? (
+                    {home.owner_profile_image ? (
                       <Image
-                        src={home.owner_image || "/placeholder.svg"}
+                        src={home.owner_profile_image || "/placeholder.svg"}
                         alt={home.owner_name}
                         fill
                         className="object-cover"

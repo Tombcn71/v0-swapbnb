@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Gebruik directe query met prepared statement
     const homes = await db.query(
-      `SELECT h.*, u.name as host_name
+      `SELECT h.*, u.name as host_name, u.profile_image as host_profile_image
        FROM homes h
        JOIN users u ON h.user_id = u.id
        WHERE h.id = $1`,
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       console.log(`Home not found with ID ${params.id}, trying direct query...`)
 
       const directHomes = await db.query(
-        `SELECT h.*, u.name as host_name
+        `SELECT h.*, u.name as host_name, u.profile_image as host_profile_image
          FROM homes h
          JOIN users u ON h.user_id = u.id
          WHERE h.id = '${params.id}'`,
