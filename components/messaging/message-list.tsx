@@ -38,7 +38,7 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
   const { toast } = useToast()
 
   const fetchMessages = async () => {
-    if (status !== "authenticated" || !recipientId) return
+    if (status !== "authenticated") return
 
     try {
       setError(null)
@@ -67,19 +67,10 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
 
   useEffect(() => {
     if (status === "authenticated" && recipientId) {
-      console.log("Setting up message fetching for recipient:", recipientId)
       fetchMessages()
-
       // Set up polling for new messages
-      const interval = setInterval(() => {
-        console.log("Polling for new messages")
-        fetchMessages()
-      }, 5000)
-
-      return () => {
-        console.log("Cleaning up message polling")
-        clearInterval(interval)
-      }
+      const interval = setInterval(fetchMessages, 10000)
+      return () => clearInterval(interval)
     }
   }, [status, recipientId])
 
@@ -93,7 +84,6 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
 
     setIsLoading(true)
     try {
-      console.log("Sending message to:", recipientId)
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: {
@@ -107,19 +97,11 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("Error sending message:", errorData)
         throw new Error(errorData.error || "Failed to send message")
       }
 
-      const newMessageData = await response.json()
-      console.log("Message sent successfully:", newMessageData)
-
-      // Add the new message to the messages array immediately
-      setMessages((prevMessages) => [...prevMessages, newMessageData])
       setNewMessage("")
-
-      // Fetch all messages to ensure we have the latest
-      setTimeout(fetchMessages, 500)
+      fetchMessages()
     } catch (error) {
       console.error("Error sending message:", error)
       toast({
@@ -164,7 +146,6 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <h2 className="text-lg font-semibold">{recipientName}</h2>
-        <p className="text-sm text-gray-500">ID: {recipientId}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -192,7 +173,7 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
                       <AvatarImage
                         src={`/abstract-geometric-shapes.png?height=32&width=32&query=${message.sender_name}`}
                       />
-                      <AvatarFallback>{message.sender_name?.substring(0, 2).toUpperCase() || "??"}</AvatarFallback>
+                      <AvatarFallback>{message.sender_name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   )}
                   <div>

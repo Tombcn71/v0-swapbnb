@@ -4,11 +4,22 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { DashboardExchanges } from "@/components/dashboard/dashboard-exchanges"
 import { MessageSquare, User, Plus } from "lucide-react"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user) {
+    redirect("/login")
+  }
+
+  const userName = session.user.name || "gebruiker"
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-2">Welkom bij SwapBnB!</h1>
+      <h1 className="text-3xl font-bold mb-2">Welkom {userName}!</h1>
       <p className="text-gray-600 mb-6">Beheer je woningen, uitwisselingen en berichten op één plek.</p>
 
       <DashboardNav />
