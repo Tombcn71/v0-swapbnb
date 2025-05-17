@@ -27,16 +27,41 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
   const [message, setMessage] = useState("")
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [hasChatted, setHasChatted] = useState(false)
+  const [isCheckingChat, setIsCheckingChat] = useState(true)
   const router = useRouter()
   const { toast } = useToast()
 
-  // Voor testdoeleinden, hardcoded op false
-  const hasChatted = false
+  // Controleer of er al een chatinteractie is geweest
+  useEffect(() => {
+    const checkChatHistory = async () => {
+      if (!userId) {
+        setIsCheckingChat(false)
+        return
+      }
+
+      setIsCheckingChat(true)
+      try {
+        const response = await fetch(`/api/messages/check-history?recipientId=${home.user_id || home.userId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setHasChatted(data.hasHistory)
+        }
+      } catch (error) {
+        console.error("Error checking chat history:", error)
+      } finally {
+        setIsCheckingChat(false)
+      }
+    }
+
+    checkChatHistory()
+  }, [userId, home.user_id, home.userId])
 
   // Log voor debugging
   useEffect(() => {
     console.log("HomeContact - hostImage:", hostImage)
-  }, [hostImage])
+    console.log("HomeContact - hasChatted:", hasChatted)
+  }, [hostImage, hasChatted])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,6 +108,7 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
       })
 
       setMessage("")
+      setHasChatted(true) // Update de status na het verzenden van een bericht
       router.refresh()
     } catch (error) {
       console.error("Error sending message:", error)
@@ -96,14 +122,26 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
     }
   }
 
-  // Zeer eenvoudige functie die alleen de toast toont
   const handleSwapRequestClick = () => {
-    console.log("Swap-verzoek knop geklikt")
-    toast({
-      title: "Chat eerst met de eigenaar",
-      description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
-      variant: "destructive",
-    })
+    if (!userId) {
+      toast({
+        title: "Je bent niet ingelogd",
+        description: "Log in om een swap-verzoek in te dienen",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!hasChatted) {
+      toast({
+        title: "Chat eerst met de eigenaar",
+        description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    router.push(`/homes/${home.id}/swap-request`)
   }
 
   return (
@@ -196,15 +234,24 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
       <CardFooter className="flex flex-col items-start space-y-4 w-full">
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
 
-        {/* Eenvoudige knop die altijd de toast toont */}
         {!isOwner && (
           <>
-            <Button onClick={handleSwapRequestClick} className="w-full bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={handleSwapRequestClick}
+              className={`w-full ${
+                hasChatted ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 hover:bg-gray-500 cursor-not-allowed"
+              }`}
+            >
               Swap-verzoek indienen
             </Button>
-            <p className="text-xs text-gray-500 w-full text-center">
-              Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
-            </p>
+            {isCheckingChat && userId && (
+              <p className="text-xs text-gray-500 w-full text-center">Chatgeschiedenis controleren...</p>
+            )}
+            {!hasChatted && !isCheckingChat && userId && (
+              <p className="text-xs text-gray-500 w-full text-center">
+                Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
+              </p>
+            )}
           </>
         )}
       </CardFooter>
