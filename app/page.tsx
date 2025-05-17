@@ -58,11 +58,10 @@ export default function Home() {
 
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <h1 className="mb-4 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
-            Swap je huis, ontdek de wereld
+            Swap je huis, eropuit in Nederland
           </h1>
           <p className="mb-6 text-lg md:text-xl text-white drop-shadow-lg max-w-3xl">
-            Ervaar het comfort van thuis, waar je ook bent.
-          </p>
+Reis slim door Nederland: ervaar meer, betaal minder door je huis te swappen.          </p>
           <div className="flex gap-4">
             <Button asChild size="lg">
               <Link href="/listings">Ontdek woningen</Link>
