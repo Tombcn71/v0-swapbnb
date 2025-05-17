@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       <h1 className="text-3xl font-bold mb-2">Welkom {userName}!</h1>
       <p className="text-gray-600 mb-6">Beheer je woning, uitwisselingen en berichten op één plek.</p>
 
-      <DashboardNav />
+      <DashboardNav currentPage="dashboard" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 mb-8">
         <Card>

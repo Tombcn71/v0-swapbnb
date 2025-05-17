@@ -5,10 +5,14 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Home, MessageSquare, User, RefreshCw, Search } from "lucide-react"
 
-export function DashboardNav() {
+interface DashboardNavProps {
+  currentPage?: string
+}
+
+export function DashboardNav({ currentPage }: DashboardNavProps) {
   const pathname = usePathname()
 
-  const navItems = [
+  const allNavItems = [
     {
       label: "Dashboard",
       href: "/dashboard",
@@ -35,6 +39,9 @@ export function DashboardNav() {
       icon: <User className="h-5 w-5" />,
     },
   ]
+
+  // Filter de dashboard tab uit als we op de dashboard pagina zijn
+  const navItems = currentPage === "dashboard" ? allNavItems.filter((item) => item.href !== "/dashboard") : allNavItems
 
   return (
     <nav className="flex overflow-x-auto pb-2">
