@@ -1,43 +1,29 @@
-import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import { executeQuery } from "@/lib/db"
 import { MessageList } from "@/components/messaging/message-list"
-import { ConversationListWrapper } from "@/components/messaging/conversation-list-wrapper"
 
-interface MessagePageProps {
-  params: {
-    userId: string
-  }
-}
-
-export default async function MessagePage({ params }: MessagePageProps) {
+export default async function MessagesPage({ params }: { params: { userId: string } }) {
   const session = await getServerSession(authOptions)
 
-  if (!session) {
-    redirect("/login")
+  if (!session || !session.user) {
+    redirect("/login?callbackUrl=/messages")
   }
 
-  // Get user details
-  const userResult = await executeQuery("SELECT id, name FROM users WHERE id = $1", [params.userId])
+  // Haal de gebruiker op om de naam te tonen
+  const users = await executeQuery("SELECT * FROM users WHERE id = $1", [params.userId])
 
-  if (userResult.length === 0) {
+  if (users.length === 0) {
     redirect("/messages")
   }
 
-  const recipient = userResult[0]
+  const recipient = users[0]
 
   return (
-    <div className="flex h-screen">
-      <div className="w-1/3 border-r hidden md:block">
-        <div className="h-full">
-          <div className="h-full">
-            <ConversationListWrapper />
-          </div>
-        </div>
-      </div>
-      <div className="flex-1">
-        <MessageList recipientId={recipient.id} recipientName={recipient.name} />
+    <div className="container mx-auto py-6 h-[calc(100vh-64px)]">
+      <div className="bg-white rounded-lg shadow-md h-full overflow-hidden">
+        <MessageList recipientId={params.userId} recipientName={recipient.name} />
       </div>
     </div>
   )
