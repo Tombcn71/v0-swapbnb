@@ -564,7 +564,7 @@ export function AddHomeForm() {
                 <div>
                   <h2 className="text-xl font-semibold mb-4">Beschikbaarheid instellen</h2>
                   <p className="text-gray-600 mb-4">
-                    Geef aan wanneer je woning beschikbaar is voor huizenruil. Je kunt meerdere periodes toevoegen.
+                    Geef aan wanneer je woning beschikbaar is voor huizenswap. Je kunt meerdere periodes toevoegen.
                   </p>
 
                   <div className="space-y-4">

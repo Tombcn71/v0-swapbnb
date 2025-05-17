@@ -28,6 +28,39 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
   const router = useRouter()
   const { toast } = useToast()
 
+  const handleAccept = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "accepted" }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to accept exchange")
+      }
+
+      toast({
+        title: "Swap-verzoek geaccepteerd",
+        description: "Je hebt het swap-verzoek geaccepteerd. Betaal nu de servicekosten om de swap te bevestigen.",
+      })
+
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Er is iets misgegaan",
+        description: error.message || "Kon het swap-verzoek niet accepteren. Probeer het later opnieuw.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleCancel = async () => {
     setIsLoading(true)
     try {
@@ -45,8 +78,8 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
       }
 
       toast({
-        title: "Uitwisseling geannuleerd",
-        description: "De uitwisseling is succesvol geannuleerd.",
+        title: "Swap geannuleerd",
+        description: "De swap is succesvol geannuleerd.",
       })
 
       router.push("/exchanges")
@@ -54,7 +87,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     } catch (error: any) {
       toast({
         title: "Er is iets misgegaan",
-        description: error.message || "Kon de uitwisseling niet annuleren. Probeer het later opnieuw.",
+        description: error.message || "Kon de swap niet annuleren. Probeer het later opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -79,15 +112,15 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
       }
 
       toast({
-        title: "Uitwisseling voltooid",
-        description: "De uitwisseling is gemarkeerd als voltooid.",
+        title: "Swap voltooid",
+        description: "De swap is gemarkeerd als voltooid.",
       })
 
       router.refresh()
     } catch (error: any) {
       toast({
         title: "Er is iets misgegaan",
-        description: error.message || "Kon de uitwisseling niet voltooien. Probeer het later opnieuw.",
+        description: error.message || "Kon de swap niet voltooien. Probeer het later opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -98,33 +131,45 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
   return (
     <div className="space-y-3">
       {exchange.status === "pending" && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" className="w-full justify-start">
-              <Ban className="mr-2 h-4 w-4" />
-              Annuleren
+        <>
+          {!isRequester && (
+            <Button
+              onClick={handleAccept}
+              className="w-full justify-start bg-google-blue hover:bg-blue-600"
+              disabled={isLoading}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Accepteren
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Uitwisseling annuleren</AlertDialogTitle>
-              <AlertDialogDescription>
-                Weet je zeker dat je deze uitwisselingsaanvraag wilt annuleren? Deze actie kan niet ongedaan worden
-                gemaakt.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuleren</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleCancel}
-                disabled={isLoading}
-                className="bg-google-blue hover:bg-blue-600"
-              >
-                {isLoading ? "Bezig..." : "Bevestigen"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          )}
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full justify-start">
+                <Ban className="mr-2 h-4 w-4" />
+                Annuleren
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Weet je zeker dat je deze swap-aanvraag wilt annuleren? Deze actie kan niet ongedaan worden gemaakt.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="bg-google-blue hover:bg-blue-600"
+                >
+                  {isLoading ? "Bezig..." : "Bevestigen"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
 
       {exchange.status === "accepted" && (
@@ -145,8 +190,8 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
               <AlertDialogHeader>
                 <AlertDialogTitle>Probleem melden</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Als je een probleem hebt met deze uitwisseling, neem dan direct contact op met de andere partij. Als
-                  jullie er samen niet uitkomen, kun je contact opnemen met onze klantenservice.
+                  Als je een probleem hebt met deze swap, neem dan direct contact op met de andere partij. Als jullie er
+                  samen niet uitkomen, kun je contact opnemen met onze klantenservice.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -165,10 +210,10 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Uitwisseling annuleren</AlertDialogTitle>
+                <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Weet je zeker dat je deze uitwisseling wilt annuleren? Dit kan gevolgen hebben voor je reputatie op
-                  het platform.
+                  Weet je zeker dat je deze swap wilt annuleren? Dit kan gevolgen hebben voor je reputatie op het
+                  platform.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -194,9 +239,9 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Uitwisseling voltooien</AlertDialogTitle>
+                  <AlertDialogTitle>Swap voltooien</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Weet je zeker dat je deze uitwisseling wilt markeren als voltooid? Je kunt daarna een beoordeling
+                    Weet je zeker dat je deze swap wilt markeren als voltooid? Je kunt daarna een beoordeling
                     achterlaten.
                   </AlertDialogDescription>
                 </AlertDialogHeader>

@@ -695,7 +695,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                 <div>
                   <h2 className="text-xl font-semibold mb-4">Beschikbaarheid beheren</h2>
                   <p className="text-gray-600 mb-4">
-                    Beheer wanneer je woning beschikbaar is voor huizenruil. Je kunt meerdere periodes toevoegen.
+                    Beheer wanneer je woning beschikbaar is voor huizenswap. Je kunt meerdere periodes toevoegen.
                   </p>
 
                   <div className="space-y-4">

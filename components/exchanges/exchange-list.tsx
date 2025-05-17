@@ -38,7 +38,7 @@ export function ExchangeList({ type }: ExchangeListProps) {
         console.error("Error fetching exchanges:", error)
         toast({
           title: "Er is iets misgegaan",
-          description: error.message || "Kon de uitwisselingen niet laden. Probeer het later opnieuw.",
+          description: error.message || "Kon de swaps niet laden. Probeer het later opnieuw.",
           variant: "destructive",
         })
       } finally {
@@ -71,7 +71,7 @@ export function ExchangeList({ type }: ExchangeListProps) {
 
       toast({
         title: "Aanvraag geaccepteerd",
-        description: "De uitwisselingsaanvraag is succesvol geaccepteerd.",
+        description: "De swap-aanvraag is succesvol geaccepteerd.",
       })
     } catch (error: any) {
       toast({
@@ -104,7 +104,7 @@ export function ExchangeList({ type }: ExchangeListProps) {
 
       toast({
         title: "Aanvraag afgewezen",
-        description: "De uitwisselingsaanvraag is afgewezen.",
+        description: "De swap-aanvraag is afgewezen.",
       })
     } catch (error: any) {
       toast({
@@ -137,7 +137,7 @@ export function ExchangeList({ type }: ExchangeListProps) {
 
       toast({
         title: "Aanvraag geannuleerd",
-        description: "De uitwisselingsaanvraag is geannuleerd.",
+        description: "De swap-aanvraag is geannuleerd.",
       })
     } catch (error: any) {
       toast({
@@ -175,12 +175,12 @@ export function ExchangeList({ type }: ExchangeListProps) {
         <CardContent className="p-6 text-center">
           <p className="text-gray-600 mb-4">
             {type === "incoming"
-              ? "Je hebt nog geen inkomende uitwisselingsaanvragen."
+              ? "Je hebt nog geen inkomende swap-aanvragen."
               : type === "outgoing"
-                ? "Je hebt nog geen uitgaande uitwisselingsaanvragen."
+                ? "Je hebt nog geen uitgaande swap-aanvragen."
                 : type === "upcoming"
-                  ? "Je hebt nog geen aankomende uitwisselingen."
-                  : "Je hebt nog geen eerdere uitwisselingen."}
+                  ? "Je hebt nog geen aankomende swaps."
+                  : "Je hebt nog geen eerdere swaps."}
           </p>
           {(type === "outgoing" || type === "upcoming") && (
             <Button asChild>

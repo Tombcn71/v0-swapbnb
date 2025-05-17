@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -26,6 +26,26 @@ export function HomeContact({ home, userId }: HomeContactProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+  const [hasChatted, setHasChatted] = useState(false)
+
+  // Controleer of er al een chatinteractie is geweest
+  useEffect(() => {
+    const checkChatHistory = async () => {
+      if (!userId) return
+
+      try {
+        const response = await fetch(`/api/messages/check-history?recipientId=${home.user_id || home.userId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setHasChatted(data.hasHistory)
+        }
+      } catch (error) {
+        console.error("Error checking chat history:", error)
+      }
+    }
+
+    checkChatHistory()
+  }, [userId, home.user_id, home.userId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -145,8 +165,26 @@ export function HomeContact({ home, userId }: HomeContactProps) {
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col items-start">
+      <CardFooter className="flex flex-col items-start space-y-4 w-full">
         <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
+
+        <Button
+          onClick={() => {
+            if (!hasChatted) {
+              toast({
+                title: "Chat eerst met de eigenaar",
+                description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
+                variant: "destructive",
+              })
+              return
+            }
+            router.push(`/homes/${home.id}/swap-request`)
+          }}
+          className="w-full bg-google-blue hover:bg-blue-600"
+          disabled={!userId || !hasChatted}
+        >
+          Swap-verzoek indienen
+        </Button>
       </CardFooter>
     </Card>
   )

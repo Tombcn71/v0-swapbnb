@@ -32,7 +32,7 @@ export function DashboardExchanges() {
         console.error("Error fetching exchanges:", error)
         toast({
           title: "Er is iets misgegaan",
-          description: "Kon de uitwisselingen niet laden. Probeer het later opnieuw.",
+          description: "Kon de swaps niet laden. Probeer het later opnieuw.",
           variant: "destructive",
         })
       } finally {
@@ -64,7 +64,7 @@ export function DashboardExchanges() {
     return (
       <Card>
         <CardContent className="pt-6 text-center">
-          <p className="text-gray-600 py-8">Je hebt nog geen aankomende uitwisselingen</p>
+          <p className="text-gray-600 py-8">Je hebt nog geen aankomende swaps</p>
         </CardContent>
         <CardFooter className="justify-center">
           <Button asChild>

@@ -118,10 +118,10 @@ export async function POST(request: NextRequest) {
     // Maak de uitwisseling aan
     const result = await executeQuery(
       `INSERT INTO exchanges 
-       (requester_id, host_id, requester_home_id, host_home_id, start_date, end_date, status, message) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+       (requester_id, host_id, requester_home_id, host_home_id, start_date, end_date, status, message, service_fee, payment_status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
        RETURNING *`,
-      [userId, hostId, requesterHomeId, hostHomeId, startDate, endDate, "pending", message || ""],
+      [userId, hostId, requesterHomeId, hostHomeId, startDate, endDate, "pending", message || "", 25.0, "pending"],
     )
 
     // Haal de volledige uitwisselingsgegevens op

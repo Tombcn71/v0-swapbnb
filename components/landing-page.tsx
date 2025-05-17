@@ -44,10 +44,10 @@ export function LandingPage() {
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <div className="max-w-4xl">
             <h1 className="mb-6 text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl text-white drop-shadow-lg">
-              Ruil je huis, ontdek de wereld
+              Swap je huis, ontdek de wereld
             </h1>
             <p className="mb-8 text-xl md:text-2xl text-white drop-shadow-lg max-w-3xl mx-auto">
-              Ervaar het comfort van thuis, waar je ook bent. Ruil je woning en geniet van authentieke reiservaringen
+              Ervaar het comfort van thuis, waar je ook bent. Swap je woning en geniet van authentieke reiservaringen
               zonder hotelkosten.
             </p>
             <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-6 justify-center">
@@ -88,7 +88,7 @@ export function LandingPage() {
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">Waarom SwapBnB?</h2>
             <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-              Ontdek de voordelen van huisruil voor je volgende vakantie.
+              Ontdek de voordelen van huizenswap voor je volgende vakantie.
             </p>
           </div>
 
@@ -113,7 +113,7 @@ export function LandingPage() {
                 </div>
                 <h3 className="text-xl font-medium text-gray-900">Bespaar op accommodatie</h3>
                 <p className="mt-2 text-base text-gray-500 text-center">
-                  Geen hotelkosten of huurprijzen. Ruil je huis en bespaar honderden euro's op je volgende reis.
+                  Geen hotelkosten of huurprijzen. Swap je huis en bespaar honderden euro's op je volgende reis.
                 </p>
               </div>
 
@@ -175,7 +175,7 @@ export function LandingPage() {
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">Hoe werkt het?</h2>
             <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
-              In vier eenvoudige stappen naar je volgende huisruil.
+              In vier eenvoudige stappen naar je volgende huizenswap.
             </p>
           </div>
 
@@ -229,7 +229,7 @@ export function LandingPage() {
       <div className="bg-blue-600 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">Klaar om je huis te ruilen?</h2>
+            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">Klaar om je huis te swappen?</h2>
             <p className="mt-4 max-w-2xl mx-auto text-xl text-blue-100">
               Word lid van onze gemeenschap en begin met het plannen van je volgende avontuur.
             </p>
@@ -253,7 +253,7 @@ export function LandingPage() {
             <div>
               <h3 className="text-lg font-semibold mb-4">SwapBnB</h3>
               <p className="text-gray-300">
-                De betere manier om te reizen. Ruil je huis en ontdek de wereld vanuit een lokaal perspectief.
+                De betere manier om te reizen. Swap je huis en ontdek de wereld vanuit een lokaal perspectief.
               </p>
             </div>
             <div>
