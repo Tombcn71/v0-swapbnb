@@ -18,7 +18,7 @@ export default function Home() {
 
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
           <h1 className="mb-4 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
-            Swap je huis, ontdek Nederland
+            Swap je woning, eropuit in Nederland
           </h1>
 
           {/* Nieuwe sub-hero tekst */}
