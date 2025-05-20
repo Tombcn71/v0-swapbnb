@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useState } from "react"
 import Image from "next/image"
-import { Logo } from "@/components/ui/logo"
 
 export function LandingPage() {
   const router = useRouter()
@@ -55,7 +54,7 @@ export function LandingPage() {
               <Button
                 onClick={handleExploreClick}
                 size="lg"
-                className="text-lg px-8 py-6 bg-blue-600 hover:bg-blue-700"
+                className="text-lg px-8 py-6 bg-[#4285F4] hover:bg-[#3367d6]"
               >
                 {isLoading ? "Laden..." : "Ontdek woningen"}
               </Button>
@@ -96,7 +95,7 @@ export function LandingPage() {
           <div className="mt-20">
             <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#4285F4]/10 text-[#4285F4] mb-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -119,7 +118,7 @@ export function LandingPage() {
               </div>
 
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#4285F4]/10 text-[#4285F4] mb-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -143,7 +142,7 @@ export function LandingPage() {
               </div>
 
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-blue-600 mb-4">
+                <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#4285F4]/10 text-[#4285F4] mb-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -183,7 +182,7 @@ export function LandingPage() {
           <div className="mt-20">
             <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-500 text-white mb-4">
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-[#4285F4] text-white mb-4">
                   <span className="text-lg font-bold">1</span>
                 </div>
                 <h3 className="text-xl font-medium text-gray-900">Maak een profiel aan</h3>
@@ -193,7 +192,7 @@ export function LandingPage() {
               </div>
 
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-500 text-white mb-4">
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-[#4285F4] text-white mb-4">
                   <span className="text-lg font-bold">2</span>
                 </div>
                 <h3 className="text-xl font-medium text-gray-900">Zoek een match</h3>
@@ -203,7 +202,7 @@ export function LandingPage() {
               </div>
 
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-500 text-white mb-4">
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-[#4285F4] text-white mb-4">
                   <span className="text-lg font-bold">3</span>
                 </div>
                 <h3 className="text-xl font-medium text-gray-900">Maak afspraken</h3>
@@ -213,7 +212,7 @@ export function LandingPage() {
               </div>
 
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-500 text-white mb-4">
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-[#4285F4] text-white mb-4">
                   <span className="text-lg font-bold">4</span>
                 </div>
                 <h3 className="text-xl font-medium text-gray-900">Geniet van je reis</h3>
@@ -227,18 +226,18 @@ export function LandingPage() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-[#98FBCB] py-16">
+      <div className="bg-[#4285F4] py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-800 sm:text-4xl">Klaar om je huis te swappen?</h2>
-            <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-700">
+            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">Klaar om je huis te swappen?</h2>
+            <p className="mt-4 max-w-2xl mx-auto text-xl text-blue-100">
               Word lid van onze gemeenschap en begin met het plannen van je volgende avontuur.
             </p>
             <div className="mt-8">
               <Button
                 onClick={handleExploreClick}
                 size="lg"
-                className="text-lg px-8 bg-white text-gray-800 hover:bg-gray-100 border border-gray-300"
+                className="text-lg px-8 bg-white text-[#4285F4] hover:bg-blue-50 border border-transparent"
               >
                 {isLoading ? "Laden..." : "Begin nu"}
               </Button>
@@ -248,50 +247,81 @@ export function LandingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-[#98FBCB] text-gray-800 py-12">
+      <footer className="bg-[#4285F4] text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="mb-4">
-                <Logo showText={false} size="lg" />
-                <h3 className="text-lg font-semibold mt-2">SwapBnB</h3>
-              </div>
-              <p className="text-gray-700">
-                De betere manier om te reizen. Swap je huis en ontdek de wereld vanuit een lokaal perspectief.
+              <h3 className="text-xl font-bold mb-4">SwapBnB</h3>
+              <p className="text-blue-100">
+                Ontdek Nederland door huizen te swappen en geniet van authentieke ervaringen zonder hotelkosten.
               </p>
             </div>
+
             <div>
               <h3 className="text-lg font-semibold mb-4">Links</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-700 hover:text-gray-900">
-                    Over ons
+                  <a href="#" className="text-blue-100 hover:text-white">
+                    Woningen
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-700 hover:text-gray-900">
+                  <a href="#" className="text-blue-100 hover:text-white">
                     Hoe het werkt
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-700 hover:text-gray-900">
-                    Veelgestelde vragen
+                  <a href="#" className="text-blue-100 hover:text-white">
+                    Over ons
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-700 hover:text-gray-900">
+                  <a href="#" className="text-blue-100 hover:text-white">
                     Contact
                   </a>
                 </li>
               </ul>
             </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Account</h3>
+              <ul className="space-y-2">
+                <li>
+                  <a href="#" className="text-blue-100 hover:text-white">
+                    Inloggen
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-blue-100 hover:text-white">
+                    Registreren
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-blue-100 hover:text-white">
+                    Dashboard
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-blue-100 hover:text-white">
+                    Profiel
+                  </a>
+                </li>
+              </ul>
+            </div>
+
             <div>
               <h3 className="text-lg font-semibold mb-4">Contact</h3>
-              <p className="text-gray-700">Heb je vragen? Neem contact met ons op via:</p>
-              <p className="text-gray-700 mt-2">info@swapbnb.com</p>
+              <address className="not-italic text-blue-100">
+                <p>Swapstraat 123</p>
+                <p>1234 AB Amsterdam</p>
+                <p>Nederland</p>
+                <p className="mt-2">info@swapbnb.nl</p>
+                <p>+31 20 123 4567</p>
+              </address>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-300 text-center text-gray-700">
+
+          <div className="mt-8 pt-8 border-t border-blue-300 text-center text-blue-100">
             <p>© {new Date().getFullYear()} SwapBnB. Alle rechten voorbehouden.</p>
           </div>
         </div>
