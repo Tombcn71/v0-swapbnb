@@ -147,22 +147,22 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Links</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/listings" className="text-gray-400 hover:text-white">
+                  <Link href="/listings" className="text-white hover:text-white">
                     Woningen
                   </Link>
                 </li>
                 <li>
-                  <Link href="/how-it-works" className="text-gray-400 hover:text-white">
+                  <Link href="/how-it-works" className="text-white hover:text-white">
                     Hoe het werkt
                   </Link>
                 </li>
                 <li>
-                  <Link href="/about" className="text-gray-400 hover:text-white">
+                  <Link href="/about" className="text-white hover:text-white">
                     Over ons
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-gray-400 hover:text-white">
+                  <Link href="/contact" className="text-white hover:text-white">
                     Contact
                   </Link>
                 </li>
@@ -173,12 +173,12 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Account</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/login" className="text-gray-400 hover:text-white">
+                  <Link href="/login" className="text-white hover:text-white">
                     Inloggen
                   </Link>
                 </li>
                 <li>
-                  <Link href="/signup" className="text-gray-400 hover:text-white">
+                  <Link href="/signup" className="text-whitehover:text-white">
                     Registreren
                   </Link>
                 </li>
