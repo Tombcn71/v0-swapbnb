@@ -197,7 +197,7 @@ export default function Home() {
 
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
-              <address className="not-italic text-gray-400">
+              <address className="not-italic text-white">
                 <p>Swapstraat 123</p>
                 <p>1234 AB Amsterdam</p>
                 <p>Nederland</p>
@@ -207,7 +207,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-white">
             <p>&copy; {new Date().getFullYear()} SwapBnB. Alle rechten voorbehouden.</p>
           </div>
         </div>
