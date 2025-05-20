@@ -20,10 +20,12 @@ export default function Home() {
           <h1 className="mb-4 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
             Swap je huis, ontdek Nederland
           </h1>
-          <p className="mb-6 text-lg md:text-xl text-white drop-shadow-lg max-w-3xl">
-            Zeg maar dag tegen hotels en accomodaties die de prijzen verhogen net wanneer jij vrij hebt of je kinderen
-            vakantie hebben
+
+          {/* Nieuwe sub-hero tekst */}
+          <p className="mb-8 text-lg md:text-xl text-white drop-shadow-lg max-w-2xl  p-4 rounded-lg">
+            Korte breaks, slim budget: geen abonnementskosten, betaal per swap en kies voor minder vliegen.
           </p>
+
           <div className="flex gap-4">
             <Button asChild size="lg">
               <Link href="/listings">Ontdek woningen</Link>
@@ -132,7 +134,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer met Google Blue */}
       <footer className="bg-[#4285F4] text-white py-12">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -147,22 +149,22 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Links</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/listings" className="text-white hover:text-white">
+                  <Link href="/listings" className="text-blue-100 hover:text-white">
                     Woningen
                   </Link>
                 </li>
                 <li>
-                  <Link href="/how-it-works" className="text-white hover:text-white">
+                  <Link href="/how-it-works" className="text-blue-100 hover:text-white">
                     Hoe het werkt
                   </Link>
                 </li>
                 <li>
-                  <Link href="/about" className="text-white hover:text-white">
+                  <Link href="/about" className="text-blue-100 hover:text-white">
                     Over ons
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-white hover:text-white">
+                  <Link href="/contact" className="text-blue-100 hover:text-white">
                     Contact
                   </Link>
                 </li>
@@ -173,22 +175,22 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Account</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/login" className="text-white hover:text-white">
+                  <Link href="/login" className="text-blue-100 hover:text-white">
                     Inloggen
                   </Link>
                 </li>
                 <li>
-                  <Link href="/signup" className="text-whitehover:text-white">
+                  <Link href="/signup" className="text-blue-100 hover:text-white">
                     Registreren
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard" className="text-white hover:text-white">
+                  <Link href="/dashboard" className="text-blue-100 hover:text-white">
                     Dashboard
                   </Link>
                 </li>
                 <li>
-                  <Link href="/profile" className="text-white hover:text-white">
+                  <Link href="/profile" className="text-blue-100 hover:text-white">
                     Profiel
                   </Link>
                 </li>
@@ -197,7 +199,7 @@ export default function Home() {
 
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
-              <address className="not-italic text-white">
+              <address className="not-italic text-blue-100">
                 <p>Swapstraat 123</p>
                 <p>1234 AB Amsterdam</p>
                 <p>Nederland</p>
@@ -207,7 +209,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-white">
+          <div className="border-t border-blue-300 mt-8 pt-8 text-center text-white">
             <p>&copy; {new Date().getFullYear()} SwapBnB. Alle rechten voorbehouden.</p>
           </div>
         </div>

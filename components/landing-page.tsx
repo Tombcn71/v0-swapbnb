@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useState } from "react"
 import Image from "next/image"
+import { CheckCircle2 } from "lucide-react"
 
 export function LandingPage() {
   const router = useRouter()
@@ -77,6 +78,43 @@ export function LandingPage() {
                   {isLoading ? "Laden..." : "Inloggen"}
                 </Button>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub Hero with Green Checkmarks */}
+      <div className="bg-white py-12 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex items-start space-x-3">
+              <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Goedkope short stay vakantie</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Bespaar honderden euro's op accommodatiekosten en geniet van een volledige woning.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Geen abonnement, betaal per swap</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Geen maandelijkse kosten. Je betaalt alleen een kleine vergoeding wanneer je daadwerkelijk ruilt.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3">
+              <CheckCircle2 className="h-6 w-6 text-green-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Minder vliegen, goed voor onze planeet</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Ontdek prachtige plekken dichtbij huis en verminder je ecologische voetafdruk.
+                </p>
+              </div>
             </div>
           </div>
         </div>
