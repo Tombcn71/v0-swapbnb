@@ -138,7 +138,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <h3 className="text-xl font-bold mb-4">SwapBnB</h3>
-              <p className="text-gray-400">
+              <p className="text-white">
                 Ontdek Nederland door huizen te swappen en geniet van authentieke ervaringen zonder hotelkosten.
               </p>
             </div>
@@ -183,12 +183,12 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/dashboard" className="text-gray-400 hover:text-white">
+                  <Link href="/dashboard" className="text-white hover:text-white">
                     Dashboard
                   </Link>
                 </li>
                 <li>
-                  <Link href="/profile" className="text-gray-400 hover:text-white">
+                  <Link href="/profile" className="text-white hover:text-white">
                     Profiel
                   </Link>
                 </li>
