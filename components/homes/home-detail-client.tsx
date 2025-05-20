@@ -11,6 +11,7 @@ import { HomeContact } from "./home-contact"
 import { FavoriteButton } from "./favorite-button"
 import { PencilIcon, BedIcon, BathIcon, UsersIcon, MapPinIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { homeLogger } from "@/lib/logger"
 
 interface HomeDetailClientProps {
   home: any
@@ -34,14 +35,14 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
 
   // Log for debugging
   useEffect(() => {
-    console.log("HomeDetailClient - home object:", home)
-    console.log("HomeDetailClient - homeId:", homeId)
-    console.log("HomeDetailClient - host_profile_image:", home.host_profile_image)
-    console.log("HomeDetailClient - userId:", userId)
-    console.log("HomeDetailClient - isOwner:", isOwner)
+    homeLogger.info("Home details geladen", home)
+    homeLogger.debug("Home ID", homeId)
+    homeLogger.debug("Host profile image", home.host_profile_image)
+    homeLogger.debug("User ID", userId)
+    homeLogger.debug("Is Owner", isOwner)
 
     if (!homeId) {
-      console.error("HomeDetailClient - No homeId available")
+      homeLogger.error("Geen homeId beschikbaar")
       toast({
         title: "Fout",
         description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",

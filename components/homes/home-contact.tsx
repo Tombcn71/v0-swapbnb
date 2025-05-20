@@ -15,6 +15,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import type { Home } from "@/lib/types"
+import { homeLogger } from "@/lib/logger"
 
 interface HomeContactProps {
   home: Home
@@ -48,7 +49,7 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
           setHasChatted(data.hasHistory)
         }
       } catch (error) {
-        console.error("Error checking chat history:", error)
+        homeLogger.error("Fout bij controleren chatgeschiedenis", error)
       } finally {
         setIsCheckingChat(false)
       }
@@ -59,11 +60,11 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
 
   // Log voor debugging
   useEffect(() => {
-    console.log("HomeContact - hostImage:", hostImage)
-    console.log("HomeContact - hasChatted:", hasChatted)
-    console.log("HomeContact - userId:", userId)
-    console.log("HomeContact - isOwner:", isOwner)
-    console.log("HomeContact - home:", home)
+    homeLogger.debug("Host image", hostImage)
+    homeLogger.debug("Has chatted", hasChatted)
+    homeLogger.debug("User ID", userId)
+    homeLogger.debug("Is Owner", isOwner)
+    homeLogger.debug("Home object", home)
   }, [hostImage, hasChatted, userId, isOwner, home])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,7 +115,7 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
       setHasChatted(true) // Update de status na het verzenden van een bericht
       router.refresh()
     } catch (error) {
-      console.error("Error sending message:", error)
+      homeLogger.error("Fout bij verzenden bericht", error)
       toast({
         title: "Fout bij verzenden",
         description: "Er is een fout opgetreden bij het verzenden van je bericht",

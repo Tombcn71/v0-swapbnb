@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { NextAuthProvider } from "@/components/providers/session-provider"
 import { Navbar } from "@/components/navbar"
+import { BannerProvider } from "@/components/providers/banner-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <NextAuthProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <BannerProvider />
             <Navbar />
             {children}
             <Toaster />

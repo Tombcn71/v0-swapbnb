@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useState } from "react"
 import Image from "next/image"
+import { Logo } from "@/components/ui/logo"
 
 export function LandingPage() {
   const router = useRouter()
@@ -226,18 +227,18 @@ export function LandingPage() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-blue-600 py-16">
+      <div className="bg-[#98FBCB] py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">Klaar om je huis te swappen?</h2>
-            <p className="mt-4 max-w-2xl mx-auto text-xl text-blue-100">
+            <h2 className="text-3xl font-extrabold text-gray-800 sm:text-4xl">Klaar om je huis te swappen?</h2>
+            <p className="mt-4 max-w-2xl mx-auto text-xl text-gray-700">
               Word lid van onze gemeenschap en begin met het plannen van je volgende avontuur.
             </p>
             <div className="mt-8">
               <Button
                 onClick={handleExploreClick}
                 size="lg"
-                className="text-lg px-8 bg-white text-blue-600 hover:bg-blue-50"
+                className="text-lg px-8 bg-white text-gray-800 hover:bg-gray-100 border border-gray-300"
               >
                 {isLoading ? "Laden..." : "Begin nu"}
               </Button>
@@ -247,12 +248,15 @@ export function LandingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-white py-12">
+      <footer className="bg-[#98FBCB] text-gray-800 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-lg font-semibold mb-4">SwapBnB</h3>
-              <p className="text-gray-300">
+              <div className="mb-4">
+                <Logo showText={false} size="lg" />
+                <h3 className="text-lg font-semibold mt-2">SwapBnB</h3>
+              </div>
+              <p className="text-gray-700">
                 De betere manier om te reizen. Swap je huis en ontdek de wereld vanuit een lokaal perspectief.
               </p>
             </div>
@@ -260,22 +264,22 @@ export function LandingPage() {
               <h3 className="text-lg font-semibold mb-4">Links</h3>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-300 hover:text-white">
+                  <a href="#" className="text-gray-700 hover:text-gray-900">
                     Over ons
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-300 hover:text-white">
+                  <a href="#" className="text-gray-700 hover:text-gray-900">
                     Hoe het werkt
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-300 hover:text-white">
+                  <a href="#" className="text-gray-700 hover:text-gray-900">
                     Veelgestelde vragen
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-300 hover:text-white">
+                  <a href="#" className="text-gray-700 hover:text-gray-900">
                     Contact
                   </a>
                 </li>
@@ -283,11 +287,11 @@ export function LandingPage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-4">Contact</h3>
-              <p className="text-gray-300">Heb je vragen? Neem contact met ons op via:</p>
-              <p className="text-gray-300 mt-2">info@swapbnb.com</p>
+              <p className="text-gray-700">Heb je vragen? Neem contact met ons op via:</p>
+              <p className="text-gray-700 mt-2">info@swapbnb.com</p>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-300">
+          <div className="mt-8 pt-8 border-t border-gray-300 text-center text-gray-700">
             <p>© {new Date().getFullYear()} SwapBnB. Alle rechten voorbehouden.</p>
           </div>
         </div>

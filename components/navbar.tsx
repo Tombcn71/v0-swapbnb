@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { MenuIcon, LogOut } from "lucide-react"
 import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
+import { Logo } from "@/components/ui/logo"
 
 export function Navbar() {
   const pathname = usePathname()
@@ -19,9 +20,7 @@ export function Navbar() {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center space-x-2">
-          <span className="text-xl font-bold text-blue-600">SwapBnB</span>
-        </Link>
+        <Logo size="md" />
 
         {/* Desktop navigatie */}
         <nav className="hidden md:flex items-center space-x-6">
