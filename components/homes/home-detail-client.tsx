@@ -1,207 +1,219 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { HomeAvailability } from "./home-availability"
-import { HomeReviews } from "./home-reviews"
-import { HomeContact } from "./home-contact"
-import { FavoriteButton } from "./favorite-button"
-import { PencilIcon, BedIcon, BathIcon, UsersIcon, MapPinIcon } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { homeLogger } from "@/lib/logger"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { HomeContact } from "@/components/homes/home-contact"
+import { HomeAmenities } from "@/components/homes/home-amenities"
+import { HomeGallery } from "@/components/homes/home-gallery"
+import { HomeMap } from "@/components/homes/home-map"
+import { HomeReviews } from "@/components/homes/home-reviews"
+import type { HomeType } from "@/lib/types"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { HomeExchanges } from "@/components/homes/home-exchanges"
+import { HomeAvailability } from "@/components/homes/home-availability"
+import { toast } from "@/components/ui/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
-interface HomeDetailClientProps {
-  home: any
-  userId: string | undefined
+export function HomeDetailClient({
+  home,
+  userId,
+  isOwner,
+}: {
+  home: HomeType
+  userId?: string
   isOwner: boolean
-}
+}) {
+  const router = useRouter()
+  const [isDeleting, setIsDeleting] = useState(false)
 
-export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProps) {
-  const [activeImage, setActiveImage] = useState(0)
-  const { toast } = useToast()
+  const handleDelete = async () => {
+    if (!isOwner) return
 
-  // Ensure we have the home ID as a string
-  const homeId = home?.id?.toString() || ""
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/homes/${home.id}`, {
+        method: "DELETE",
+      })
 
-  // Parse images if needed
-  const images = Array.isArray(home.images)
-    ? home.images
-    : typeof home.images === "string"
-      ? JSON.parse(home.images)
-      : []
+      if (!response.ok) {
+        throw new Error("Failed to delete home")
+      }
 
-  // Log for debugging
-  useEffect(() => {
-    homeLogger.info("Home details geladen", home)
-    homeLogger.debug("Home ID", homeId)
-    homeLogger.debug("Host profile image", home.host_profile_image)
-    homeLogger.debug("User ID", userId)
-    homeLogger.debug("Is Owner", isOwner)
-
-    if (!homeId) {
-      homeLogger.error("Geen homeId beschikbaar")
       toast({
-        title: "Fout",
-        description: "Woning ID ontbreekt. Probeer de pagina te vernieuwen.",
+        title: "Woning verwijderd",
+        description: "Je woning is succesvol verwijderd.",
+      })
+      router.push("/")
+    } catch (error) {
+      console.error("Error deleting home:", error)
+      toast({
+        title: "Fout bij verwijderen",
+        description: "Er is een fout opgetreden bij het verwijderen van je woning.",
         variant: "destructive",
       })
+    } finally {
+      setIsDeleting(false)
     }
-  }, [home, homeId, toast, userId, isOwner])
-
-  // If no homeId is available, show an error message
-  if (!homeId) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Fout: </strong>
-          <span className="block sm:inline">Woning ID ontbreekt. Probeer de pagina te vernieuwen.</span>
-        </div>
-      </div>
-    )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold">{home.title}</h1>
-          {home.host_profile_image && (
-            <div className="relative h-12 w-12 rounded-full overflow-hidden border-2 border-gray-200 shadow-md">
-              <Image
-                src={home.host_profile_image || "/placeholder.svg"}
-                alt={home.host_name || ""}
-                fill
-                className="object-cover"
-              />
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {!isOwner && <FavoriteButton homeId={homeId} />}
-          {isOwner && (
-            <Link href={`/homes/${homeId}/edit`}>
-              <Button variant="outline" className="flex items-center gap-2">
-                <PencilIcon className="h-4 w-4" />
-                Bewerken
-              </Button>
-            </Link>
-          )}
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2 relative">
-            {images.length > 0 ? (
-              <>
-                <Image
-                  src={images[activeImage] || "/placeholder.svg"}
-                  alt={home.title}
-                  width={800}
-                  height={500}
-                  className="rounded-lg object-cover w-full h-[500px]"
-                />
-                {!isOwner && (
-                  <FavoriteButton homeId={homeId} className="absolute top-4 right-4 bg-white/80 hover:bg-white" />
-                )}
-              </>
-            ) : (
-              <div className="bg-gray-200 rounded-lg w-full h-[500px] flex items-center justify-center">
-                <p className="text-gray-500">Geen afbeelding beschikbaar</p>
+    <div className="container mx-auto py-8 px-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl md:text-3xl">{home.title}</CardTitle>
+                  <CardDescription className="text-lg">
+                    {home.city} • {home.bedrooms} slaapkamers • {home.max_guests} gasten
+                  </CardDescription>
+                </div>
+                <div className="flex items-center">
+                  <Avatar className="h-12 w-12 mr-2">
+                    <AvatarImage
+                      src={home.owner_profile_image || "/placeholder.svg?height=50&width=50&query=user"}
+                      alt={home.owner_name || "Eigenaar"}
+                    />
+                    <AvatarFallback>{home.owner_name?.charAt(0) || "U"}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">{home.owner_name || "Eigenaar"}</p>
+                    <p className="text-xs text-muted-foreground">Eigenaar</p>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {images.slice(1, 5).map((image: string, index: number) => (
-              <div key={index} className="cursor-pointer" onClick={() => setActiveImage(index + 1)}>
-                <Image
-                  src={image || "/placeholder.svg"}
-                  alt={`${home.title} - ${index + 1}`}
-                  width={400}
-                  height={300}
-                  className="rounded-lg object-cover w-full h-[150px]"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <Tabs defaultValue="details">
-            <TabsList className="mb-4">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="availability">Beschikbaarheid</TabsTrigger>
-              <TabsTrigger value="reviews">Beoordelingen</TabsTrigger>
-            </TabsList>
-            <TabsContent value="details" className="space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Over deze woning</h2>
+            </CardHeader>
+            <CardContent>
+              <HomeGallery images={home.images} />
+              <div className="mt-6">
+                <h3 className="text-xl font-semibold mb-2">Beschrijving</h3>
                 <p className="text-gray-700">{home.description}</p>
               </div>
+            </CardContent>
+            {isOwner && (
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={() => router.push(`/homes/${home.id}/edit`)}>
+                  Bewerken
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeleting}>
+                      {isDeleting ? "Bezig met verwijderen..." : "Verwijderen"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Deze actie kan niet ongedaan worden gemaakt. Dit zal je woning permanent verwijderen uit ons
+                        systeem.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>Verwijderen</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardFooter>
+            )}
+          </Card>
 
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Kenmerken</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2">
-                    <BedIcon className="h-5 w-5 text-gray-500" />
-                    <span>{home.bedrooms} slaapkamers</span>
+          <Tabs defaultValue="details" className="mb-8">
+            <TabsList className="grid grid-cols-4 mb-4">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="amenities">Voorzieningen</TabsTrigger>
+              <TabsTrigger value="availability">Beschikbaarheid</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Woningdetails</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Adres</p>
+                      <p className="text-sm text-gray-500">{home.address}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Stad</p>
+                      <p className="text-sm text-gray-500">{home.city}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Postcode</p>
+                      <p className="text-sm text-gray-500">{home.postal_code}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Slaapkamers</p>
+                      <p className="text-sm text-gray-500">{home.bedrooms}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Badkamers</p>
+                      <p className="text-sm text-gray-500">{home.bathrooms}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Max. gasten</p>
+                      <p className="text-sm text-gray-500">{home.max_guests}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <BathIcon className="h-5 w-5 text-gray-500" />
-                    <span>{home.bathrooms} badkamers</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <UsersIcon className="h-5 w-5 text-gray-500" />
-                    <span>Max {home.max_guests} gasten</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Voorzieningen</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {home.amenities &&
-                    Object.entries(home.amenities).map(
-                      ([key, value]: [string, any]) =>
-                        value && (
-                          <div key={key} className="flex items-center gap-2">
-                            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                            <span className="capitalize">{key.replace("_", " ")}</span>
-                          </div>
-                        ),
-                    )}
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Locatie</h2>
-                <div className="flex items-start gap-2">
-                  <MapPinIcon className="h-5 w-5 text-gray-500 mt-1" />
-                  <div>
-                    <p>{home.address}</p>
-                    <p>
-                      {home.postal_code}, {home.city}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
+              <HomeMap address={`${home.address}, ${home.city}, ${home.postal_code}`} />
+            </TabsContent>
+            <TabsContent value="amenities">
+              <HomeAmenities amenities={home.amenities} />
             </TabsContent>
             <TabsContent value="availability">
-              <HomeAvailability homeId={homeId} isOwner={isOwner} />
+              <HomeAvailability homeId={home.id} />
             </TabsContent>
             <TabsContent value="reviews">
-              <HomeReviews homeId={homeId} />
+              <HomeReviews homeId={home.id} />
             </TabsContent>
           </Tabs>
+
+          {isOwner && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Ruilverzoeken</CardTitle>
+                <CardDescription>Bekijk en beheer ruilverzoeken voor je woning</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <HomeExchanges homeId={home.id} isOwner={true} />
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div>
-          <HomeContact home={home} userId={userId} isOwner={isOwner} hostImage={home.host_profile_image} />
+          <HomeContact home={home} userId={userId} />
+
+          {userId && !isOwner && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Ruilgeschiedenis</CardTitle>
+                <CardDescription>Je eerdere ruilverzoeken voor deze woning</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <HomeExchanges homeId={home.id} userId={userId} isOwner={false} />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

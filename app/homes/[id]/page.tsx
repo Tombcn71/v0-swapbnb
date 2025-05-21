@@ -13,7 +13,7 @@ export default async function HomePage({ params }: { params: { id: string } }) {
     console.log("HomePage - Fetching home with ID:", params.id)
 
     const homes = await executeQuery(
-      `SELECT h.*, u.name as host_name, u.profile_image as host_profile_image
+      `SELECT h.*, u.name as owner_name, u.profile_image as owner_profile_image
        FROM homes h
        JOIN users u ON h.user_id = u.id
        WHERE h.id = $1`,
@@ -30,7 +30,7 @@ export default async function HomePage({ params }: { params: { id: string } }) {
     const home = homes[0]
 
     // Log voor debugging
-    console.log("HomePage - host_profile_image:", home.host_profile_image)
+    console.log("HomePage - owner_profile_image:", home.owner_profile_image)
 
     // Process the home data to ensure it has the expected format
     const processedHome = {
