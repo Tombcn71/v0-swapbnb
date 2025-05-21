@@ -15,7 +15,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import type { Home } from "@/lib/types"
-import { homeLogger } from "@/lib/logger"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface HomeContactProps {
   home: Home
@@ -27,6 +28,7 @@ interface HomeContactProps {
 export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactProps) {
   const [message, setMessage] = useState("")
   const [date, setDate] = useState<Date | undefined>(undefined)
+  const [persons, setPersons] = useState<string>("2")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasChatted, setHasChatted] = useState(false)
   const [isCheckingChat, setIsCheckingChat] = useState(true)
@@ -49,7 +51,7 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
           setHasChatted(data.hasHistory)
         }
       } catch (error) {
-        homeLogger.error("Fout bij controleren chatgeschiedenis", error)
+        console.error("Error checking chat history:", error)
       } finally {
         setIsCheckingChat(false)
       }
@@ -57,15 +59,6 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
 
     checkChatHistory()
   }, [userId, home.user_id, home.userId])
-
-  // Log voor debugging
-  useEffect(() => {
-    homeLogger.debug("Host image", hostImage)
-    homeLogger.debug("Has chatted", hasChatted)
-    homeLogger.debug("User ID", userId)
-    homeLogger.debug("Is Owner", isOwner)
-    homeLogger.debug("Home object", home)
-  }, [hostImage, hasChatted, userId, isOwner, home])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,6 +83,11 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
     setIsSubmitting(true)
 
     try {
+      // Voeg datum en aantal personen toe aan het bericht
+      const dateInfo = date ? `\n\nGewenste datum: ${format(date, "PPP")}` : ""
+      const personsInfo = `\n\nAantal personen: ${persons}`
+      const fullMessage = `${message}${dateInfo}${personsInfo}`
+
       const response = await fetch("/api/messages", {
         method: "POST",
         headers: {
@@ -97,7 +95,7 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
         },
         body: JSON.stringify({
           recipientId: home.user_id || home.userId,
-          content: message,
+          content: fullMessage,
           homeId: home.id,
         }),
       })
@@ -112,10 +110,12 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
       })
 
       setMessage("")
+      setDate(undefined)
+      setPersons("2")
       setHasChatted(true) // Update de status na het verzenden van een bericht
       router.refresh()
     } catch (error) {
-      homeLogger.error("Fout bij verzenden bericht", error)
+      console.error("Error sending message:", error)
       toast({
         title: "Fout bij verzenden",
         description: "Er is een fout opgetreden bij het verzenden van je bericht",
@@ -185,24 +185,11 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
+                {/* 1. Gewenste datum */}
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium mb-1">
-                    Stuur een bericht naar {home.host_name || home.hostName}
-                  </label>
-                  <Textarea
-                    id="message"
-                    placeholder="Stel een vraag of vraag naar beschikbaarheid..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={4}
-                    className="resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="date" className="block text-sm font-medium mb-1">
-                    Gewenste datum (optioneel)
-                  </label>
+                  <Label htmlFor="date" className="block text-sm font-medium mb-1">
+                    Gewenste datum
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal" id="date">
@@ -214,6 +201,44 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
                       <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
                     </PopoverContent>
                   </Popover>
+                </div>
+
+                {/* 2. Hoeveel personen */}
+                <div>
+                  <Label htmlFor="persons" className="block text-sm font-medium mb-1">
+                    Hoeveel personen
+                  </Label>
+                  <Select value={persons} onValueChange={setPersons}>
+                    <SelectTrigger id="persons" className="w-full">
+                      <SelectValue placeholder="Selecteer aantal personen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 persoon</SelectItem>
+                      <SelectItem value="2">2 personen</SelectItem>
+                      <SelectItem value="3">3 personen</SelectItem>
+                      <SelectItem value="4">4 personen</SelectItem>
+                      <SelectItem value="5">5 personen</SelectItem>
+                      <SelectItem value="6">6 personen</SelectItem>
+                      <SelectItem value="7">7 personen</SelectItem>
+                      <SelectItem value="8">8 personen</SelectItem>
+                      <SelectItem value="9+">9+ personen</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 3. Bericht */}
+                <div>
+                  <Label htmlFor="message" className="block text-sm font-medium mb-1">
+                    Stuur een bericht naar {home.host_name || home.hostName}
+                  </Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Stel een vraag of vraag naar beschikbaarheid..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
                 </div>
               </div>
 
