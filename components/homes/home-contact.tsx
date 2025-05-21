@@ -1,112 +1,83 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { DateRangePicker } from "@/components/ui/date-range-picker"
-import { format } from "date-fns"
-import { Send, User } from "lucide-react"
-import Link from "next/link"
+import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
-import type { Home } from "@/lib/types"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { DateRange } from "react-day-picker"
+import { CalendarIcon, Loader2 } from "lucide-react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
+
+const formSchema = z.object({
+  startDate: z.date({
+    required_error: "Selecteer een aankomstdatum.",
+  }),
+  endDate: z.date({
+    required_error: "Selecteer een vertrekdatum.",
+  }),
+  guests: z.coerce.number().min(1, "Minimaal 1 gast.").max(20, "Maximaal 20 gasten."),
+  message: z
+    .string()
+    .min(10, "Bericht moet minimaal 10 karakters bevatten.")
+    .max(500, "Bericht mag maximaal 500 karakters bevatten."),
+})
 
 interface HomeContactProps {
-  home: Home
-  userId?: string
-  hostImage?: string
-  isOwner?: boolean
+  homeId: string
+  ownerId: string
+  onSuccess?: () => void
 }
 
-export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactProps) {
-  const [message, setMessage] = useState("")
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: undefined,
-    to: undefined,
-  })
-  const [persons, setPersons] = useState<string>("2")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [hasChatted, setHasChatted] = useState(false)
-  const [isCheckingChat, setIsCheckingChat] = useState(true)
+export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
+  const { data: session } = useSession()
   const router = useRouter()
   const { toast } = useToast()
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Controleer of er al een chatinteractie is geweest
-  useEffect(() => {
-    const checkChatHistory = async () => {
-      if (!userId) {
-        setIsCheckingChat(false)
-        return
-      }
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      guests: 1,
+      message: "",
+    },
+  })
 
-      setIsCheckingChat(true)
-      try {
-        const response = await fetch(`/api/messages/check-history?recipientId=${home.user_id || home.userId}`)
-        if (response.ok) {
-          const data = await response.json()
-          setHasChatted(data.hasHistory)
-        }
-      } catch (error) {
-        console.error("Error checking chat history:", error)
-      } finally {
-        setIsCheckingChat(false)
-      }
-    }
-
-    checkChatHistory()
-  }, [userId, home.user_id, home.userId])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!userId) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!session) {
       toast({
-        title: "Je bent niet ingelogd",
-        description: "Log in om een bericht te sturen",
+        title: "Je moet ingelogd zijn",
+        description: "Log in of registreer om contact op te nemen met de eigenaar.",
         variant: "destructive",
       })
-      return
-    }
-
-    if (!message) {
-      toast({
-        title: "Bericht is leeg",
-        description: "Voer een bericht in",
-        variant: "destructive",
-      })
+      router.push("/login?callbackUrl=" + encodeURIComponent(window.location.href))
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      // Voeg datum en aantal personen toe aan het bericht
-      let dateInfo = ""
-      if (dateRange?.from) {
-        dateInfo += `\n\nAankomstdatum: ${format(dateRange.from, "PPP")}`
-        if (dateRange.to) {
-          dateInfo += `\nVertrekdatum: ${format(dateRange.to, "PPP")}`
-        }
-      }
-
-      const personsInfo = `\n\nAantal personen: ${persons}`
-      const fullMessage = `${message}${dateInfo}${personsInfo}`
-
-      const response = await fetch("/api/messages", {
+      const response = await fetch("/api/exchanges", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipientId: home.user_id || home.userId,
-          content: fullMessage,
-          homeId: home.id,
+          homeId,
+          ownerId,
+          startDate: values.startDate,
+          endDate: values.endDate,
+          guests: values.guests,
+          message: values.message,
         }),
       })
 
@@ -116,19 +87,16 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
 
       toast({
         title: "Bericht verzonden",
-        description: "Je bericht is succesvol verzonden",
+        description: "Je bericht is succesvol verzonden naar de eigenaar.",
       })
 
-      setMessage("")
-      setDateRange({ from: undefined, to: undefined })
-      setPersons("2")
-      setHasChatted(true) // Update de status na het verzenden van een bericht
-      router.refresh()
+      form.reset()
+      if (onSuccess) onSuccess()
     } catch (error) {
       console.error("Error sending message:", error)
       toast({
-        title: "Fout bij verzenden",
-        description: "Er is een fout opgetreden bij het verzenden van je bericht",
+        title: "Fout",
+        description: "Er is een fout opgetreden bij het verzenden van je bericht.",
         variant: "destructive",
       })
     } finally {
@@ -136,163 +104,126 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
     }
   }
 
-  const handleSwapRequestClick = () => {
-    if (!userId) {
-      toast({
-        title: "Je bent niet ingelogd",
-        description: "Log in om een swap-verzoek in te dienen",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (!hasChatted) {
-      toast({
-        title: "Chat eerst met de eigenaar",
-        description: "Je moet eerst contact opnemen met de eigenaar voordat je een swap-verzoek kunt indienen.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    router.push(`/homes/${home.id}/swap-request`)
-  }
-
   return (
-    <Card className="sticky top-4">
-      <CardHeader className="pb-2">
-        <div className="flex items-center space-x-4">
-          <div className="relative h-20 w-20 rounded-full overflow-hidden border-2 border-gray-200 shadow-md">
-            {hostImage ? (
-              <Image
-                src={hostImage || "/placeholder.svg"}
-                alt={home.host_name || home.hostName || ""}
-                width={80}
-                height={80}
-                className="object-cover"
-              />
-            ) : (
-              <div className="h-full w-full flex items-center justify-center bg-gray-100">
-                <User className="h-10 w-10 text-gray-400" />
-              </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Aankomst</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                        >
+                          {field.value ? format(field.value, "PPP", { locale: nl }) : <span>Kies een datum</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Vertrek</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                        >
+                          {field.value ? format(field.value, "PPP", { locale: nl }) : <span>Kies een datum</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => {
+                          const startDate = form.getValues("startDate")
+                          return date < new Date() || (startDate && date < startDate)
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="guests"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Aantal gasten</FormLabel>
+                <FormControl>
+                  <Input type="number" min={1} max={20} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-          </div>
-          <div>
-            <CardTitle>Contact opnemen</CardTitle>
-            <p className="text-sm text-gray-500">met {home.host_name || home.hostName}</p>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {userId ? (
-          isOwner ? (
-            <div className="text-center py-4">
-              <p className="mb-4">Dit is jouw woning</p>
-              <Button asChild className="w-full">
-                <Link href={`/homes/${home.id}/edit`}>Bewerk woning</Link>
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                {/* 1. Gewenste datum (aankomst en vertrek) */}
-                <div>
-                  <Label htmlFor="date-range" className="block text-sm font-medium mb-1">
-                    Gewenste datum
-                  </Label>
-                  <DateRangePicker
-                    dateRange={dateRange}
-                    onDateRangeChange={setDateRange}
-                    className="w-full"
-                    align="start"
-                    locale="nl"
-                    placeholder="Selecteer aankomst- en vertrekdatum"
-                  />
-                </div>
+          />
 
-                {/* 2. Hoeveel personen */}
-                <div>
-                  <Label htmlFor="persons" className="block text-sm font-medium mb-1">
-                    Hoeveel personen
-                  </Label>
-                  <Select value={persons} onValueChange={setPersons}>
-                    <SelectTrigger id="persons" className="w-full">
-                      <SelectValue placeholder="Selecteer aantal personen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 persoon</SelectItem>
-                      <SelectItem value="2">2 personen</SelectItem>
-                      <SelectItem value="3">3 personen</SelectItem>
-                      <SelectItem value="4">4 personen</SelectItem>
-                      <SelectItem value="5">5 personen</SelectItem>
-                      <SelectItem value="6">6 personen</SelectItem>
-                      <SelectItem value="7">7 personen</SelectItem>
-                      <SelectItem value="8">8 personen</SelectItem>
-                      <SelectItem value="9+">9+ personen</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* 3. Bericht */}
-                <div>
-                  <Label htmlFor="message" className="block text-sm font-medium mb-1">
-                    Stuur een bericht naar {home.host_name || home.hostName}
-                  </Label>
+          <FormField
+            control={form.control}
+            name="message"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Bericht</FormLabel>
+                <FormControl>
                   <Textarea
-                    id="message"
-                    placeholder="Stel een vraag of vraag naar beschikbaarheid..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={4}
+                    placeholder="Stel je voor en vertel waarom je geïnteresseerd bent in deze woning..."
                     className="resize-none"
+                    rows={4}
+                    {...field}
                   />
-                </div>
-              </div>
-
-              <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  "Verzenden..."
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" /> Bericht versturen
-                  </>
-                )}
-              </Button>
-            </form>
-          )
-        ) : (
-          <div className="text-center py-4">
-            <p className="mb-4">Log in om contact op te nemen met de eigenaar</p>
-            <Button asChild className="w-full">
-              <Link href="/login">Inloggen</Link>
-            </Button>
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col items-start space-y-4 w-full">
-        <p className="text-sm text-gray-500">Gemiddelde reactietijd: binnen 24 uur</p>
-
-        {userId && !isOwner && (
-          <>
-            <Button
-              onClick={handleSwapRequestClick}
-              className={`w-full ${
-                hasChatted ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 hover:bg-gray-500 cursor-not-allowed"
-              }`}
-            >
-              Swap-verzoek indienen
-            </Button>
-            {isCheckingChat && (
-              <p className="text-xs text-gray-500 w-full text-center">Chatgeschiedenis controleren...</p>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-            {!hasChatted && !isCheckingChat && (
-              <p className="text-xs text-gray-500 w-full text-center">
-                Chat eerst met de eigenaar voordat je een swap-verzoek kunt indienen
-              </p>
-            )}
-          </>
-        )}
-      </CardFooter>
-    </Card>
+          />
+        </div>
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Verzenden...
+            </>
+          ) : (
+            "Verstuur aanvraag"
+          )}
+        </Button>
+      </form>
+    </Form>
   )
 }

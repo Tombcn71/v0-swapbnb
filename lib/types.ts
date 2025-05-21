@@ -1,73 +1,74 @@
-export type ExchangeStatus = "pending" | "confirmed" | "rejected" | "canceled" | "completed"
-
-export interface Exchange {
-  id: string
-  requesterId: string
-  requesterName: string
-  hostId: string
-  hostName: string
-  requesterHomeId: string
-  requesterHomeTitle: string
-  hostHomeId: string
-  hostHomeTitle: string
-  hostHomeCity: string
-  startDate: string
-  endDate: string
-  status: ExchangeStatus
-  createdAt: string
-  updatedAt: string
-  message?: string
-  serviceFee?: number
-  paymentStatus?: string
-}
-
 export interface User {
   id: string
   name: string
   email: string
-  image?: string
+  profile_image?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Home {
   id: string
+  user_id: string
   title: string
   description: string
   address: string
   city: string
-  postal_code?: string
-  postalCode?: string
-  images: string[] | string
+  postal_code: string
   bedrooms: number
   bathrooms: number
-  max_guests?: number
-  maxGuests?: number
-  amenities: any
-  user_id?: string
-  userId?: string
-  host_name?: string
-  hostName?: string
-  rating?: number
-  reviewCount?: number
-  created_at?: string
-  createdAt?: string
-  updated_at?: string
-  updatedAt?: string
+  max_guests: number
+  amenities: Record<string, boolean>
+  images: string[]
+  created_at: string
+  updated_at: string
+  owner_name?: string
+  owner_profile_image?: string
+  isOwner?: boolean
 }
 
-export interface Availability {
+export interface Exchange {
   id: string
-  homeId: string
-  startDate: string
-  endDate: string
+  home_id: string
+  guest_id: string
+  start_date: string
+  end_date: string
+  guests: number
+  message: string
+  status: "pending" | "approved" | "rejected" | "completed"
+  created_at: string
+  updated_at: string
+  guest_name?: string
+  guest_profile_image?: string
+  home_title?: string
+  home_city?: string
+  home_image?: string
+  owner_id?: string
+  owner_name?: string
+  owner_profile_image?: string
+}
+
+export interface Message {
+  id: string
+  exchange_id: string
+  sender_id: string
+  content: string
+  created_at: string
+  updated_at: string
+  sender_name?: string
+  sender_profile_image?: string
 }
 
 export interface Review {
   id: string
-  exchangeId: string
-  reviewerId: string
-  reviewerName: string
-  homeId: string
+  exchange_id: string
+  reviewer_id: string
   rating: number
   comment: string
-  createdAt: string
+  created_at: string
+  updated_at: string
+  reviewer_name?: string
+  reviewer_profile_image?: string
+  home_id?: string
+  home_title?: string
 }
