@@ -42,6 +42,7 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -65,18 +66,14 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("/api/exchanges", {
+      const response = await fetch("/api/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          homeId,
-          ownerId,
-          startDate: values.dateRange.from,
-          endDate: values.dateRange.to,
-          guests: values.guests,
-          message: values.message,
+          recipientId: ownerId,
+          content: `Ik ben geïnteresseerd in je woning met ID ${homeId}. Ik zou graag verblijven van ${values.dateRange.from.toLocaleDateString()} tot ${values.dateRange.to.toLocaleDateString()} met ${values.guests} gasten. Bericht: ${values.message}`,
         }),
       })
 
@@ -90,6 +87,7 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
       })
 
       form.reset()
+      setDateRange(undefined)
       if (onSuccess) onSuccess()
     } catch (error) {
       console.error("Error sending message:", error)
@@ -115,8 +113,11 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
                 <FormLabel>Aankomst en vertrek</FormLabel>
                 <FormControl>
                   <DatePickerWithRange
-                    dateRange={field.value}
-                    setDateRange={(value: DateRange | undefined) => field.onChange(value)}
+                    dateRange={dateRange}
+                    setDateRange={(range) => {
+                      setDateRange(range)
+                      field.onChange(range)
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
