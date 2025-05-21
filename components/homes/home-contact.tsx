@@ -7,16 +7,16 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { format } from "date-fns"
-import { CalendarIcon, Send, User } from "lucide-react"
+import { Send, User } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import type { Home } from "@/lib/types"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type { DateRange } from "react-day-picker"
 
 interface HomeContactProps {
   home: Home
@@ -27,7 +27,10 @@ interface HomeContactProps {
 
 export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactProps) {
   const [message, setMessage] = useState("")
-  const [date, setDate] = useState<Date | undefined>(undefined)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  })
   const [persons, setPersons] = useState<string>("2")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasChatted, setHasChatted] = useState(false)
@@ -84,7 +87,14 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
 
     try {
       // Voeg datum en aantal personen toe aan het bericht
-      const dateInfo = date ? `\n\nGewenste datum: ${format(date, "PPP")}` : ""
+      let dateInfo = ""
+      if (dateRange?.from) {
+        dateInfo += `\n\nAankomstdatum: ${format(dateRange.from, "PPP")}`
+        if (dateRange.to) {
+          dateInfo += `\nVertrekdatum: ${format(dateRange.to, "PPP")}`
+        }
+      }
+
       const personsInfo = `\n\nAantal personen: ${persons}`
       const fullMessage = `${message}${dateInfo}${personsInfo}`
 
@@ -110,7 +120,7 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
       })
 
       setMessage("")
-      setDate(undefined)
+      setDateRange({ from: undefined, to: undefined })
       setPersons("2")
       setHasChatted(true) // Update de status na het verzenden van een bericht
       router.refresh()
@@ -185,22 +195,19 @@ export function HomeContact({ home, userId, hostImage, isOwner }: HomeContactPro
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
-                {/* 1. Gewenste datum */}
+                {/* 1. Gewenste datum (aankomst en vertrek) */}
                 <div>
-                  <Label htmlFor="date" className="block text-sm font-medium mb-1">
+                  <Label htmlFor="date-range" className="block text-sm font-medium mb-1">
                     Gewenste datum
                   </Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal" id="date">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Kies een datum</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                    </PopoverContent>
-                  </Popover>
+                  <DateRangePicker
+                    dateRange={dateRange}
+                    onDateRangeChange={setDateRange}
+                    className="w-full"
+                    align="start"
+                    locale="nl"
+                    placeholder="Selecteer aankomst- en vertrekdatum"
+                  />
                 </div>
 
                 {/* 2. Hoeveel personen */}
