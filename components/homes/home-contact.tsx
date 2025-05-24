@@ -3,26 +3,27 @@
 import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { CalendarIcon, Loader2 } from "lucide-react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import type { DateRange } from "react-day-picker"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 
 const formSchema = z.object({
-  dateRange: z.object({
-    from: z.date({
-      required_error: "Selecteer een aankomstdatum.",
-    }),
-    to: z.date({
-      required_error: "Selecteer een vertrekdatum.",
-    }),
+  startDate: z.date({
+    required_error: "Selecteer een aankomstdatum.",
+  }),
+  endDate: z.date({
+    required_error: "Selecteer een vertrekdatum.",
   }),
   guests: z.coerce.number().min(1, "Minimaal 1 gast.").max(20, "Maximaal 20 gasten."),
   message: z
@@ -42,7 +43,6 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -66,14 +66,18 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("/api/messages", {
+      const response = await fetch("/api/exchanges", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipientId: ownerId,
-          content: values.message,
+          homeId,
+          ownerId,
+          startDate: values.startDate,
+          endDate: values.endDate,
+          guests: values.guests,
+          message: values.message,
         }),
       })
 
@@ -87,7 +91,6 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
       })
 
       form.reset()
-      setDateRange(undefined)
       if (onSuccess) onSuccess()
     } catch (error) {
       console.error("Error sending message:", error)
@@ -105,25 +108,76 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
-          <FormField
-            control={form.control}
-            name="dateRange"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Aankomst en vertrek</FormLabel>
-                <FormControl>
-                  <DatePickerWithRange
-                    dateRange={dateRange}
-                    setDateRange={(range) => {
-                      setDateRange(range)
-                      field.onChange(range)
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="startDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Aankomst</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                        >
+                          {field.value ? format(field.value, "PPP", { locale: nl }) : <span>Kies een datum</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="endDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Vertrek</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                        >
+                          {field.value ? format(field.value, "PPP", { locale: nl }) : <span>Kies een datum</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) => {
+                          const startDate = form.getValues("startDate")
+                          return date < new Date() || (startDate && date < startDate)
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
