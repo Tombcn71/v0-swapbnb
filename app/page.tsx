@@ -1,93 +1,45 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { MapPinIcon, EuroIcon, UmbrellaIcon, BikeIcon } from "lucide-react"
+import { ArrowRightIcon } from "lucide-react"
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <div className="relative w-full h-[80vh] md:h-[70vh]">
-        <Image
-          src="https://images.pexels.com/photos/6338457/pexels-photo-6338457.jpeg?auto=compress&cs=tinysrgb&w=1600"
-          alt="Gelukkig gezin"
-          fill
-          priority
-          style={{ objectFit: "cover" }}
-        />
+      {/* Hero Section - Tekst links, foto rechts */}
+      <div className="container mx-auto py-16 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Tekst links */}
+          <div className="flex flex-col space-y-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900">Swap je woning, eropuit in Nederland</h1>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-          <h1 className="mb-4 text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
-            Swap je woning, eropuit in Nederland
-          </h1>
+            <p className="text-lg md:text-xl text-gray-600">
+              Korte breaks, slim budget: geen abonnementskosten, betaal per swap.
+            </p>
 
-          {/* Nieuwe sub-hero tekst */}
-          <p className="mb-8 text-lg md:text-xl text-white drop-shadow-lg max-w-2xl  p-4 rounded-lg">
-            Korte breaks, slim budget: geen abonnementskosten, betaal per swap en kies voor minder vliegen.
-          </p>
+            <div className="flex gap-4 pt-4">
+              <Button asChild size="lg">
+                <Link href="/listings">Ontdek woningen</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/login">Inloggen</Link>
+              </Button>
+            </div>
+          </div>
 
-          <div className="flex gap-4">
-            <Button asChild size="lg">
-              <Link href="/listings">Ontdek woningen</Link>
-            </Button>
-            <Button asChild variant="outline" className="bg-white/20 text-white">
-              <Link href="/login">Inloggen</Link>
-            </Button>
+          {/* Foto rechts */}
+          <div className="relative w-full h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-xl">
+            <Image
+              src="https://images.pexels.com/photos/6338457/pexels-photo-6338457.jpeg?auto=compress&cs=tinysrgb&w=1600"
+              alt="Gelukkig gezin"
+              fill
+              priority
+              style={{ objectFit: "cover" }}
+              className="rounded-xl"
+            />
           </div>
         </div>
       </div>
-
-      {/* Waarom SwapBnB Section - Focus op Nederland */}
-      <section className="py-16 px-4 bg-white">
-        <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Waarom SwapBnB?</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="flex flex-col items-center text-center p-4">
-              <div className="bg-blue-100 p-4 rounded-full mb-4">
-                <MapPinIcon className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Ontdek heel Nederland</h3>
-              <p className="text-gray-600">
-                Van de Waddeneilanden tot Limburg, verken de mooiste plekken van ons land door te swappen met andere
-                Nederlanders.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-4">
-              <div className="bg-green-100 p-4 rounded-full mb-4">
-                <EuroIcon className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Bespaar op vakantiekosten</h3>
-              <p className="text-gray-600">
-                Met de stijgende prijzen in Nederland is swappen de ideale manier om voordelig vakantie te vieren in
-                eigen land.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-4">
-              <div className="bg-purple-100 p-4 rounded-full mb-4">
-                <UmbrellaIcon className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Altijd een plan B</h3>
-              <p className="text-gray-600">
-                Met het Nederlandse weer is een last-minute swap naar een andere regio ideaal om toch van de zon te
-                genieten.
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center text-center p-4">
-              <div className="bg-red-100 p-4 rounded-full mb-4">
-                <BikeIcon className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Leef als een local</h3>
-              <p className="text-gray-600">
-                Gebruik de fietsen van je swap-partner en ontdek de omgeving zoals een echte Nederlander dat zou doen.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Hoe werkt het Section */}
       <section className="py-16 px-4 bg-gray-50">
@@ -130,6 +82,52 @@ export default function Home() {
             <Button asChild size="lg">
               <Link href="/signup">Begin nu met swappen</Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Prijsvergelijking Section */}
+      <section className="py-16 px-4 bg-white">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="flex flex-col space-y-6">
+              <h2 className="text-4xl font-bold text-gray-900">Swap & verblijf voor een fractie van de kosten</h2>
+
+              <p className="text-lg text-gray-600">7 nachten vergelijking</p>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="border p-6 rounded-lg">
+                  <p className="text-lg font-medium mb-2">Swap met SwapBnB</p>
+                  <p className="text-4xl font-bold">€420</p>
+                </div>
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <p className="text-lg font-medium mb-2">Hotel of huurwoning</p>
+                  <p className="text-4xl font-bold">€1.900+</p>
+                </div>
+              </div>
+
+              <p className="text-gray-600 mt-4">
+                Geen lidmaatschapskosten.
+                <br />
+                Betaal alleen voor schoonmaak en een servicekosten per reis.
+              </p>
+
+              <div className="mt-4">
+                <Button variant="outline" className="flex items-center gap-2">
+                  Meer over prijzen <ArrowRightIcon className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="relative w-full h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-xl">
+              <Image
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/smaller-2025-05-22T19_03_43.667Z-z6I4j9ZOQDY4YKeQn3rzuv9rLPvdqP.jpeg"
+                alt="Gezellige woonkamer met planten"
+                fill
+                style={{ objectFit: "cover" }}
+                className="rounded-xl"
+              />
+            </div>
           </div>
         </div>
       </section>
