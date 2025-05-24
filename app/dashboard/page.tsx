@@ -22,16 +22,21 @@ export default async function DashboardPage() {
   const userName = session.user.name || "gebruiker"
 
   // Haal de woning van de gebruiker op
-  const userHomes = await executeQuery(
-    `SELECT h.*, u.name as owner_name 
-     FROM homes h 
-     JOIN users u ON h.user_id = u.id 
-     WHERE h.user_id = $1 
-     LIMIT 1`,
-    [session.user.id],
-  )
-
-  const userHome = userHomes.length > 0 ? (userHomes[0] as HomeType) : null
+  let userHome = null
+  try {
+    const userHomes = await executeQuery(
+      `SELECT h.*, u.name as owner_name 
+       FROM homes h 
+       JOIN users u ON h.user_id = u.id 
+       WHERE h.user_id = $1 
+       LIMIT 1`,
+      [session.user.id],
+    )
+    userHome = userHomes.length > 0 ? (userHomes[0] as HomeType) : null
+  } catch (error) {
+    console.error("Error fetching user home:", error)
+    userHome = null
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
