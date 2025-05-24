@@ -11,7 +11,7 @@ export function PromoBanner() {
   return (
     <div className="bg-[#4285F4] text-white py-2 px-4 text-center relative">
       <p className="font-medium">
-       👋 Zeg maar dag tegen hotels en accommodaties die de prijzen verhogen net wanneer jij vrij hebt
+        Zeg maar dag tegen hotels en accommodaties die de prijzen verhogen net wanneer jij vrij hebt
       </p>
       <button
         onClick={() => setIsVisible(false)}

@@ -73,7 +73,7 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
         },
         body: JSON.stringify({
           recipientId: ownerId,
-          content: `Ik zou graag verblijven van ${values.dateRange.from.toLocaleDateString()} tot ${values.dateRange.to.toLocaleDateString()} met ${values.guests} gasten. Bericht: ${values.message}`,
+          content: values.message,
         }),
       })
 

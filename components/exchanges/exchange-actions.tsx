@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +14,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { CheckCircle, XCircle, Clock } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { Calendar, MessageSquare, AlertTriangle, Ban, CheckCircle } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeActionsProps {
@@ -45,48 +45,15 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
       }
 
       toast({
-        title: "Swap geaccepteerd",
-        description: "De swap is geaccepteerd. Beide partijen kunnen nu betalen.",
+        title: "Swap-verzoek geaccepteerd",
+        description: "Je hebt het swap-verzoek geaccepteerd. Betaal nu de servicekosten om de swap te bevestigen.",
       })
 
       router.refresh()
     } catch (error: any) {
       toast({
-        title: "Fout bij accepteren",
-        description: error.message || "Er is een fout opgetreden bij het accepteren van de swap.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleReject = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: "rejected" }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to reject exchange")
-      }
-
-      toast({
-        title: "Swap afgewezen",
-        description: "De swap is afgewezen.",
-      })
-
-      router.refresh()
-    } catch (error: any) {
-      toast({
-        title: "Fout bij afwijzen",
-        description: error.message || "Er is een fout opgetreden bij het afwijzen van de swap.",
+        title: "Er is iets misgegaan",
+        description: error.message || "Kon het swap-verzoek niet accepteren. Probeer het later opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -102,7 +69,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: "cancelled" }),
+        body: JSON.stringify({ status: "canceled" }),
       })
 
       if (!response.ok) {
@@ -112,14 +79,15 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
 
       toast({
         title: "Swap geannuleerd",
-        description: "De swap is geannuleerd.",
+        description: "De swap is succesvol geannuleerd.",
       })
 
+      router.push("/exchanges")
       router.refresh()
     } catch (error: any) {
       toast({
-        title: "Fout bij annuleren",
-        description: error.message || "Er is een fout opgetreden bij het annuleren van de swap.",
+        title: "Er is iets misgegaan",
+        description: error.message || "Kon de swap niet annuleren. Probeer het later opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -127,105 +95,177 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     }
   }
 
-  // Bepaal welke acties beschikbaar zijn
-  const canAccept = !isRequester && exchange.status === "pending"
-  const canReject = !isRequester && exchange.status === "pending"
-  const canCancel = isRequester && exchange.status === "pending"
+  const handleComplete = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "completed" }),
+      })
 
-  if (exchange.status === "confirmed" || exchange.status === "completed") {
-    return (
-      <div className="flex items-center justify-center p-4 bg-green-50 border border-green-100 rounded-md">
-        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-        <span className="text-green-700">Swap bevestigd</span>
-      </div>
-    )
-  }
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to complete exchange")
+      }
 
-  if (exchange.status === "rejected" || exchange.status === "cancelled") {
-    return (
-      <div className="flex items-center justify-center p-4 bg-red-50 border border-red-100 rounded-md">
-        <XCircle className="h-5 w-5 text-red-500 mr-2" />
-        <span className="text-red-700">{exchange.status === "rejected" ? "Swap afgewezen" : "Swap geannuleerd"}</span>
-      </div>
-    )
-  }
+      toast({
+        title: "Swap voltooid",
+        description: "De swap is gemarkeerd als voltooid.",
+      })
 
-  if (exchange.status === "accepted") {
-    return (
-      <div className="flex items-center justify-center p-4 bg-blue-50 border border-blue-100 rounded-md">
-        <Clock className="h-5 w-5 text-blue-500 mr-2" />
-        <span className="text-blue-700">Wachten op betalingen</span>
-      </div>
-    )
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Er is iets misgegaan",
+        description: error.message || "Kon de swap niet voltooien. Probeer het later opnieuw.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="space-y-2">
-      {canAccept && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button className="w-full" disabled={isLoading}>
-              Accepteer swap
+    <div className="space-y-3">
+      {exchange.status === "pending" && (
+        <>
+          {!isRequester && (
+            <Button
+              onClick={handleAccept}
+              className="w-full justify-start bg-google-blue hover:bg-blue-600"
+              disabled={isLoading}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Accepteren
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Swap accepteren</AlertDialogTitle>
-              <AlertDialogDescription>
-                Weet je zeker dat je deze swap wilt accepteren? Na acceptatie kunnen beide partijen betalen om de swap
-                te bevestigen.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuleren</AlertDialogCancel>
-              <AlertDialogAction onClick={handleAccept}>Accepteren</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          )}
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full justify-start">
+                <Ban className="mr-2 h-4 w-4" />
+                Annuleren
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Weet je zeker dat je deze swap-aanvraag wilt annuleren? Deze actie kan niet ongedaan worden gemaakt.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="bg-google-blue hover:bg-blue-600"
+                >
+                  {isLoading ? "Bezig..." : "Bevestigen"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
 
-      {canReject && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" className="w-full" disabled={isLoading}>
-              Afwijzen
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Swap afwijzen</AlertDialogTitle>
-              <AlertDialogDescription>
-                Weet je zeker dat je deze swap wilt afwijzen? Deze actie kan niet ongedaan worden gemaakt.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuleren</AlertDialogCancel>
-              <AlertDialogAction onClick={handleReject}>Afwijzen</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      {exchange.status === "accepted" && (
+        <>
+          <Button variant="outline" className="w-full justify-start">
+            <Calendar className="mr-2 h-4 w-4" />
+            Toevoegen aan agenda
+          </Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full justify-start">
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Probleem melden
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Probleem melden</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Als je een probleem hebt met deze swap, neem dan direct contact op met de andere partij. Als jullie er
+                  samen niet uitkomen, kun je contact opnemen met onze klantenservice.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Sluiten</AlertDialogCancel>
+                <AlertDialogAction className="bg-google-blue hover:bg-blue-600">Contact opnemen</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full justify-start">
+                <Ban className="mr-2 h-4 w-4" />
+                Annuleren
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Weet je zeker dat je deze swap wilt annuleren? Dit kan gevolgen hebben voor je reputatie op het
+                  platform.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Terug</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="bg-google-blue hover:bg-blue-600"
+                >
+                  {isLoading ? "Bezig..." : "Bevestigen"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {new Date(exchange.endDate) <= new Date() && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button className="w-full justify-start bg-google-blue hover:bg-blue-600">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Markeer als voltooid
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Swap voltooien</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Weet je zeker dat je deze swap wilt markeren als voltooid? Je kunt daarna een beoordeling
+                    achterlaten.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleComplete}
+                    disabled={isLoading}
+                    className="bg-google-blue hover:bg-blue-600"
+                  >
+                    {isLoading ? "Bezig..." : "Bevestigen"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </>
       )}
 
-      {canCancel && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" className="w-full" disabled={isLoading}>
-              Annuleren
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
-              <AlertDialogDescription>
-                Weet je zeker dat je deze swap wilt annuleren? Deze actie kan niet ongedaan worden gemaakt.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Terug</AlertDialogCancel>
-              <AlertDialogAction onClick={handleCancel}>Annuleren</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      {exchange.status === "completed" && (
+        <Button variant="outline" className="w-full justify-start">
+          <MessageSquare className="mr-2 h-4 w-4" />
+          Beoordeling schrijven
+        </Button>
       )}
     </div>
   )

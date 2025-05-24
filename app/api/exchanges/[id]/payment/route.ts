@@ -1,13 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { executeQuery } from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { executeQuery } from "@/lib/db"
-import Stripe from "stripe"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-})
+// Functie om te controleren of een string een geldige UUID is
+const isValidUUID = (id: string) => {
+  if (!id) return false
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(id)
+}
 
+// POST /api/exchanges/[id]/payment - Betaal de servicekosten
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
@@ -17,93 +20,55 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const exchangeId = params.id
-    const userId = session.user.id
 
-    // Haal exchange en gebruiker gegevens op
-    const exchanges = await executeQuery(
-      `SELECT e.*, u.verification_status, u.stripe_customer_id 
-       FROM exchanges e
-       JOIN users u ON (u.id = e.requester_id OR u.id = e.host_id)
-       WHERE e.id = $1 AND u.id = $2`,
-      [exchangeId, userId],
-    )
+    // Controleer of de exchange ID een geldige UUID is
+    if (!isValidUUID(exchangeId)) {
+      console.error("Invalid UUID format for exchange ID:", exchangeId)
+      return NextResponse.json({ error: "Invalid exchange ID format" }, { status: 400 })
+    }
+
+    // Haal de uitwisseling op
+    const exchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
 
     if (exchanges.length === 0) {
-      return NextResponse.json({ error: "Exchange not found or access denied" }, { status: 404 })
+      return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
     }
 
     const exchange = exchanges[0]
 
-    // Controleer verificatie status
-    if (exchange.verification_status !== "verified") {
-      return NextResponse.json(
-        {
-          error: "Identity verification required before payment",
-          requiresVerification: true,
-        },
-        { status: 400 },
-      )
+    // Controleer of de gebruiker betrokken is bij de uitwisseling
+    if (exchange.requester_id !== session.user.id && exchange.host_id !== session.user.id) {
+      return NextResponse.json({ error: "You are not involved in this exchange" }, { status: 403 })
     }
 
-    // Controleer exchange status
-    if (exchange.status !== "accepted") {
-      return NextResponse.json({ error: "Exchange must be accepted before payment" }, { status: 400 })
-    }
+    // Bepaal welke rol de gebruiker heeft
+    const isRequester = exchange.requester_id === session.user.id
+    const paymentField = isRequester ? "requester_payment_status" : "host_payment_status"
 
-    // Bepaal of gebruiker requester of host is
-    const isRequester = exchange.requester_id === userId
-    const paymentStatusField = isRequester ? "requester_payment_status" : "host_payment_status"
-    const paymentIntentField = isRequester ? "requester_payment_intent_id" : "host_payment_intent_id"
-
-    // Controleer of al betaald
-    if (exchange[paymentStatusField] === "paid") {
+    // Controleer of de betaling al is gedaan
+    if (exchange[paymentField] === "paid") {
       return NextResponse.json({ error: "Payment already completed" }, { status: 400 })
     }
 
-    // Maak of haal Stripe customer op
-    let customerId = exchange.stripe_customer_id
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: session.user.email!,
-        name: session.user.name!,
-        metadata: { user_id: userId },
-      })
-      customerId = customer.id
+    // In een echte applicatie zou hier de betalingsverwerking plaatsvinden
+    // Voor deze demo markeren we de betaling gewoon als voltooid
 
-      await executeQuery("UPDATE users SET stripe_customer_id = $1 WHERE id = $2", [customerId, userId])
+    // Update de betalingsstatus
+    await executeQuery(`UPDATE exchanges SET ${paymentField} = $1 WHERE id = $2`, ["paid", exchangeId])
+
+    // Controleer of beide partijen hebben betaald
+    const updatedExchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
+
+    const updatedExchange = updatedExchanges[0]
+
+    if (updatedExchange.requester_payment_status === "paid" && updatedExchange.host_payment_status === "paid") {
+      // Als beide partijen hebben betaald, update de status naar confirmed
+      await executeQuery("UPDATE exchanges SET status = $1 WHERE id = $2", ["confirmed", exchangeId])
     }
 
-    // Maak payment intent aan
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round((exchange.service_fee || 25) * 100), // Convert to cents
-      currency: "eur",
-      customer: customerId,
-      metadata: {
-        exchange_id: exchangeId,
-        user_id: userId,
-        user_role: isRequester ? "requester" : "host",
-      },
-      automatic_payment_methods: {
-        enabled: true,
-      },
-    })
-
-    // Update exchange met payment intent
-    await executeQuery(`UPDATE exchanges SET ${paymentIntentField} = $1 WHERE id = $2`, [paymentIntent.id, exchangeId])
-
-    // Log payment
-    await executeQuery(
-      `INSERT INTO payment_logs (exchange_id, user_id, payment_intent_id, amount, status) 
-       VALUES ($1, $2, $3, $4, $5)`,
-      [exchangeId, userId, paymentIntent.id, exchange.service_fee || 25, "created"],
-    )
-
-    return NextResponse.json({
-      client_secret: paymentIntent.client_secret,
-      payment_intent_id: paymentIntent.id,
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error creating payment intent:", error)
-    return NextResponse.json({ error: "Failed to create payment intent" }, { status: 500 })
+    console.error("Error processing payment:", error)
+    return NextResponse.json({ error: "Failed to process payment" }, { status: 500 })
   }
 }

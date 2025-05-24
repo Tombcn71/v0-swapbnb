@@ -32,11 +32,12 @@ export function LandingPage() {
       {/* Full-width Hero Image */}
       <div className="w-full h-screen relative overflow-hidden">
         <Image
-          src="/happy-family-hero.png"
+          src="/happy-family-hero.jpg"
           alt="Gelukkig gezin dat samen lacht"
-          fill
+          layout="fill"
+          objectFit="cover"
+          objectPosition="center 30%"
           priority
-          style={{ objectFit: "cover", objectPosition: "center 30%" }}
           className="w-full h-full"
         />
 
