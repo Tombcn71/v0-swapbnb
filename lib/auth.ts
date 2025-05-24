@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs"
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
@@ -17,26 +17,32 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          // Zoek de gebruiker op basis van e-mail
           const users = await executeQuery("SELECT * FROM users WHERE email = $1", [credentials.email])
 
           if (users.length === 0) {
+            console.log("Gebruiker niet gevonden:", credentials.email)
             return null
           }
 
           const user = users[0]
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
-          if (!isPasswordValid) {
+          // Controleer of het wachtwoord overeenkomt
+          const passwordMatch = await bcrypt.compare(credentials.password, user.password_hash)
+          if (!passwordMatch) {
+            console.log("Wachtwoord komt niet overeen voor:", credentials.email)
             return null
           }
 
+          // Geef de gebruikersgegevens terug
           return {
             id: user.id,
-            email: user.email,
             name: user.name,
+            email: user.email,
+            image: user.image || null,
           }
         } catch (error) {
-          console.error("Auth error:", error)
+          console.error("Fout bij autorisatie:", error)
           return null
         }
       },
@@ -44,23 +50,32 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 dagen
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        token.name = user.name
+        token.email = user.email
+        token.picture = user.image
       }
       return token
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string
+        session.user.name = token.name as string
+        session.user.email = token.email as string
+        session.user.image = token.picture as string | null
       }
       return session
     },
   },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 }
