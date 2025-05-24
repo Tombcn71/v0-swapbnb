@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRightIcon } from "lucide-react"
+import { MapPinIcon, EuroIcon, UmbrellaIcon, BikeIcon, ArrowRightIcon } from "lucide-react"
 
 export default function Home() {
   return (
@@ -40,6 +40,8 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      
 
       {/* Hoe werkt het Section */}
       <section className="py-16 px-4 bg-gray-50">
@@ -86,30 +88,30 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Prijsvergelijking Section */}
+      {/* Prijsvergelijking Section - NIEUW */}
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="flex flex-col space-y-6">
               <h2 className="text-4xl font-bold text-gray-900">Swap & verblijf voor een fractie van de kosten</h2>
 
-              <p className="text-lg text-gray-600">7 nachten vergelijking</p>
+              <p className="text-lg text-gray-600">2 nachten vergelijking</p>
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="border p-6 rounded-lg">
                   <p className="text-lg font-medium mb-2">Swap met SwapBnB</p>
-                  <p className="text-4xl font-bold">€420</p>
+                  <p className="text-4xl font-bold">€20</p>
                 </div>
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <p className="text-lg font-medium mb-2">Hotel of huurwoning</p>
-                  <p className="text-4xl font-bold">€1.900+</p>
+                  <p className="text-4xl font-bold">€220+</p>
                 </div>
               </div>
 
               <p className="text-gray-600 mt-4">
                 Geen lidmaatschapskosten.
                 <br />
-                Betaal alleen voor schoonmaak en een servicekosten per reis.
+                Betaal alleen voor platformkosten per verblijf.
               </p>
 
               <div className="mt-4">
@@ -121,7 +123,7 @@ export default function Home() {
 
             <div className="relative w-full h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-xl">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/smaller-2025-05-22T19_03_43.667Z-z6I4j9ZOQDY4YKeQn3rzuv9rLPvdqP.jpeg"
+                src="https://images.pexels.com/photos/5330982/pexels-photo-5330982.jpeg?auto=compress&cs=tinysrgb&w=1600"
                 alt="Gezellige woonkamer met planten"
                 fill
                 style={{ objectFit: "cover" }}

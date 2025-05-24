@@ -24,10 +24,10 @@ export default async function DashboardPage() {
   // Haal de woning van de gebruiker op
   const userHomes = await executeQuery(
     `SELECT h.*, u.name as owner_name 
-    FROM homes h 
-    JOIN users u ON h.user_id = u.id 
-    WHERE h.user_id = $1 
-    LIMIT 1`,
+     FROM homes h 
+     JOIN users u ON h.user_id = u.id 
+     WHERE h.user_id = $1 
+     LIMIT 1`,
     [session.user.id],
   )
 
