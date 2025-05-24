@@ -8,10 +8,21 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Send, AlertCircle } from "lucide-react"
+import { Send, AlertCircle, Trash2, MoreVertical } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface Message {
   id: string
@@ -34,6 +45,7 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
   const [newMessage, setNewMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
@@ -53,6 +65,25 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
 
       const data = await response.json()
       console.log("Fetched messages:", data)
+
+      // Controleer of er nieuwe berichten zijn
+      const newMessages = data.filter(
+        (newMsg: Message) =>
+          !messages.some((existingMsg) => existingMsg.id === newMsg.id) && newMsg.sender_id === recipientId,
+      )
+
+      if (newMessages.length > 0 && messages.length > 0) {
+        // Toon notificatie voor nieuwe berichten
+        toast({
+          title: "Nieuw bericht",
+          description: `Je hebt ${newMessages.length} nieuwe ${newMessages.length === 1 ? "bericht" : "berichten"} ontvangen van ${recipientName}`,
+        })
+
+        // Speel een geluid af (optioneel)
+        const audio = new Audio("/notification-sound.mp3")
+        audio.play().catch((e) => console.log("Audio play failed:", e))
+      }
+
       setMessages(data)
     } catch (error) {
       console.error("Error fetching messages:", error)
@@ -111,6 +142,36 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/messages?id=${messageId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete message")
+      }
+
+      // Verwijder het bericht uit de lokale state
+      setMessages(messages.filter((msg) => msg.id !== messageId))
+
+      toast({
+        title: "Bericht verwijderd",
+        description: "Het bericht is succesvol verwijderd.",
+      })
+    } catch (error) {
+      console.error("Error deleting message:", error)
+      toast({
+        title: "Fout bij het verwijderen van bericht",
+        description: "Er is een fout opgetreden bij het verwijderen van het bericht. Probeer het later opnieuw.",
+        variant: "destructive",
+      })
+    } finally {
+      setMessageToDelete(null)
     }
   }
 
@@ -176,7 +237,7 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
                       <AvatarFallback>{message.sender_name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   )}
-                  <div>
+                  <div className="relative group">
                     <Card className={`${isCurrentUser ? "bg-teal-500 text-white" : "bg-gray-100"}`}>
                       <CardContent className="p-3">
                         <p>{message.content}</p>
@@ -185,6 +246,25 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
                     <p className={`text-xs text-gray-500 mt-1 ${isCurrentUser ? "text-right" : ""}`}>
                       {formatDistanceToNow(new Date(message.created_at), { addSuffix: true, locale: nl })}
                     </p>
+
+                    {isCurrentUser && (
+                      <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                              <span className="sr-only">Acties</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setMessageToDelete(message.id)}>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              <span>Verwijderen</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -210,6 +290,24 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
           </Button>
         </div>
       </div>
+
+      {/* Bevestigingsdialoog voor het verwijderen van een bericht */}
+      <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bericht verwijderen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je dit bericht wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={() => messageToDelete && handleDeleteMessage(messageToDelete)}>
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

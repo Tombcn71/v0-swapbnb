@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, AlertCircle } from "lucide-react"
+import { Search, AlertCircle, Bell } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -22,6 +22,7 @@ interface Conversation {
 export function ConversationList() {
   const { data: session, status } = useSession()
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [previousConversations, setPreviousConversations] = useState<Conversation[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +46,64 @@ export function ConversationList() {
 
       const data = await response.json()
       console.log("Fetched conversations:", data)
+
+      // Controleer op nieuwe berichten
+      if (previousConversations.length > 0) {
+        let newMessageCount = 0
+        let latestSender = ""
+
+        data.forEach((conv: Conversation) => {
+          const prevConv = previousConversations.find((pc) => pc.other_user_id === conv.other_user_id)
+
+          if (prevConv) {
+            // Als er nieuwe ongelezen berichten zijn
+            const newUnreadCount = conv.unread_count - prevConv.unread_count
+            if (newUnreadCount > 0) {
+              newMessageCount += newUnreadCount
+              latestSender = conv.other_user_name
+            }
+          }
+        })
+
+        // Toon notificatie als er nieuwe berichten zijn
+        if (newMessageCount > 0) {
+          const title =
+            newMessageCount === 1 ? `Nieuw bericht van ${latestSender}` : `${newMessageCount} nieuwe berichten`
+
+          const description =
+            newMessageCount === 1
+              ? `Je hebt een nieuw bericht ontvangen van ${latestSender}`
+              : `Je hebt ${newMessageCount} nieuwe berichten ontvangen`
+
+          toast({
+            title,
+            description,
+            icon: <Bell className="h-4 w-4" />,
+          })
+
+          // Speel een geluid af (optioneel)
+          const audio = new Audio("/notification-sound.mp3")
+          audio.play().catch((e) => console.log("Audio play failed:", e))
+
+          // Update de document titel om de aandacht te trekken
+          if (document.hidden) {
+            const originalTitle = document.title
+            document.title = `(${newMessageCount}) Nieuwe berichten - SwapBnB`
+
+            // Reset de titel wanneer de gebruiker terugkeert naar het tabblad
+            const handleVisibilityChange = () => {
+              if (!document.hidden) {
+                document.title = originalTitle
+                document.removeEventListener("visibilitychange", handleVisibilityChange)
+              }
+            }
+
+            document.addEventListener("visibilitychange", handleVisibilityChange)
+          }
+        }
+      }
+
+      setPreviousConversations(data)
       setConversations(data)
     } catch (error) {
       console.error("Error fetching conversations:", error)
@@ -129,7 +188,7 @@ export function ConversationList() {
               <li key={conversation.other_user_id}>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start p-3 h-auto"
+                  className={`w-full justify-start p-3 h-auto ${conversation.unread_count > 0 ? "bg-teal-50" : ""}`}
                   onClick={() => handleSelectConversation(conversation.other_user_id)}
                 >
                   <div className="flex items-start gap-3 w-full">
@@ -141,7 +200,9 @@ export function ConversationList() {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline">
-                        <h3 className="font-medium truncate">{conversation.other_user_name}</h3>
+                        <h3 className={`font-medium truncate ${conversation.unread_count > 0 ? "font-bold" : ""}`}>
+                          {conversation.other_user_name}
+                        </h3>
                         <span className="text-xs text-gray-500">
                           {formatDistanceToNow(new Date(conversation.last_message_time), {
                             addSuffix: true,
@@ -149,7 +210,11 @@ export function ConversationList() {
                           })}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 truncate">{conversation.last_message_content}</p>
+                      <p
+                        className={`text-sm truncate ${conversation.unread_count > 0 ? "text-black font-medium" : "text-gray-600"}`}
+                      >
+                        {conversation.last_message_content}
+                      </p>
                     </div>
                     {conversation.unread_count > 0 && (
                       <div className="bg-teal-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
