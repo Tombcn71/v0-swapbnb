@@ -165,15 +165,32 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
               <CardTitle>Geïnteresseerd in deze woning?</CardTitle>
             </CardHeader>
             <CardContent>
-              {showContactForm ? (
-                <HomeContact homeId={home.id} ownerId={home.user_id} onSuccess={() => setShowContactForm(false)} />
+              {!isOwner && userId ? (
+                <div className="space-y-4">
+                  <div className="text-center py-4">
+                    <p className="mb-4">Geïnteresseerd in een huizenruil?</p>
+                    <Button asChild className="w-full mb-2">
+                      <Link href={`/homes/${home.id}/swap-request`}>Swap aanvragen</Link>
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowContactForm(true)} className="w-full">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Contact opnemen
+                    </Button>
+                  </div>
+                  {showContactForm && (
+                    <HomeContact homeId={home.id} ownerId={home.user_id} onSuccess={() => setShowContactForm(false)} />
+                  )}
+                </div>
+              ) : !userId ? (
+                <div className="text-center py-4">
+                  <p className="mb-4">Log in om een swap aan te vragen</p>
+                  <Button asChild className="w-full">
+                    <Link href="/login">Inloggen</Link>
+                  </Button>
+                </div>
               ) : (
                 <div className="text-center py-4">
-                  <p className="mb-4">Neem contact op met de eigenaar om een uitwisseling te bespreken.</p>
-                  <Button onClick={() => setShowContactForm(true)} className="w-full">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Contact opnemen
-                  </Button>
+                  <p>Dit is jouw eigen woning</p>
                 </div>
               )}
             </CardContent>
