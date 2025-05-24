@@ -90,7 +90,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { status } = await request.json()
 
     // Valideer input
-    if (!status || !["pending", "accepted", "rejected", "completed", "cancelled"].includes(status)) {
+    if (!status || !["pending", "accepted", "rejected", "completed", "cancelled", "confirmed"].includes(status)) {
       return NextResponse.json({ error: "Valid status is required" }, { status: 400 })
     }
 

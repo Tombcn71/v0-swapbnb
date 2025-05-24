@@ -128,6 +128,39 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     }
   }
 
+  const handleConfirm = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "confirmed" }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to confirm exchange")
+      }
+
+      toast({
+        title: "Swap bevestigd",
+        description: "De swap is bevestigd en kan nu plaatsvinden.",
+      })
+
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Er is iets misgegaan",
+        description: error.message || "Kon de swap niet bevestigen. Probeer het later opnieuw.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-3">
       {exchange.status === "pending" && (
@@ -260,6 +293,19 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
           )}
         </>
       )}
+
+      {exchange.status === "accepted" &&
+        exchange.requester_payment_status === "paid" &&
+        exchange.host_payment_status === "paid" && (
+          <Button
+            onClick={handleConfirm}
+            className="w-full justify-start bg-google-blue hover:bg-blue-600"
+            disabled={isLoading}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Bevestig Swap
+          </Button>
+        )}
 
       {exchange.status === "completed" && (
         <Button variant="outline" className="w-full justify-start">

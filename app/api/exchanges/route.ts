@@ -3,11 +3,67 @@ import { executeQuery } from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 
-// Functie om te controleren of een string een geldige UUID is
-const isValidUUID = (id: string) => {
-  if (!id) return false
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-  return uuidRegex.test(id)
+// GET /api/exchanges - Haal uitwisselingen op
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const url = new URL(request.url)
+    const type = url.searchParams.get("type") // 'sent' of 'received'
+
+    let query = `
+      SELECT e.*, 
+             h.title as home_title, 
+             h.city as home_city, 
+             h.images as home_images,
+             owner.id as owner_id,
+             owner.name as owner_name, 
+             owner.profile_image as owner_profile_image,
+             guest.name as guest_name, 
+             guest.profile_image as guest_profile_image
+      FROM exchanges e
+      JOIN homes h ON e.home_id = h.id
+      JOIN users owner ON h.user_id = owner.id
+      JOIN users guest ON e.guest_id = guest.id
+    `
+
+    const params: any[] = []
+    const paramIndex = 1
+
+    if (type === "sent") {
+      // Uitwisselingen die de gebruiker heeft verzonden
+      query += ` WHERE e.guest_id = $${paramIndex}`
+      params.push(session.user.id)
+    } else if (type === "received") {
+      // Uitwisselingen die de gebruiker heeft ontvangen (als eigenaar van een woning)
+      query += ` WHERE h.user_id = $${paramIndex}`
+      params.push(session.user.id)
+    } else {
+      // Alle uitwisselingen waar de gebruiker bij betrokken is
+      query += ` WHERE e.guest_id = $${paramIndex} OR h.user_id = $${paramIndex}`
+      params.push(session.user.id, session.user.id)
+    }
+
+    query += " ORDER BY e.created_at DESC"
+
+    const exchanges = await executeQuery(query, params)
+
+    // Voeg een veld toe om aan te geven of de huidige gebruiker de eigenaar is
+    const exchangesWithOwnerFlag = exchanges.map((exchange: any) => ({
+      ...exchange,
+      isOwner: exchange.owner_id === session.user.id,
+      home_image: exchange.home_images && exchange.home_images.length > 0 ? exchange.home_images[0] : null,
+    }))
+
+    return NextResponse.json(exchangesWithOwnerFlag)
+  } catch (error) {
+    console.error("Error fetching exchanges:", error)
+    return NextResponse.json({ error: "Failed to fetch exchanges" }, { status: 500 })
+  }
 }
 
 // POST /api/exchanges - Maak een nieuwe uitwisseling aan
@@ -19,110 +75,81 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { hostHomeId, requesterHomeId, startDate, endDate, message } = await request.json()
+    const { homeId, ownerId, startDate, endDate, guests, message } = await request.json()
 
-    // Valideer de vereiste velden
-    if (!hostHomeId || !requesterHomeId || !startDate || !endDate) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    // Valideer input
+    if (!homeId || !ownerId || !startDate || !endDate || !guests || !message) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 })
     }
 
-    // Controleer of de IDs geldige UUIDs zijn
-    if (!isValidUUID(hostHomeId) || !isValidUUID(requesterHomeId)) {
-      return NextResponse.json({ error: "Invalid ID format" }, { status: 400 })
+    // Controleer of de woning bestaat
+    const homes = await executeQuery("SELECT * FROM homes WHERE id = $1", [homeId])
+
+    if (homes.length === 0) {
+      return NextResponse.json({ error: "Home not found" }, { status: 404 })
     }
 
-    // Controleer of de gebruiker de eigenaar is van de requesterHome
-    const requesterHomes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [requesterHomeId])
+    // Controleer of de eigenaar bestaat
+    const owners = await executeQuery("SELECT * FROM users WHERE id = $1", [ownerId])
 
-    if (requesterHomes.length === 0) {
-      return NextResponse.json({ error: "Requester home not found" }, { status: 404 })
+    if (owners.length === 0) {
+      return NextResponse.json({ error: "Owner not found" }, { status: 404 })
     }
 
-    if (requesterHomes[0].user_id !== session.user.id) {
-      return NextResponse.json({ error: "You are not the owner of this home" }, { status: 403 })
-    }
-
-    // Controleer of de hostHome bestaat
-    const hostHomes = await executeQuery("SELECT user_id FROM homes WHERE id = $1", [hostHomeId])
-
-    if (hostHomes.length === 0) {
-      return NextResponse.json({ error: "Host home not found" }, { status: 404 })
-    }
-
-    // Controleer of er een chatgeschiedenis is
-    const chatHistory = await executeQuery(
-      `SELECT COUNT(*) as count
-       FROM messages
-       WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)`,
-      [session.user.id, hostHomes[0].user_id],
-    )
-
-    if (chatHistory[0].count === 0) {
-      return NextResponse.json({ error: "You must chat with the host before creating a swap request" }, { status: 403 })
+    // Controleer of de gebruiker niet zijn eigen woning probeert te boeken
+    if (session.user.id === ownerId) {
+      return NextResponse.json({ error: "You cannot book your own home" }, { status: 400 })
     }
 
     // Maak de uitwisseling aan
     const result = await executeQuery(
       `INSERT INTO exchanges 
-       (requester_home_id, host_home_id, start_date, end_date, status, message, requester_paid, host_paid) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-       RETURNING id`,
-      [requesterHomeId, hostHomeId, startDate, endDate, "pending", message || null, false, false],
+       (home_id, guest_id, start_date, end_date, guests, message, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       RETURNING *`,
+      [homeId, session.user.id, startDate, endDate, guests, message, "pending"],
     )
 
-    return NextResponse.json({ id: result[0].id, status: "pending" })
+    // Stuur een bericht naar de eigenaar
+    await executeQuery(
+      `INSERT INTO messages 
+       (sender_id, receiver_id, content, read) 
+       VALUES ($1, $2, $3, false)`,
+      [
+        session.user.id,
+        ownerId,
+        `Ik heb een aanvraag gedaan voor je woning van ${new Date(startDate).toLocaleDateString()} tot ${new Date(endDate).toLocaleDateString()} voor ${guests} gasten.`,
+      ],
+    )
+
+    // Haal de volledige uitwisselingsgegevens op
+    const exchanges = await executeQuery(
+      `SELECT e.*, 
+              h.title as home_title, 
+              h.city as home_city,
+              h.images as home_images,
+              owner.id as owner_id,
+              owner.name as owner_name, 
+              owner.profile_image as owner_profile_image,
+              guest.name as guest_name, 
+              guest.profile_image as guest_profile_image
+       FROM exchanges e
+       JOIN homes h ON e.home_id = h.id
+       JOIN users owner ON h.user_id = owner.id
+       JOIN users guest ON e.guest_id = guest.id
+       WHERE e.id = $1`,
+      [result[0].id],
+    )
+
+    const exchange = {
+      ...exchanges[0],
+      isOwner: exchanges[0].owner_id === session.user.id,
+      home_image: exchanges[0].home_images && exchanges[0].home_images.length > 0 ? exchanges[0].home_images[0] : null,
+    }
+
+    return NextResponse.json(exchange, { status: 201 })
   } catch (error) {
     console.error("Error creating exchange:", error)
     return NextResponse.json({ error: "Failed to create exchange" }, { status: 500 })
-  }
-}
-
-// GET /api/exchanges - Haal uitwisselingen op
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const url = new URL(request.url)
-    const status = url.searchParams.get("status")
-    const role = url.searchParams.get("role") // 'requester' of 'host'
-
-    let query = `
-      SELECT e.*, 
-             rh.title as requester_home_title, rh.city as requester_home_city, rh.image_url as requester_home_image,
-             hh.title as host_home_title, hh.city as host_home_city, hh.image_url as host_home_image,
-             ru.name as requester_name, hu.name as host_name
-      FROM exchanges e
-      JOIN homes rh ON e.requester_home_id = rh.id
-      JOIN homes hh ON e.host_home_id = hh.id
-      JOIN users ru ON rh.user_id = ru.id
-      JOIN users hu ON hh.user_id = hu.id
-      WHERE (rh.user_id = $1 OR hh.user_id = $1)
-    `
-
-    const params = [session.user.id]
-
-    if (status) {
-      query += ` AND e.status = $${params.length + 1}`
-      params.push(status)
-    }
-
-    if (role === "requester") {
-      query += ` AND rh.user_id = $1`
-    } else if (role === "host") {
-      query += ` AND hh.user_id = $1`
-    }
-
-    query += ` ORDER BY e.created_at DESC`
-
-    const exchanges = await executeQuery(query, params)
-
-    return NextResponse.json(exchanges)
-  } catch (error) {
-    console.error("Error fetching exchanges:", error)
-    return NextResponse.json({ error: "Failed to fetch exchanges" }, { status: 500 })
   }
 }
