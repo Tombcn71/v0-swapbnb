@@ -16,36 +16,37 @@ export async function GET(request: NextRequest) {
     const type = url.searchParams.get("type") // 'sent' of 'received'
 
     let query = `
-      SELECT e.*, 
-             h.title as home_title, 
-             h.city as home_city, 
-             h.images as home_images,
-             owner.id as owner_id,
-             owner.name as owner_name, 
-             owner.profile_image as owner_profile_image,
-             guest.name as guest_name, 
-             guest.profile_image as guest_profile_image
-      FROM exchanges e
-      JOIN homes h ON e.home_id = h.id
-      JOIN users owner ON h.user_id = owner.id
-      JOIN users guest ON e.guest_id = guest.id
-    `
+  SELECT e.*, 
+         rh.title as home_title, 
+         rh.city as home_city, 
+         rh.images as home_images,
+         hh.title as host_home_title,
+         hh.city as host_home_city,
+         ru.id as requester_id,
+         ru.name as requester_name, 
+         ru.profile_image as requester_profile_image,
+         hu.id as host_id,
+         hu.name as host_name, 
+         hu.profile_image as host_profile_image
+  FROM exchanges e
+  JOIN homes rh ON e.requester_home_id = rh.id
+  JOIN homes hh ON e.host_home_id = hh.id
+  JOIN users ru ON e.requester_id = ru.id
+  JOIN users hu ON e.host_id = hu.id
+`
 
     const params: any[] = []
     const paramIndex = 1
 
     if (type === "sent") {
-      // Uitwisselingen die de gebruiker heeft verzonden
-      query += ` WHERE e.guest_id = $${paramIndex}`
+      query += ` WHERE e.requester_id = $1`
       params.push(session.user.id)
     } else if (type === "received") {
-      // Uitwisselingen die de gebruiker heeft ontvangen (als eigenaar van een woning)
-      query += ` WHERE h.user_id = $${paramIndex}`
+      query += ` WHERE e.host_id = $1`
       params.push(session.user.id)
     } else {
-      // Alle uitwisselingen waar de gebruiker bij betrokken is
-      query += ` WHERE e.guest_id = $${paramIndex} OR h.user_id = $${paramIndex}`
-      params.push(session.user.id, session.user.id)
+      query += ` WHERE e.requester_id = $1 OR e.host_id = $1`
+      params.push(session.user.id)
     }
 
     query += " ORDER BY e.created_at DESC"
