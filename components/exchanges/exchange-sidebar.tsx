@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, Users, Home } from "lucide-react"
+import { MapPin, Calendar, Users, Home, Bed } from "lucide-react"
 import Image from "next/image"
 import type { Exchange } from "@/lib/types"
 
@@ -115,6 +115,20 @@ export function ExchangeSidebar({ exchange, isRequester }: ExchangeSidebarProps)
           </div>
 
           <div>
+            <div className="flex items-center text-gray-600 text-sm mb-1">
+              <Bed className="h-4 w-4 mr-1" />
+              Nachten
+            </div>
+            <p className="font-semibold">
+              {Math.ceil(
+                (new Date(exchange.end_date).getTime() - new Date(exchange.start_date).getTime()) /
+                  (1000 * 60 * 60 * 24),
+              )}{" "}
+              nachten
+            </p>
+          </div>
+
+          <div>
             <div className="text-gray-600 text-sm mb-1">Status</div>
             <Badge className={getStatusColor()}>
               {exchange.status === "pending" && "⏳ Wacht op antwoord"}
@@ -123,24 +137,6 @@ export function ExchangeSidebar({ exchange, isRequester }: ExchangeSidebarProps)
               {exchange.status === "videocall_completed" && "✓ Videocall voltooid"}
               {exchange.status === "completed" && "🎉 Voltooid"}
             </Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Exchange Type */}
-      <Card className="m-4">
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <div className="text-sm text-gray-600 mb-1">Exchange Type</div>
-            <Badge variant="outline" className="text-lg px-3 py-1">
-              Wederzijds
-            </Badge>
-          </div>
-
-          <div className="mt-4 pt-4 border-t">
-            <div className="text-sm text-gray-600 mb-1">Swap Fee</div>
-            <div className="text-2xl font-bold text-orange-600">€20</div>
-            <div className="text-xs text-gray-500">per persoon</div>
           </div>
         </CardContent>
       </Card>
