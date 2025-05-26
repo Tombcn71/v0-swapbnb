@@ -1,196 +1,302 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
-import Link from "next/link"
+import Image from "next/image"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { Users, MapPin, Wifi, Car, Utensils, Tv, Coffee } from "lucide-react"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { HomeGallery } from "./home-gallery"
-import { HomeAmenities } from "./home-amenities"
-import { HomeAvailability } from "./home-availability"
-import { HomeReviews } from "./home-reviews"
-import { HomeMap } from "./home-map"
-import { FavoriteButton } from "./favorite-button"
-import { HomeContact } from "./home-contact"
-import { MapPin, Users, Bed, Bath, Car, Wifi, Tv, Coffee, Waves, TreePine, Star, ArrowLeft } from "lucide-react"
-import type { Home, User, Review, Availability } from "@/lib/types"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
 
 interface HomeDetailClientProps {
-  home: Home & { owner_name: string; owner_email: string; owner_image: string | null }
-  owner: User
-  reviews: Review[]
-  availabilities: Availability[]
+  home: any
+  userId?: string
+  isOwner: boolean
 }
 
-export function HomeDetailClient({ home, owner, reviews, availabilities }: HomeDetailClientProps) {
+export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProps) {
   const { data: session } = useSession()
-  const [activeTab, setActiveTab] = useState("overview")
+  const router = useRouter()
+  const { toast } = useToast()
 
-  const isOwner = session?.user?.id === home.user_id
+  const [checkIn, setCheckIn] = useState<Date>()
+  const [checkOut, setCheckOut] = useState<Date>()
+  const [guests, setGuests] = useState(1)
+  const [message, setMessage] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const averageRating =
-    reviews.length > 0 ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length : 0
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!session) {
+      toast({
+        title: "Je moet ingelogd zijn",
+        description: "Log in om contact op te nemen met de eigenaar.",
+        variant: "destructive",
+      })
+      router.push("/login")
+      return
+    }
+
+    if (!checkIn || !checkOut) {
+      toast({
+        title: "Selecteer datums",
+        description: "Kies je aankomst- en vertrekdatum.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!message.trim()) {
+      toast({
+        title: "Voeg een bericht toe",
+        description: "Schrijf een kort bericht aan de eigenaar.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipientId: home.user_id,
+          homeId: home.id,
+          content: `Hallo! Ik ben geïnteresseerd in je woning "${home.title}".
+
+Aankomst: ${format(checkIn, "d MMMM yyyy", { locale: nl })}
+Vertrek: ${format(checkOut, "d MMMM yyyy", { locale: nl })}
+Aantal gasten: ${guests}
+
+${message}
+
+Groeten,
+${session.user?.name}`,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to send message")
+      }
+
+      toast({
+        title: "Bericht verzonden!",
+        description: "Je bericht is succesvol verzonden naar de eigenaar.",
+      })
+
+      // Reset form
+      setCheckIn(undefined)
+      setCheckOut(undefined)
+      setGuests(1)
+      setMessage("")
+    } catch (error) {
+      console.error("Error sending message:", error)
+      toast({
+        title: "Fout",
+        description: "Er is een fout opgetreden. Probeer het opnieuw.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const amenityIcons = {
     wifi: Wifi,
-    tv: Tv,
-    kitchen: Coffee,
     parking: Car,
-    pool: Waves,
-    garden: TreePine,
+    kitchen: Utensils,
+    tv: Tv,
+    coffee: Coffee,
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back button */}
-        <Button variant="ghost" asChild className="mb-4">
-          <Link href="/listings">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Terug naar overzicht
-          </Link>
-        </Button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Header */}
-            <div>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{home.title}</h1>
-                  <div className="flex items-center text-gray-600 mb-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    <span>
-                      {home.city}, {home.country}
-                    </span>
-                  </div>
-                  {reviews.length > 0 && (
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                      <span className="font-medium">{averageRating.toFixed(1)}</span>
-                      <span className="text-gray-600 ml-1">({reviews.length} reviews)</span>
-                    </div>
-                  )}
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-2">
+          {/* Images */}
+          <div className="mb-8">
+            {home.images && home.images.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <Image
+                    src={home.images[0] || "/placeholder.svg"}
+                    alt={home.title}
+                    width={800}
+                    height={400}
+                    className="w-full h-64 md:h-96 object-cover rounded-lg"
+                  />
                 </div>
-                <FavoriteButton homeId={home.id} />
-              </div>
-
-              {/* Quick info */}
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <Users className="h-4 w-4 mr-1" />
-                  <span>{home.max_guests} gasten</span>
-                </div>
-                <div className="flex items-center">
-                  <Bed className="h-4 w-4 mr-1" />
-                  <span>{home.bedrooms} slaapkamers</span>
-                </div>
-                <div className="flex items-center">
-                  <Bath className="h-4 w-4 mr-1" />
-                  <span>{home.bathrooms} badkamers</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Gallery */}
-            <HomeGallery images={home.images || []} title={home.title} />
-
-            {/* Navigation tabs */}
-            <div className="border-b border-gray-200">
-              <nav className="-mb-px flex space-x-8">
-                {[
-                  { id: "overview", label: "Overzicht" },
-                  { id: "amenities", label: "Voorzieningen" },
-                  { id: "availability", label: "Beschikbaarheid" },
-                  { id: "reviews", label: "Reviews" },
-                  { id: "location", label: "Locatie" },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === tab.id
-                        ? "border-blue-500 text-blue-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
+                {home.images.slice(1, 5).map((image: string, index: number) => (
+                  <Image
+                    key={index}
+                    src={image || "/placeholder.svg"}
+                    alt={`${home.title} ${index + 2}`}
+                    width={400}
+                    height={200}
+                    className="w-full h-32 md:h-48 object-cover rounded-lg"
+                  />
                 ))}
-              </nav>
-            </div>
-
-            {/* Tab content */}
-            <div className="mt-6">
-              {activeTab === "overview" && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Beschrijving</h3>
-                    <p className="text-gray-700 leading-relaxed">{home.description}</p>
-                  </div>
-
-                  {home.house_rules && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Huisregels</h3>
-                      <p className="text-gray-700">{home.house_rules}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "amenities" && <HomeAmenities amenities={home.amenities || []} />}
-
-              {activeTab === "availability" && <HomeAvailability availabilities={availabilities} />}
-
-              {activeTab === "reviews" && <HomeReviews reviews={reviews} />}
-
-              {activeTab === "location" && <HomeMap address={`${home.address}, ${home.city}, ${home.country}`} />}
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Owner info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Eigenaar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <AvatarImage src={owner.image || undefined} />
-                    <AvatarFallback>{owner.name?.charAt(0) || "U"}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{owner.name}</p>
-                    <p className="text-sm text-gray-600">Eigenaar sinds 2023</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Contact form - only show if not owner */}
-            {!isOwner && <HomeContact homeId={home.id} ownerId={home.user_id} />}
-
-            {/* Owner actions */}
-            {isOwner && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Beheer je woning</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button asChild className="w-full">
-                    <Link href={`/homes/${home.id}/edit`}>Bewerk woning</Link>
-                  </Button>
-                  <Button variant="outline" asChild className="w-full">
-                    <Link href={`/homes/${home.id}/availability`}>Beheer beschikbaarheid</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              </div>
+            ) : (
+              <div className="w-full h-64 md:h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+                <p className="text-gray-500">Geen afbeeldingen beschikbaar</p>
+              </div>
             )}
           </div>
+
+          {/* Home Info */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold mb-4">{home.title}</h1>
+            <div className="flex items-center text-gray-600 mb-4">
+              <MapPin className="h-5 w-5 mr-2" />
+              <span>
+                {home.address}, {home.city}
+              </span>
+            </div>
+            <p className="text-gray-700 mb-6">{home.description}</p>
+
+            {/* Amenities */}
+            {home.amenities && Object.keys(home.amenities).length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-xl font-semibold mb-4">Voorzieningen</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Object.entries(home.amenities).map(([key, value]) => {
+                    if (!value) return null
+                    const IconComponent = amenityIcons[key as keyof typeof amenityIcons]
+                    return (
+                      <div key={key} className="flex items-center">
+                        {IconComponent && <IconComponent className="h-5 w-5 mr-2" />}
+                        <span className="capitalize">{key}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Owner Info */}
+          <div className="border-t pt-6">
+            <div className="flex items-center">
+              {home.owner_profile_image ? (
+                <Image
+                  src={home.owner_profile_image || "/placeholder.svg"}
+                  alt={home.owner_name}
+                  width={60}
+                  height={60}
+                  className="w-15 h-15 rounded-full mr-4"
+                />
+              ) : (
+                <div className="w-15 h-15 bg-gray-300 rounded-full mr-4 flex items-center justify-center">
+                  <span className="text-gray-600 text-lg font-semibold">
+                    {home.owner_name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div>
+                <h3 className="font-semibold">Eigenaar: {home.owner_name}</h3>
+                <p className="text-gray-600">Lid sinds {new Date(home.created_at).getFullYear()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Form - ALTIJD TONEN BEHALVE VOOR EIGENAAR */}
+        <div className="lg:col-span-1">
+          {!isOwner && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Geïnteresseerd in deze woning?</CardTitle>
+                <p className="text-sm text-muted-foreground">Geïnteresseerd in een huizenruil?</p>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Datum selectie */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="checkin">Aankomst</Label>
+                      <Input
+                        id="checkin"
+                        type="date"
+                        value={checkIn ? format(checkIn, "yyyy-MM-dd") : ""}
+                        onChange={(e) => setCheckIn(e.target.value ? new Date(e.target.value) : undefined)}
+                        min={format(new Date(), "yyyy-MM-dd")}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="checkout">Vertrek</Label>
+                      <Input
+                        id="checkout"
+                        type="date"
+                        value={checkOut ? format(checkOut, "yyyy-MM-dd") : ""}
+                        onChange={(e) => setCheckOut(e.target.value ? new Date(e.target.value) : undefined)}
+                        min={
+                          checkIn
+                            ? format(new Date(checkIn.getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd")
+                            : format(new Date(), "yyyy-MM-dd")
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Aantal gasten */}
+                  <div className="space-y-2">
+                    <Label htmlFor="guests">Aantal gasten</Label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="guests"
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={guests}
+                        onChange={(e) => setGuests(Number.parseInt(e.target.value) || 1)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Bericht */}
+                  <div className="space-y-2">
+                    <Label htmlFor="message">Bericht</Label>
+                    <Textarea
+                      id="message"
+                      placeholder="Vertel iets over jezelf en waarom je geïnteresseerd bent in deze woning..."
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+
+                  {/* Swap aanvragen knop */}
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+                    {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
+                  </Button>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    Je gegevens worden alleen gedeeld met de eigenaar van deze woning.
+                  </p>
+                </form>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

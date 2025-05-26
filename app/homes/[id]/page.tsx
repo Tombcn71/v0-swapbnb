@@ -1,71 +1,50 @@
+import { getServerSession } from "next-auth/next"
 import { notFound } from "next/navigation"
-import { executeQuery } from "@/lib/db"
 import { HomeDetailClient } from "@/components/homes/home-detail-client"
-import type { Home, Review, Availability } from "@/lib/types"
+import { authOptions } from "@/lib/auth"
+import { executeQuery } from "@/lib/db"
 
-interface HomePageProps {
-  params: {
-    id: string
-  }
-}
-
-export default async function HomePage({ params }: HomePageProps) {
-  const homeId = Number.parseInt(params.id)
-
-  if (isNaN(homeId)) {
-    notFound()
-  }
+export default async function HomePage({ params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  const userId = session?.user?.id
 
   try {
-    // Haal de woning op met eigenaar informatie
+    // Log voor debugging
+    console.log("HomePage - Fetching home with ID:", params.id)
+
     const homes = await executeQuery(
-      `SELECT h.*, u.name as owner_name, u.email as owner_email, u.image as owner_image
-       FROM homes h 
-       JOIN users u ON h.user_id = u.id 
-       WHERE h.id = $1`,
-      [homeId],
+      `SELECT h.*, u.name as owner_name, u.profile_image as owner_profile_image
+      FROM homes h
+      JOIN users u ON h.user_id = u.id
+      WHERE h.id = $1`,
+      [params.id],
     )
 
-    if (homes.length === 0) {
-      notFound()
+    // Log voor debugging
+    console.log("HomePage - Query result:", homes)
+
+    if (!homes || homes.length === 0) {
+      return notFound()
     }
 
-    const home = homes[0] as Home & { owner_name: string; owner_email: string; owner_image: string | null }
+    const home = homes[0]
 
-    // Haal reviews op
-    const reviews = await executeQuery(
-      `SELECT r.*, u.name as reviewer_name, u.image as reviewer_image
-       FROM reviews r
-       JOIN users u ON r.user_id = u.id
-       WHERE r.home_id = $1
-       ORDER BY r.created_at DESC`,
-      [homeId],
-    )
+    // Log voor debugging
+    console.log("HomePage - owner_profile_image:", home.owner_profile_image)
 
-    // Haal beschikbaarheid op
-    const availabilities = await executeQuery(
-      `SELECT * FROM availabilities 
-       WHERE home_id = $1 
-       AND end_date >= CURRENT_DATE
-       ORDER BY start_date ASC`,
-      [homeId],
-    )
+    // Process the home data to ensure it has the expected format
+    const processedHome = {
+      ...home,
+      images: typeof home.images === "string" ? JSON.parse(home.images) : home.images || [],
+      amenities: typeof home.amenities === "string" ? JSON.parse(home.amenities) : home.amenities || {},
+    }
 
-    return (
-      <HomeDetailClient
-        home={home}
-        owner={{
-          id: home.user_id,
-          name: home.owner_name,
-          email: home.owner_email,
-          image: home.owner_image,
-        }}
-        reviews={reviews as Review[]}
-        availabilities={availabilities as Availability[]}
-      />
-    )
+    // Check if the current user is the owner
+    const isOwner = userId === home.user_id
+
+    return <HomeDetailClient home={processedHome} userId={userId} isOwner={isOwner} />
   } catch (error) {
     console.error("Error fetching home:", error)
-    notFound()
+    return notFound()
   }
 }
