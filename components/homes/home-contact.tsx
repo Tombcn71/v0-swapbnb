@@ -76,7 +76,6 @@ export function HomeContact({ homeId, ownerId, homeTitle }: HomeContactProps) {
         },
         body: JSON.stringify({
           recipientId: ownerId,
-          homeId: homeId,
           content: `Hallo! Ik ben geïnteresseerd in je woning "${homeTitle}".
 
 Aankomst: ${format(checkIn, "d MMMM yyyy", { locale: nl })}

@@ -1,57 +1,46 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { Textarea } from "@/components/ui/textarea"
-import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
-import Image from "next/image"
-import type { Home, Availability } from "@/lib/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { Users } from "lucide-react"
 
 interface SwapRequestFormProps {
-  home: Home & { owner: { id: string; name: string; email: string } }
-  userHomes: Array<{ id: string; title: string; city: string }>
-  availabilities: Availability[]
+  targetHome: any
+  userHomes: any[]
 }
 
-export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequestFormProps) {
-  const [selectedHomeId, setSelectedHomeId] = useState<string>("")
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>(undefined)
-  const [message, setMessage] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps) {
+  const { data: session } = useSession()
   const router = useRouter()
   const { toast } = useToast()
 
-  // Converteer beschikbaarheden naar datumbereiken
-  const availableDateRanges = availabilities.map((avail) => ({
-    from: new Date(avail.start_date),
-    to: new Date(avail.end_date),
-  }))
+  const [selectedHomeId, setSelectedHomeId] = useState<string>(userHomes.length > 0 ? userHomes[0].id : "")
+  const [startDate, setStartDate] = useState<string>("")
+  const [endDate, setEndDate] = useState<string>("")
+  const [guests, setGuests] = useState<number>(1)
+  const [message, setMessage] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedHomeId) {
-      toast({
-        title: "Selecteer een woning",
-        description: "Je moet een van je woningen selecteren voor de swap",
-        variant: "destructive",
-      })
+    if (!session) {
+      router.push("/login")
       return
     }
 
-    if (!dateRange?.from || !dateRange?.to) {
+    if (!selectedHomeId || !startDate || !endDate || !message.trim()) {
       toast({
-        title: "Selecteer datums",
-        description: "Je moet een datumbereik selecteren voor de swap",
+        title: "Vul alle velden in",
         variant: "destructive",
       })
       return
@@ -62,37 +51,35 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
     try {
       const response = await fetch("/api/exchanges", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          hostHomeId: home.id,
           requesterHomeId: selectedHomeId,
-          startDate: format(dateRange.from, "yyyy-MM-dd"),
-          endDate: format(dateRange.to, "yyyy-MM-dd"),
-          message: message,
+          hostHomeId: targetHome.id,
+          hostId: targetHome.user_id,
+          startDate,
+          endDate,
+          guests,
+          message,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create swap request")
+        throw new Error(errorData.error || "Er is iets misgegaan")
       }
 
-      const data = await response.json()
+      const exchange = await response.json()
 
       toast({
-        title: "Swap-verzoek ingediend",
-        description: "Je swap-verzoek is succesvol ingediend",
+        title: "Swap aanvraag verzonden!",
+        description: `Je aanvraag is verzonden naar ${targetHome.owner_name}`,
       })
 
-      router.push(`/exchanges/${data.id}`)
-    } catch (error) {
-      console.error("Error creating swap request:", error)
+      router.push(`/exchanges/${exchange.id}`)
+    } catch (error: any) {
       toast({
-        title: "Fout bij indienen",
-        description:
-          error instanceof Error ? error.message : "Er is een fout opgetreden bij het indienen van je swap-verzoek",
+        title: "Fout",
+        description: error.message,
         variant: "destructive",
       })
     } finally {
@@ -100,123 +87,101 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
     }
   }
 
+  if (!session) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Swap aanvragen</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => router.push("/login")} className="w-full">
+            Inloggen voor swap
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (userHomes.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Swap aanvragen</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-600 mb-4">Je hebt geen woningen om te ruilen.</p>
+          <Button onClick={() => router.push("/homes/new")} className="w-full">
+            Woning toevoegen
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      <div>
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Geselecteerde woning</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="aspect-video relative rounded-md overflow-hidden">
-                <Image
-                  src={home.image_url || "/placeholder.svg?height=400&width=600&query=house"}
-                  alt={home.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">{home.title}</h3>
-                <p className="text-gray-500">
-                  {home.city}, {home.country}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">Eigenaar:</p>
-                <p>{home.owner?.name || home.host_name}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Beschikbare periodes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {availabilities.length > 0 ? (
-              <ul className="space-y-2">
-                {availabilities.map((avail, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-gray-500" />
-                    <span>
-                      {format(new Date(avail.start_date), "d MMMM yyyy")} -{" "}
-                      {format(new Date(avail.end_date), "d MMMM yyyy")}
-                    </span>
-                  </li>
+    <Card>
+      <CardHeader>
+        <CardTitle>Swap aanvragen</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Je huis</Label>
+            <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {userHomes.map((home) => (
+                  <SelectItem key={home.id} value={home.id}>
+                    {home.title} - {home.city}
+                  </SelectItem>
                 ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500">Geen beschikbare periodes gevonden</p>
-            )}
-          </CardContent>
-        </Card>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Selecteer datums</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DatePickerWithRange
-              dateRange={dateRange}
-              setDateRange={setDateRange}
-              availableDateRanges={availableDateRanges}
-            />
-          </CardContent>
-        </Card>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Aankomst</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+            </div>
+            <div>
+              <Label>Vertrek</Label>
+              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+            </div>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Bericht</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <div>
+            <Label>Gasten</Label>
+            <div className="relative">
+              <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="number"
+                min="1"
+                value={guests}
+                onChange={(e) => setGuests(Number(e.target.value) || 1)}
+                className="pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>Bericht</Label>
             <Textarea
-              id="message"
-              placeholder="Vertel iets over je swap-verzoek..."
+              placeholder={`Hallo ${targetHome.owner_name}...`}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={4}
+              required
             />
-          </CardContent>
-        </Card>
-      </div>
+          </div>
 
-      <div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Swap-verzoek indienen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="home">Selecteer je woning</Label>
-                <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-                  <SelectTrigger id="home">
-                    <SelectValue placeholder="Selecteer een woning" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userHomes.map((userHome) => (
-                      <SelectItem key={userHome.id} value={userHome.id}>
-                        {userHome.title} ({userHome.city})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Verzoek indienen..." : "Swap-verzoek indienen"}
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="flex flex-col items-start text-sm text-gray-500">
-            <p>Door een swap-verzoek in te dienen, ga je akkoord met de voorwaarden.</p>
-            <p>Na acceptatie door beide partijen wordt een servicekosten in rekening gebracht.</p>
-          </CardFooter>
-        </Card>
-      </div>
-    </div>
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

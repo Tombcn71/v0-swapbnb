@@ -124,16 +124,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { recipientId, homeId, content } = await request.json()
+    const { recipientId, homeId, content, exchangeId } = await request.json()
 
     if (!recipientId || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Voeg bericht toe aan database - gebruik receiver_id in plaats van recipient_id
+    // Voeg bericht toe aan database - gebruik alleen exchange_id als het een geldig exchange ID is
+    // Voor gewone berichten (niet gekoppeld aan een exchange) laten we exchange_id NULL
     const result = await sql`
       INSERT INTO messages (sender_id, receiver_id, exchange_id, content)
-      VALUES (${session.user.id}, ${recipientId}, ${homeId || null}, ${content})
+      VALUES (${session.user.id}, ${recipientId}, ${exchangeId || null}, ${content})
       RETURNING id, created_at
     `
 
