@@ -73,7 +73,7 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
         },
         body: JSON.stringify({
           recipientId: ownerId,
-          content: `Ik zou graag verblijven van ${values.dateRange.from.toLocaleDateString()} tot ${values.dateRange.to.toLocaleDateString()} met ${values.guests} gasten. Bericht: ${values.message}`,
+          content: `Hallo! Ik ben geïnteresseerd in je woning en zou graag willen verblijven van ${values.dateRange.from.toLocaleDateString("nl-NL")} tot ${values.dateRange.to.toLocaleDateString("nl-NL")} met ${values.guests} ${values.guests === 1 ? "gast" : "gasten"}.\n\n${values.message}`,
         }),
       })
 
@@ -82,18 +82,25 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
       }
 
       toast({
-        title: "Bericht verzonden",
-        description: "Je bericht is succesvol verzonden naar de eigenaar.",
+        title: "Bericht verzonden!",
+        description:
+          "Je bericht is succesvol verzonden naar de eigenaar. Je kunt de conversatie volgen in je berichten.",
       })
 
       form.reset()
       setDateRange(undefined)
+
+      // Optioneel: redirect naar berichten pagina
+      setTimeout(() => {
+        router.push("/messages")
+      }, 2000)
+
       if (onSuccess) onSuccess()
     } catch (error) {
       console.error("Error sending message:", error)
       toast({
         title: "Fout",
-        description: "Er is een fout opgetreden bij het verzenden van je bericht.",
+        description: "Er is een fout opgetreden bij het verzenden van je bericht. Probeer het opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -166,7 +173,7 @@ export function HomeContact({ homeId, ownerId, onSuccess }: HomeContactProps) {
               Verzenden...
             </>
           ) : (
-            "Verstuur aanvraag"
+            "Verstuur bericht naar eigenaar"
           )}
         </Button>
       </form>

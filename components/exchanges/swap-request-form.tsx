@@ -153,6 +153,34 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Selecteer datums</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DatePickerWithRange
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              availableDateRanges={availableDateRanges}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Bericht</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              id="message"
+              placeholder="Vertel iets over je swap-verzoek..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <div>
@@ -176,26 +204,6 @@ export function SwapRequestForm({ home, userHomes, availabilities }: SwapRequest
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Selecteer datums</Label>
-                <DatePickerWithRange
-                  dateRange={dateRange}
-                  setDateRange={setDateRange}
-                  availableDateRanges={availableDateRanges}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="message">Bericht (optioneel)</Label>
-                <Textarea
-                  id="message"
-                  placeholder="Vertel iets over je swap-verzoek..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={4}
-                />
               </div>
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
