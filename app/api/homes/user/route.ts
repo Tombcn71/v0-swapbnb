@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
+import { executeQuery } from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { executeQuery } from "@/lib/db"
 
 export async function GET() {
   try {
@@ -14,13 +14,7 @@ export async function GET() {
     const userId = session.user.id
 
     // Haal alle huizen van de gebruiker op
-    const homes = await executeQuery(
-      `SELECT id, title, city, images, created_at 
-       FROM homes 
-       WHERE user_id = $1 
-       ORDER BY created_at DESC`,
-      [userId],
-    )
+    const homes = await executeQuery(`SELECT * FROM homes WHERE user_id = $1 ORDER BY created_at DESC`, [userId])
 
     return NextResponse.json(homes)
   } catch (error) {

@@ -1,133 +1,135 @@
 "use client"
 
 import Image from "next/image"
+import { format, differenceInDays } from "date-fns"
+import { nl } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Users, Bed, MapPin } from "lucide-react"
+import { MapPin, Users, Bed } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeSidebarProps {
   exchange: Exchange
   isRequester: boolean
+  isHost: boolean
 }
 
-export function ExchangeSidebar({ exchange, isRequester }: ExchangeSidebarProps) {
-  // Bepaal welk huis we tonen (het andere huis dan dat van de gebruiker)
-  const targetHome = isRequester
+export function ExchangeSidebar({ exchange, isRequester, isHost }: ExchangeSidebarProps) {
+  // Bepaal welk huis we tonen (het andere huis dan dat van de huidige gebruiker)
+  const displayHome = isRequester
     ? {
         title: exchange.host_home_title,
         city: exchange.host_home_city,
         images: exchange.host_home_images,
-        owner: exchange.host_name,
+        address: exchange.host_home_address,
       }
     : {
         title: exchange.requester_home_title,
         city: exchange.requester_home_city,
         images: exchange.requester_home_images,
-        owner: exchange.requester_name,
+        address: exchange.requester_home_address,
       }
 
   // Bereken aantal nachten
-  const startDate = new Date(exchange.start_date)
-  const endDate = new Date(exchange.end_date)
-  const nights = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  const nights = differenceInDays(new Date(exchange.end_date), new Date(exchange.start_date))
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800"
-      case "accepted":
-        return "bg-blue-100 text-blue-800"
-      case "videocall_scheduled":
-        return "bg-purple-100 text-purple-800"
-      case "videocall_completed":
-        return "bg-green-100 text-green-800"
-      case "completed":
-        return "bg-green-100 text-green-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
+  // Parse images als het een string is
+  const images = typeof displayHome.images === "string" ? JSON.parse(displayHome.images) : displayHome.images || []
 
-  // Parse images
-  let images: string[] = []
-  if (typeof targetHome.images === "string") {
-    try {
-      images = JSON.parse(targetHome.images)
-    } catch {
-      images = [targetHome.images]
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { label: "In afwachting", variant: "secondary" as const },
+      accepted: { label: "Geaccepteerd", variant: "default" as const },
+      videocall_scheduled: { label: "Videocall gepland", variant: "default" as const },
+      videocall_completed: { label: "Videocall voltooid", variant: "default" as const },
+      payment_pending: { label: "Betaling vereist", variant: "destructive" as const },
+      completed: { label: "Voltooid", variant: "default" as const },
+      rejected: { label: "Afgewezen", variant: "destructive" as const },
+      cancelled: { label: "Geannuleerd", variant: "destructive" as const },
     }
-  } else if (Array.isArray(targetHome.images)) {
-    images = targetHome.images
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
+    return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
   return (
-    <div className="w-80 border-l bg-gray-50 p-4">
+    <div className="space-y-6">
+      {/* Huis Preview */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">{targetHome.title}</CardTitle>
-            <Badge className={getStatusColor(exchange.status)}>{exchange.status}</Badge>
-          </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <MapPin className="w-4 h-4 mr-1" />
-            {targetHome.city}
-          </div>
+        <CardHeader>
+          <CardTitle className="text-lg">{isRequester ? "Host's Huis" : "Requester's Huis"}</CardTitle>
         </CardHeader>
-
         <CardContent className="space-y-4">
-          {/* Huis Foto */}
-          <div className="aspect-video relative rounded-lg overflow-hidden">
+          {/* Huis afbeelding */}
+          <div className="relative h-48 rounded-lg overflow-hidden">
             <Image
               src={images[0] || "/placeholder.svg?height=200&width=300&query=house"}
-              alt={targetHome.title}
+              alt={displayHome.title || "Huis"}
               fill
               className="object-cover"
             />
           </div>
 
-          {/* Swap Details */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center text-sm">
-                <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                <span>Aankomst</span>
-              </div>
-              <span className="text-sm font-medium">{new Date(exchange.start_date).toLocaleDateString()}</span>
+          {/* Huis details */}
+          <div>
+            <h3 className="font-semibold text-lg mb-2">{displayHome.title}</h3>
+            <div className="flex items-center text-gray-600 mb-2">
+              <MapPin className="h-4 w-4 mr-1" />
+              <span className="text-sm">{displayHome.city}</span>
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center text-sm">
-                <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                <span>Vertrek</span>
-              </div>
-              <span className="text-sm font-medium">{new Date(exchange.end_date).toLocaleDateString()}</span>
+      {/* Swap Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Swap Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Status */}
+          <div>
+            <span className="text-sm font-medium text-gray-600">Status</span>
+            <div className="mt-1">{getStatusBadge(exchange.status)}</div>
+          </div>
+
+          {/* Datums */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm font-medium text-gray-600">Aankomst</span>
+              <p className="text-sm mt-1">{format(new Date(exchange.start_date), "d MMM yyyy", { locale: nl })}</p>
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center text-sm">
-                <Users className="w-4 h-4 mr-2 text-gray-500" />
-                <span>Gasten</span>
-              </div>
-              <span className="text-sm font-medium">{exchange.guests}</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center text-sm">
-                <Bed className="w-4 h-4 mr-2 text-gray-500" />
-                <span>Nachten</span>
-              </div>
-              <span className="text-sm font-medium">{nights}</span>
+            <div>
+              <span className="text-sm font-medium text-gray-600">Vertrek</span>
+              <p className="text-sm mt-1">{format(new Date(exchange.end_date), "d MMM yyyy", { locale: nl })}</p>
             </div>
           </div>
 
-          {/* Swap Fee */}
-          <div className="pt-3 border-t">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Swap fee</span>
-              <span className="text-lg font-bold text-orange-600">€20</span>
+          {/* Gasten en nachten */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center">
+              <Users className="h-4 w-4 mr-2 text-gray-600" />
+              <div>
+                <span className="text-sm font-medium text-gray-600">Gasten</span>
+                <p className="text-sm">{exchange.guests}</p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Eenmalige kosten per persoon</p>
+            <div className="flex items-center">
+              <Bed className="h-4 w-4 mr-2 text-gray-600" />
+              <div>
+                <span className="text-sm font-medium text-gray-600">Nachten</span>
+                <p className="text-sm">{nights}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Swap fee */}
+          <div className="pt-4 border-t">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-600">Swap Fee</span>
+              <span className="font-semibold">€20</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Eenmalige vergoeding per persoon</p>
           </div>
         </CardContent>
       </Card>

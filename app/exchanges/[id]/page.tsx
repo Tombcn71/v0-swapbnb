@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
+import { executeQuery } from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { executeQuery } from "@/lib/db"
 import { ExchangeDetail } from "@/components/exchanges/exchange-detail"
 
 interface ExchangePageProps {
@@ -42,7 +42,11 @@ export default async function ExchangePage({ params }: ExchangePageProps) {
 
     const exchange = exchanges[0]
 
-    return <ExchangeDetail exchange={exchange} currentUserId={session.user.id} />
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <ExchangeDetail exchange={exchange} currentUserId={session.user.id} />
+      </div>
+    )
   } catch (error) {
     console.error("Error fetching exchange:", error)
     return notFound()
