@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ChevronDown, User, Home, ArrowRightLeft, MessageSquare, Plus, LogOut } from "lucide-react"
+import { ChevronDown, User, Home, ArrowRightLeft, MessageSquare, Plus, LogOut, Search } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import Link from "next/link"
 
@@ -16,11 +16,12 @@ export function UserSidebar() {
 
   const menuItems = [
     { icon: Home, label: "Dashboard", href: "/dashboard" },
-    { icon: Home, label: "Mijn Woningen", href: "/dashboard/homes" },
-    { icon: ArrowRightLeft, label: "Uitwisselingen", href: "/dashboard/exchanges" },
-    { icon: MessageSquare, label: "Berichten", href: "/dashboard/messages" },
-    { icon: User, label: "Profiel", href: "/dashboard/profile" },
-    { icon: Plus, label: "Woning Toevoegen", href: "/dashboard/homes/new" },
+    { icon: Search, label: "Woningen Zoeken", href: "/listings" },
+    { icon: Home, label: "Mijn Woningen", href: "/homes" },
+    { icon: ArrowRightLeft, label: "Uitwisselingen", href: "/exchanges" },
+    { icon: MessageSquare, label: "Berichten", href: "/messages" },
+    { icon: User, label: "Profiel", href: "/profile" },
+    { icon: Plus, label: "Woning Toevoegen", href: "/homes/new" },
   ]
 
   return (
@@ -50,7 +51,7 @@ export function UserSidebar() {
         </SheetHeader>
 
         <div className="space-y-1">
-          <div className="text-sm font-medium text-muted-foreground mb-3">Information</div>
+          <div className="text-sm font-medium text-muted-foreground mb-3">Navigation</div>
 
           {menuItems.map((item) => (
             <Link
