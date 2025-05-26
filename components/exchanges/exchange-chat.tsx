@@ -179,7 +179,7 @@ export function ExchangeChat({
       videocall_scheduled: { label: "📹 Videocall gepland", variant: "default" as const },
       videocall_completed: { label: "💰 Klaar voor betaling", variant: "default" as const },
       payment_pending: { label: "💳 Betaling vereist", variant: "destructive" as const },
-      completed: { label: "🎉 Voltooid", variant: "default" as const },
+      completed: { label: "🎉 Voltooid - Chat blijft beschikbaar", variant: "default" as const },
       rejected: { label: "❌ Afgewezen", variant: "destructive" as const },
       cancelled: { label: "🚫 Geannuleerd", variant: "destructive" as const },
     }
@@ -281,19 +281,30 @@ export function ExchangeChat({
           )}
         </div>
 
-        {/* Bericht invoer */}
-        <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Typ je bericht..."
-            disabled={isSubmitting}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={isSubmitting || !newMessage.trim()}>
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
+        {/* Bericht invoer - Altijd beschikbaar behalve bij rejected/cancelled */}
+        {exchange.status !== "rejected" && exchange.status !== "cancelled" && (
+          <form onSubmit={handleSendMessage} className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder={exchange.status === "completed" ? "Chat over jullie swap ervaring..." : "Typ je bericht..."}
+              disabled={isSubmitting}
+              className="flex-1"
+            />
+            <Button type="submit" disabled={isSubmitting || !newMessage.trim()}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+        )}
+
+        {/* Informatie bericht voor voltooide swaps */}
+        {exchange.status === "completed" && (
+          <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm text-green-700">
+              🎉 Jullie swap is voltooid! Je kunt hier nog steeds berichten uitwisselen om ervaringen te delen.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
