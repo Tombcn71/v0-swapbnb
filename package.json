@@ -78,7 +78,6 @@
     "nodemailer": "latest",
     "pg": "latest",
     "postgres": "latest",
-    "prisma": "latest",
     "react": "^19",
     "react-day-picker": "latest",
     "react-dom": "^19",
