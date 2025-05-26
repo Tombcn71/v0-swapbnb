@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { neon } from "@neondatabase/serverless"
+
+const sql = neon(process.env.DATABASE_URL!)
 
 // Functie om te controleren of een string een geldige UUID is
 const isValidUUID = (id: string) => {
@@ -117,62 +120,31 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { recipientId, content } = body
+    const { recipientId, homeId, content } = await request.json()
 
-    // Valideer input
     if (!recipientId || !content) {
-      return NextResponse.json({ error: "Recipient ID and content are required" }, { status: 400 })
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Controleer of de receiver ID een geldige UUID is
-    if (!isValidUUID(recipientId)) {
-      console.error("Invalid UUID format for recipient ID:", recipientId)
-      return NextResponse.json({ error: "Invalid recipient ID format" }, { status: 400 })
-    }
+    // Voeg bericht toe aan database
+    const result = await sql`
+      INSERT INTO messages (sender_id, recipient_id, home_id, content, created_at)
+      VALUES (${session.user.id}, ${recipientId}, ${homeId}, ${content}, NOW())
+      RETURNING id, created_at
+    `
 
-    // Controleer of de sessie gebruiker ID een geldige UUID is
-    if (!isValidUUID(session.user.id)) {
-      console.error("Invalid UUID format for session user ID:", session.user.id)
-      return NextResponse.json({ error: "Invalid session user ID format" }, { status: 400 })
-    }
-
-    // Controleer of de ontvanger bestaat
-    const receivers = await executeQuery("SELECT * FROM users WHERE id = $1", [recipientId])
-
-    if (receivers.length === 0) {
-      return NextResponse.json({ error: "Recipient not found" }, { status: 404 })
-    }
-
-    // Stuur het bericht
-    const result = await executeQuery(
-      `INSERT INTO messages 
-       (sender_id, receiver_id, content, read) 
-       VALUES ($1, $2, $3, false) 
-       RETURNING *`,
-      [session.user.id, recipientId, content],
-    )
-
-    // Haal de volledige berichtgegevens op
-    const messages = await executeQuery(
-      `SELECT m.*, 
-              sender.name as sender_name,
-              receiver.name as receiver_name
-       FROM messages m
-       JOIN users sender ON m.sender_id = sender.id
-       JOIN users receiver ON m.receiver_id = receiver.id
-       WHERE m.id = $1`,
-      [result[0].id],
-    )
-
-    return NextResponse.json(messages[0], { status: 201 })
+    return NextResponse.json({
+      success: true,
+      messageId: result[0].id,
+      createdAt: result[0].created_at,
+    })
   } catch (error) {
-    console.error("Error sending message:", error)
-    return NextResponse.json({ error: "Failed to send message" }, { status: 500 })
+    console.error("Error creating message:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
