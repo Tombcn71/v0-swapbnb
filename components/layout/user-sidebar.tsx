@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ChevronDown, User, Home, ArrowRightLeft, MessageSquare, Plus, LogOut, Search } from "lucide-react"
+import { ChevronDown, User, Home, ArrowRightLeft, MessageSquare, Plus, LogOut, Search, Menu } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import Link from "next/link"
 
@@ -27,12 +27,21 @@ export function UserSidebar() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 px-3 py-2">
+        {/* Mobile: Hamburger Menu */}
+        <Button variant="ghost" size="icon" className="sm:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Open menu</span>
+        </Button>
+      </SheetTrigger>
+
+      <SheetTrigger asChild>
+        {/* Desktop: Hi, Name dropdown */}
+        <Button variant="ghost" className="hidden sm:flex items-center gap-2 px-3 py-2">
           <Avatar className="h-8 w-8">
             <AvatarImage src={session.user.image || ""} />
             <AvatarFallback>{session.user.name?.charAt(0) || "U"}</AvatarFallback>
           </Avatar>
-          <span className="hidden sm:block">Hi, {session.user.name}</span>
+          <span>Hi, {session.user.name}</span>
           <ChevronDown className="h-4 w-4" />
         </Button>
       </SheetTrigger>
