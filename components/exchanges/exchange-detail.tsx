@@ -117,6 +117,13 @@ export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
         </CardContent>
       </Card>
 
+      {/* Videocall Planning - ALTIJD TONEN ALS GEACCEPTEERD */}
+      {(exchange.status === "accepted" ||
+        exchange.status === "videocall_scheduled" ||
+        exchange.status === "videocall_completed") && (
+        <VideocallScheduler exchange={exchange} isRequester={isRequester} />
+      )}
+
       {/* Swap details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Jouw huis */}
@@ -230,9 +237,6 @@ export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
           <ExchangeActions exchange={exchange} isRequester={isRequester} />
         </CardContent>
       </Card>
-
-      {/* Videocall Planning */}
-      <VideocallScheduler exchange={exchange} isRequester={isRequester} />
 
       {/* Betaling & Verificatie (alleen na videocall) */}
       {exchange.status === "videocall_completed" && <ExchangePayment exchange={exchange} isRequester={isRequester} />}
