@@ -8,14 +8,22 @@ import { Button } from "@/components/ui/button"
 import { FavoriteButton } from "@/components/homes/favorite-button"
 import { BedDouble, Bath } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 
 export function DashboardFavorites() {
   const [favorites, setFavorites] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
     async function fetchFavorites() {
+      if (status === "loading") return
+      if (!session?.user) {
+        setIsLoading(false)
+        return
+      }
+
       try {
         const response = await fetch("/api/favorites")
         if (response.ok) {
@@ -25,6 +33,7 @@ export function DashboardFavorites() {
           throw new Error("Kon favorieten niet ophalen")
         }
       } catch (error: any) {
+        console.error("Error fetching favorites:", error)
         toast({
           title: "Fout bij het ophalen van favorieten",
           description: error.message || "Er is een fout opgetreden",
@@ -36,9 +45,9 @@ export function DashboardFavorites() {
     }
 
     fetchFavorites()
-  }, [toast])
+  }, [session, status, toast])
 
-  if (isLoading) {
+  if (status === "loading" || isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
@@ -54,6 +63,14 @@ export function DashboardFavorites() {
             </CardContent>
           </Card>
         ))}
+      </div>
+    )
+  }
+
+  if (!session?.user) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500 mb-4">Log in om je favorieten te bekijken.</p>
       </div>
     )
   }
