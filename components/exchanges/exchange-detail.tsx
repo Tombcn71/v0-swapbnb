@@ -1,24 +1,41 @@
 "use client"
 
+import { useState } from "react"
 import { ExchangeChat } from "./exchange-chat"
 import { ExchangeSidebar } from "./exchange-sidebar"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeDetailProps {
   exchange: Exchange
-  isRequester: boolean
+  currentUserId: string
 }
 
-export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
-  return (
-    <div className="h-[calc(100vh-8rem)] flex bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* Chat Section - Left Side */}
-      <div className="flex-1">
-        <ExchangeChat exchange={exchange} isRequester={isRequester} />
-      </div>
+export function ExchangeDetail({ exchange, currentUserId }: ExchangeDetailProps) {
+  const [currentExchange, setCurrentExchange] = useState(exchange)
 
-      {/* Sidebar - Right Side */}
-      <ExchangeSidebar exchange={exchange} isRequester={isRequester} />
+  const handleExchangeUpdate = (updatedExchange: Exchange) => {
+    setCurrentExchange(updatedExchange)
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          {/* Chat Interface - Links */}
+          <div className="lg:col-span-2">
+            <ExchangeChat
+              exchange={currentExchange}
+              currentUserId={currentUserId}
+              onExchangeUpdate={handleExchangeUpdate}
+            />
+          </div>
+
+          {/* Sidebar - Rechts */}
+          <div className="lg:col-span-1">
+            <ExchangeSidebar exchange={currentExchange} currentUserId={currentUserId} />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

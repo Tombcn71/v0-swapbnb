@@ -6,23 +6,43 @@ import { executeQuery } from "@/lib/db"
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { scheduled_at } = await request.json()
+    const exchangeId = params.id
 
-    // Update exchange status
-    await executeQuery(
-      `UPDATE exchanges 
-       SET status = 'videocall_scheduled', videocall_scheduled_at = $2
-       WHERE id = $1 AND (requester_id = $3 OR host_id = $3)`,
-      [params.id, scheduled_at, session.user.id],
+    // Controleer toegang
+    const exchange = await executeQuery(
+      "SELECT * FROM exchanges WHERE id = $1 AND (requester_id = $2 OR host_id = $2)",
+      [exchangeId, session.user.id],
     )
 
-    return NextResponse.json({ success: true })
+    if (exchange.length === 0) {
+      return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
+    }
+
+    if (exchange[0].status !== "accepted") {
+      return NextResponse.json({ error: "Exchange must be accepted first" }, { status: 400 })
+    }
+
+    // Plan videocall (24 uur vanaf nu)
+    const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    const meetingLink = `https://meet.google.com/new` // Simpele link voor demo
+
+    await executeQuery(
+      `UPDATE exchanges 
+       SET status = 'videocall_scheduled', 
+           videocall_scheduled_at = $1, 
+           videocall_link = $2,
+           updated_at = NOW() 
+       WHERE id = $3`,
+      [scheduledAt, meetingLink, exchangeId],
+    )
+
+    return NextResponse.json({ success: true, scheduledAt, meetingLink })
   } catch (error) {
     console.error("Error scheduling videocall:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to schedule videocall" }, { status: 500 })
   }
 }

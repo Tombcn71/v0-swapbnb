@@ -13,8 +13,9 @@ export async function GET() {
 
     const userId = session.user.id
 
+    // Haal alle huizen van de gebruiker op
     const homes = await executeQuery(
-      `SELECT id, title, city, images 
+      `SELECT id, title, city, images, created_at 
        FROM homes 
        WHERE user_id = $1 
        ORDER BY created_at DESC`,

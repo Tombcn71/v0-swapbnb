@@ -1,48 +1,50 @@
+import { notFound } from "next/navigation"
 import { getServerSession } from "next-auth/next"
-import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
 import { executeQuery } from "@/lib/db"
 import { ExchangeDetail } from "@/components/exchanges/exchange-detail"
 
-interface ExchangeDetailPageProps {
+interface ExchangePageProps {
   params: {
     id: string
   }
 }
 
-export default async function ExchangeDetailPage({ params }: ExchangeDetailPageProps) {
+export default async function ExchangePage({ params }: ExchangePageProps) {
   const session = await getServerSession(authOptions)
 
   if (!session || !session.user) {
-    redirect("/login?callbackUrl=/exchanges/" + params.id)
+    return notFound()
   }
 
-  // Haal de uitwisseling op
-  const exchanges = await executeQuery(
-    `SELECT e.*, 
-            rh.title as requester_home_title, rh.city as requester_home_city, rh.images as requester_home_images,
-            hh.title as host_home_title, hh.city as host_home_city, hh.images as host_home_images,
-            ru.name as requester_name, ru.email as requester_email,
-            hu.name as host_name, hu.email as host_email
-     FROM exchanges e
-     JOIN homes rh ON e.requester_home_id = rh.id
-     JOIN homes hh ON e.host_home_id = hh.id
-     JOIN users ru ON e.requester_id = ru.id
-     JOIN users hu ON e.host_id = hu.id
-     WHERE e.id = $1 AND (e.requester_id = $2 OR e.host_id = $2)`,
-    [params.id, session.user.id],
-  )
+  try {
+    // Haal de exchange op met alle details
+    const exchanges = await executeQuery(
+      `SELECT e.*, 
+              rh.title as requester_home_title, rh.city as requester_home_city, 
+              rh.images as requester_home_images, rh.address as requester_home_address,
+              hh.title as host_home_title, hh.city as host_home_city, 
+              hh.images as host_home_images, hh.address as host_home_address,
+              ru.name as requester_name, ru.email as requester_email,
+              hu.name as host_name, hu.email as host_email
+       FROM exchanges e
+       JOIN homes rh ON e.requester_home_id = rh.id
+       JOIN homes hh ON e.host_home_id = hh.id
+       JOIN users ru ON e.requester_id = ru.id
+       JOIN users hu ON e.host_id = hu.id
+       WHERE e.id = $1 AND (e.requester_id = $2 OR e.host_id = $2)`,
+      [params.id, session.user.id],
+    )
 
-  if (exchanges.length === 0) {
-    redirect("/exchanges")
+    if (exchanges.length === 0) {
+      return notFound()
+    }
+
+    const exchange = exchanges[0]
+
+    return <ExchangeDetail exchange={exchange} currentUserId={session.user.id} />
+  } catch (error) {
+    console.error("Error fetching exchange:", error)
+    return notFound()
   }
-
-  const exchange = exchanges[0]
-  const isRequester = exchange.requester_id === session.user.id
-
-  return (
-    <div className="container mx-auto py-8">
-      <ExchangeDetail exchange={exchange} isRequester={isRequester} />
-    </div>
-  )
 }

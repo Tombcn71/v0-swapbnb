@@ -6,27 +6,44 @@ import { executeQuery } from "@/lib/db"
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Simuleer Stripe betaling
-    // In productie zou je hier Stripe Payment Intent maken
+    const exchangeId = params.id
 
-    // Update exchange status
-    await executeQuery(
-      `UPDATE exchanges 
-       SET status = 'completed'
-       WHERE id = $1 AND (requester_id = $2 OR host_id = $2)`,
-      [params.id, session.user.id],
+    // Controleer toegang
+    const exchange = await executeQuery(
+      "SELECT * FROM exchanges WHERE id = $1 AND (requester_id = $2 OR host_id = $2)",
+      [exchangeId, session.user.id],
     )
 
+    if (exchange.length === 0) {
+      return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
+    }
+
+    if (exchange[0].status !== "videocall_completed") {
+      return NextResponse.json({ error: "Videocall must be completed first" }, { status: 400 })
+    }
+
+    // Voor demo: markeer direct als betaald
+    await executeQuery(
+      `UPDATE exchanges 
+       SET status = 'completed',
+           requester_payment_status = 'paid',
+           host_payment_status = 'paid',
+           updated_at = NOW() 
+       WHERE id = $1`,
+      [exchangeId],
+    )
+
+    // In productie zou hier Stripe integratie komen
     return NextResponse.json({
       success: true,
-      message: "Betaling succesvol verwerkt",
+      message: "Payment completed successfully",
     })
   } catch (error) {
     console.error("Error processing payment:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: "Failed to process payment" }, { status: 500 })
   }
 }
