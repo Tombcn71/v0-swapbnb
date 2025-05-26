@@ -1,312 +1,227 @@
 "use client"
-import Image from "next/image"
-import Link from "next/link"
-import { format } from "date-fns"
-import { nl } from "date-fns/locale"
-import { Button } from "@/components/ui/button"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
 import { ExchangeActions } from "./exchange-actions"
 import { ExchangePayment } from "./exchange-payment"
-import { MessageList } from "@/components/messaging/message-list"
-import { ArrowLeft, Calendar, MapPin, User } from "lucide-react"
+import { Calendar, MapPin, Users, MessageSquare } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeDetailProps {
-  exchange: Exchange & {
-    requester_home_title: string
-    requester_home_city: string
-    requester_home_images: string
-    host_home_title: string
-    host_home_city: string
-    host_home_images: string
-    requester_name: string
-    requester_email: string
-    host_name: string
-    host_email: string
-  }
+  exchange: Exchange
   isRequester: boolean
 }
 
 export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
-  // Parse images
-  const requesterHomeImages = Array.isArray(exchange.requester_home_images)
-    ? exchange.requester_home_images
-    : typeof exchange.requester_home_images === "string"
-      ? JSON.parse(exchange.requester_home_images)
-      : []
-
-  const hostHomeImages = Array.isArray(exchange.host_home_images)
-    ? exchange.host_home_images
-    : typeof exchange.host_home_images === "string"
-      ? JSON.parse(exchange.host_home_images)
-      : []
-
-  // Bepaal de andere partij op basis van de rol
-  const otherPartyName = isRequester ? exchange.host_name : exchange.requester_name
-  const otherPartyId = isRequester ? exchange.host_id : exchange.requester_id
-
-  // Status badge kleur
-  const getStatusColor = () => {
-    switch (exchange.status) {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800"
+        return <Badge className="bg-yellow-100 text-yellow-800">⏳ In afwachting</Badge>
       case "accepted":
-        return "bg-blue-100 text-blue-800"
+        return <Badge className="bg-blue-100 text-blue-800">✓ Geaccepteerd</Badge>
       case "confirmed":
-        return "bg-green-100 text-green-800"
+        return <Badge className="bg-green-100 text-green-800">✓ Bevestigd</Badge>
       case "completed":
-        return "bg-green-100 text-green-800"
-      case "canceled":
-        return "bg-red-100 text-red-800"
+        return <Badge className="bg-green-100 text-green-800">✓ Voltooid</Badge>
+      case "rejected":
+        return <Badge className="bg-red-100 text-red-800">✗ Afgewezen</Badge>
+      case "cancelled":
+        return <Badge className="bg-gray-100 text-gray-800">✗ Geannuleerd</Badge>
       default:
-        return "bg-gray-100 text-gray-800"
+        return <Badge>{status}</Badge>
     }
   }
 
-  // Status vertaling
-  const getStatusText = () => {
-    switch (exchange.status) {
-      case "pending":
-        return "In afwachting"
-      case "accepted":
-        return "Geaccepteerd"
-      case "confirmed":
-        return "Bevestigd"
-      case "completed":
-        return "Voltooid"
-      case "canceled":
-        return "Geannuleerd"
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("nl-NL", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
+  const getStepStatus = (step: number) => {
+    switch (step) {
+      case 1:
+        return exchange.status !== "pending" ? "completed" : "current"
+      case 2:
+        return exchange.status === "accepted" || exchange.status === "confirmed" || exchange.status === "completed"
+          ? "completed"
+          : exchange.status === "pending"
+            ? "pending"
+            : "current"
+      case 3:
+        return exchange.status === "confirmed" || exchange.status === "completed" ? "completed" : "pending"
+      case 4:
+        return exchange.status === "completed" ? "completed" : "pending"
       default:
-        return exchange.status
+        return "pending"
     }
   }
+
+  const StepIndicator = ({ step, title, status }: { step: number; title: string; status: string }) => (
+    <div className="flex items-center space-x-3">
+      <div
+        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+          status === "completed"
+            ? "bg-green-500 text-white"
+            : status === "current"
+              ? "bg-blue-500 text-white"
+              : "bg-gray-200 text-gray-600"
+        }`}
+      >
+        {status === "completed" ? "✓" : step}
+      </div>
+      <span className={`text-sm ${status === "completed" ? "text-green-700" : "text-gray-700"}`}>{title}</span>
+    </div>
+  )
 
   return (
-    <div>
-      <Button variant="ghost" asChild className="mb-6">
-        <Link href="/exchanges">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Terug naar swaps
-        </Link>
-      </Button>
-
-      <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold mb-2">
-            Swap: {exchange.requester_home_city} ↔ {exchange.host_home_city}
-          </h1>
-          <div className="flex items-center gap-2">
-            <Badge className={getStatusColor()}>{getStatusText()}</Badge>
-            <span className="text-gray-500">
-              Aangevraagd op {format(new Date(exchange.created_at), "d MMMM yyyy", { locale: nl })}
-            </span>
+          <h1 className="text-2xl font-bold">Swap Details</h1>
+          <p className="text-gray-600 mt-1">
+            {isRequester ? "Jouw aanvraag" : "Aanvraag van " + exchange.requester_name}
+          </p>
+        </div>
+        {getStatusBadge(exchange.status)}
+      </div>
+
+      {/* Voortgang stappen */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Voortgang</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <StepIndicator step={1} title="Swap aangevraagd" status={getStepStatus(1)} />
+          <StepIndicator step={2} title="Geaccepteerd door gastheer" status={getStepStatus(2)} />
+          <StepIndicator step={3} title="Bevestigd door beide partijen" status={getStepStatus(3)} />
+          <StepIndicator step={4} title="Betaling & verificatie voltooid" status={getStepStatus(4)} />
+        </CardContent>
+      </Card>
+
+      {/* Swap details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Jouw huis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {isRequester ? "Jouw huis" : "Huis van " + exchange.requester_name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <h3 className="font-medium">{exchange.requester_home_title}</h3>
+            <div className="flex items-center text-gray-600 text-sm">
+              <MapPin className="h-4 w-4 mr-1" />
+              {exchange.requester_home_city}
+            </div>
+            {exchange.requester_home_images && (
+              <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
+                <img
+                  src={
+                    typeof exchange.requester_home_images === "string"
+                      ? JSON.parse(exchange.requester_home_images)[0]
+                      : exchange.requester_home_images[0]
+                  }
+                  alt={exchange.requester_home_title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Gastheer huis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{isRequester ? "Huis van " + exchange.host_name : "Jouw huis"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <h3 className="font-medium">{exchange.host_home_title}</h3>
+            <div className="flex items-center text-gray-600 text-sm">
+              <MapPin className="h-4 w-4 mr-1" />
+              {exchange.host_home_city}
+            </div>
+            {exchange.host_home_images && (
+              <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
+                <img
+                  src={
+                    typeof exchange.host_home_images === "string"
+                      ? JSON.parse(exchange.host_home_images)[0]
+                      : exchange.host_home_images[0]
+                  }
+                  alt={exchange.host_home_title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Swap informatie */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Swap Informatie</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <div>
+                <p className="text-sm text-gray-600">Check-in</p>
+                <p className="font-medium">{formatDate(exchange.start_date)}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <div>
+                <p className="text-sm text-gray-600">Check-out</p>
+                <p className="font-medium">{formatDate(exchange.end_date)}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-gray-500" />
+              <div>
+                <p className="text-sm text-gray-600">Gasten</p>
+                <p className="font-medium">{exchange.guests} personen</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <Tabs defaultValue="details">
-            <TabsList className="mb-4">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="messages">Berichten</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="details">
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Jouw woning */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{isRequester ? "Jouw woning" : "Aanvrager's woning"}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="relative h-48 w-full">
-                        <Image
-                          src={
-                            requesterHomeImages[0] ||
-                            `/abstract-geometric-shapes.png?height=400&width=600&query=${exchange.requester_home_title || "/placeholder.svg"}`
-                          }
-                          alt={exchange.requester_home_title}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-2">{exchange.requester_home_title}</h3>
-                        <div className="flex items-center text-gray-600 mb-4">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span>{exchange.requester_home_city}</span>
-                        </div>
-                        <Button asChild variant="outline" className="w-full">
-                          <Link href={`/homes/${exchange.requester_home_id}`}>Bekijk woning</Link>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Andere woning */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{isRequester ? "Gastheer's woning" : "Jouw woning"}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="relative h-48 w-full">
-                        <Image
-                          src={
-                            hostHomeImages[0] ||
-                            `/abstract-geometric-shapes.png?height=400&width=600&query=${exchange.host_home_title || "/placeholder.svg"}`
-                          }
-                          alt={exchange.host_home_title}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-lg mb-2">{exchange.host_home_title}</h3>
-                        <div className="flex items-center text-gray-600 mb-4">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span>{exchange.host_home_city}</span>
-                        </div>
-                        <Button asChild variant="outline" className="w-full">
-                          <Link href={`/homes/${exchange.host_home_id}`}>Bekijk woning</Link>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+          {exchange.message && (
+            <>
+              <Separator />
+              <div>
+                <div className="flex items-center space-x-2 mb-2">
+                  <MessageSquare className="h-4 w-4 text-gray-500" />
+                  <p className="text-sm text-gray-600">Bericht van {exchange.requester_name}</p>
                 </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Swap-details</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3">
-                        <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Swap-periode</p>
-                          <p>
-                            {format(new Date(exchange.start_date), "d MMMM yyyy", { locale: nl })} tot{" "}
-                            {format(new Date(exchange.end_date), "d MMMM yyyy", { locale: nl })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <User className="h-5 w-5 text-gray-500 mt-0.5" />
-                        <div>
-                          <p className="font-medium">{isRequester ? "Gastheer" : "Aanvrager"}</p>
-                          <p>{isRequester ? exchange.host_name : exchange.requester_name}</p>
-                        </div>
-                      </div>
-
-                      {exchange.message && (
-                        <div className="border-t pt-4 mt-4">
-                          <p className="font-medium mb-2">Bericht van aanvrager</p>
-                          <div className="bg-gray-50 p-3 rounded-md">
-                            <p className="text-gray-700">{exchange.message}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                <p className="text-sm bg-gray-50 p-3 rounded-md">{exchange.message}</p>
               </div>
-            </TabsContent>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
-            <TabsContent value="messages">
-              <Card className="h-[600px]">
-                <MessageList recipientId={otherPartyId} recipientName={otherPartyName} />
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
+      {/* Acties */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Acties</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ExchangeActions exchange={exchange} isRequester={isRequester} />
+        </CardContent>
+      </Card>
 
-        <div className="space-y-6">
-          {/* Acties */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Acties</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ExchangeActions exchange={exchange} isRequester={isRequester} />
-            </CardContent>
-          </Card>
-
-          {/* Betaling (alleen tonen als status accepted is) */}
-          {exchange.status === "accepted" && <ExchangePayment exchange={exchange} isRequester={isRequester} />}
-
-          {/* Status informatie */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span>Aanvraag</span>
-                  <Badge className="bg-green-100 text-green-800">Voltooid</Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span>Acceptatie</span>
-                  <Badge
-                    className={
-                      exchange.status === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"
-                    }
-                  >
-                    {exchange.status === "pending" ? "In afwachting" : "Voltooid"}
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span>Betaling aanvrager</span>
-                  <Badge
-                    className={
-                      exchange.requester_payment_status === "paid"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }
-                  >
-                    {exchange.requester_payment_status === "paid" ? "Betaald" : "Niet betaald"}
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span>Betaling gastheer</span>
-                  <Badge
-                    className={
-                      exchange.host_payment_status === "paid"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }
-                  >
-                    {exchange.host_payment_status === "paid" ? "Betaald" : "Niet betaald"}
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span>Bevestiging</span>
-                  <Badge
-                    className={
-                      exchange.status === "confirmed" || exchange.status === "completed"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }
-                  >
-                    {exchange.status === "confirmed" || exchange.status === "completed"
-                      ? "Bevestigd"
-                      : "Niet bevestigd"}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Betaling & Verificatie (alleen als geaccepteerd of bevestigd) */}
+      {(exchange.status === "accepted" || exchange.status === "confirmed") && (
+        <ExchangePayment exchange={exchange} isRequester={isRequester} />
+      )}
     </div>
   )
 }
