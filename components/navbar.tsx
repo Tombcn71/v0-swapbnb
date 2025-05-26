@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useSession } from "next-auth/react"
 import { UserSidebar } from "./layout/user-sidebar"
+import { MessagesIndicator } from "./layout/messages-indicator"
 
 export function Navbar() {
   const { data: session, status } = useSession()
@@ -27,11 +28,17 @@ export function Navbar() {
           </Link>
         </nav>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
           {status === "loading" ? (
             <div className="h-8 w-20 bg-gray-200 animate-pulse rounded" />
           ) : session ? (
-            <UserSidebar />
+            <>
+              {/* Messages indicator - alleen op desktop */}
+              <div className="hidden sm:block">
+                <MessagesIndicator />
+              </div>
+              <UserSidebar />
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild>
