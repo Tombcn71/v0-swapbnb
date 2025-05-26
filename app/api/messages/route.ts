@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
 
     // Voeg bericht toe aan database - gebruik receiver_id in plaats van recipient_id
     const result = await sql`
-      INSERT INTO messages (sender_id, receiver_id, exchange_id, content, created_at)
-      VALUES (${session.user.id}, ${recipientId}, ${homeId}, ${content}, NOW())
+      INSERT INTO messages (sender_id, receiver_id, exchange_id, content)
+      VALUES (${session.user.id}, ${recipientId}, ${homeId || null}, ${content})
       RETURNING id, created_at
     `
 
