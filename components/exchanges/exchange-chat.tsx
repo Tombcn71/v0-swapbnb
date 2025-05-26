@@ -132,6 +132,27 @@ export function ExchangeChat({
     }
   }
 
+  const handleSkipVideocall = async () => {
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/skip-videocall`, {
+        method: "POST",
+      })
+      if (response.ok) {
+        toast({
+          title: "Videocall overgeslagen",
+          description: "Je kunt nu doorgaan naar de betaling.",
+        })
+        onStatusUpdate()
+      }
+    } catch (error) {
+      toast({
+        title: "Fout",
+        description: "Er is een fout opgetreden.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handlePayment = async () => {
     try {
       const response = await fetch(`/api/exchanges/${exchange.id}/payment`, {
@@ -153,14 +174,14 @@ export function ExchangeChat({
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: "In afwachting", variant: "secondary" as const },
-      accepted: { label: "Geaccepteerd", variant: "default" as const },
-      videocall_scheduled: { label: "Videocall gepland", variant: "default" as const },
-      videocall_completed: { label: "Videocall voltooid", variant: "default" as const },
-      payment_pending: { label: "Betaling vereist", variant: "destructive" as const },
-      completed: { label: "Voltooid", variant: "default" as const },
-      rejected: { label: "Afgewezen", variant: "destructive" as const },
-      cancelled: { label: "Geannuleerd", variant: "destructive" as const },
+      pending: { label: "⏳ In afwachting", variant: "secondary" as const },
+      accepted: { label: "✅ Geaccepteerd", variant: "default" as const },
+      videocall_scheduled: { label: "📹 Videocall gepland", variant: "default" as const },
+      videocall_completed: { label: "💰 Klaar voor betaling", variant: "default" as const },
+      payment_pending: { label: "💳 Betaling vereist", variant: "destructive" as const },
+      completed: { label: "🎉 Voltooid", variant: "default" as const },
+      rejected: { label: "❌ Afgewezen", variant: "destructive" as const },
+      cancelled: { label: "🚫 Geannuleerd", variant: "destructive" as const },
     }
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
@@ -227,10 +248,22 @@ export function ExchangeChat({
           )}
 
           {exchange.status === "accepted" && (
-            <Button onClick={handleScheduleVideocall} className="w-full bg-purple-600 hover:bg-purple-700">
-              <Video className="w-4 h-4 mr-2" />
-              Plan Videocall
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={handleScheduleVideocall} className="w-full bg-purple-600 hover:bg-purple-700">
+                <Video className="w-4 h-4 mr-2" />
+                Plan Videocall (Aanbevolen)
+              </Button>
+              <Button
+                onClick={handleSkipVideocall}
+                variant="outline"
+                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Videocall overslaan
+              </Button>
+              <p className="text-xs text-gray-500 text-center">
+                💡 Een videocall helpt om elkaar beter te leren kennen
+              </p>
+            </div>
           )}
 
           {exchange.status === "videocall_scheduled" && (
