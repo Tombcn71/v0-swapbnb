@@ -30,24 +30,26 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
   const handlePayment = async () => {
     setIsLoading(true)
     try {
-      // Hier zou de Stripe integratie komen
-      toast({
-        title: "Betaling wordt verwerkt",
-        description: "Je wordt doorgestuurd naar de betaalpagina...",
+      const response = await fetch(`/api/exchanges/${exchange.id}/payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
 
-      // Simuleer betaling voor nu
-      setTimeout(() => {
-        toast({
-          title: "Betaling succesvol",
-          description: "Je betaling is verwerkt. Wacht op de andere partij.",
-        })
-        setIsLoading(false)
-      }, 2000)
-    } catch (error) {
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create payment session")
+      }
+
+      const { url } = await response.json()
+
+      // Redirect naar Stripe Checkout
+      window.location.href = url
+    } catch (error: any) {
       toast({
         title: "Betaling mislukt",
-        description: "Er is iets misgegaan met de betaling. Probeer het opnieuw.",
+        description: error.message || "Er is iets misgegaan met de betaling. Probeer het opnieuw.",
         variant: "destructive",
       })
       setIsLoading(false)
@@ -57,24 +59,26 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
   const handleIdentityVerification = async () => {
     setIsLoading(true)
     try {
-      // Hier zou de ID verificatie integratie komen
-      toast({
-        title: "ID-verificatie wordt gestart",
-        description: "Je wordt doorgestuurd naar de verificatiepagina...",
+      const response = await fetch(`/api/exchanges/${exchange.id}/identity`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
 
-      // Simuleer verificatie voor nu
-      setTimeout(() => {
-        toast({
-          title: "ID-verificatie succesvol",
-          description: "Je identiteit is geverifieerd.",
-        })
-        setIsLoading(false)
-      }, 2000)
-    } catch (error) {
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create identity verification session")
+      }
+
+      const { url } = await response.json()
+
+      // Redirect naar Stripe Identity
+      window.location.href = url
+    } catch (error: any) {
       toast({
         title: "Verificatie mislukt",
-        description: "Er is iets misgegaan met de verificatie. Probeer het opnieuw.",
+        description: error.message || "Er is iets misgegaan met de verificatie. Probeer het opnieuw.",
         variant: "destructive",
       })
       setIsLoading(false)
@@ -95,8 +99,12 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
     }
   }
 
-  // Alleen tonen als de exchange geaccepteerd is
-  if (exchange.status !== "accepted" && exchange.status !== "confirmed") {
+  // Alleen tonen als de videocall voltooid is
+  if (
+    exchange.status !== "videocall_completed" &&
+    exchange.status !== "payment_pending" &&
+    exchange.status !== "completed"
+  ) {
     return null
   }
 
@@ -105,16 +113,25 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="h-5 w-5" />
-          Betaling & Verificatie
+          Betaling & ID-Verificatie
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Uitleg */}
+        <div className="bg-blue-50 p-4 rounded-md">
+          <h4 className="font-medium text-blue-900 mb-2">Laatste stap!</h4>
+          <p className="text-blue-800 text-sm">
+            Beide partijen moeten een swap fee van €20 betalen en hun identiteit verifiëren via Stripe. Dit zorgt voor
+            veiligheid en vertrouwen in het platform.
+          </p>
+        </div>
+
         {/* Jouw status */}
         <div className="space-y-4">
           <h4 className="font-medium">Jouw status</h4>
 
           <div className="flex justify-between items-center">
-            <span className="text-sm">Betaling (€50 borg)</span>
+            <span className="text-sm">Swap fee (€20)</span>
             {getStatusBadge(userPaymentStatus)}
           </div>
 
@@ -127,7 +144,7 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
           {userPaymentStatus === "pending" && (
             <Button onClick={handlePayment} disabled={isLoading} className="w-full">
               <CreditCard className="mr-2 h-4 w-4" />
-              {isLoading ? "Verwerken..." : "Betaal borg (€50)"}
+              {isLoading ? "Doorsturen naar Stripe..." : "Betaal swap fee (€20)"}
             </Button>
           )}
 
@@ -135,8 +152,16 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
           {userIdentityStatus === "pending" && userPaymentStatus === "paid" && (
             <Button onClick={handleIdentityVerification} disabled={isLoading} variant="outline" className="w-full">
               <Shield className="mr-2 h-4 w-4" />
-              {isLoading ? "Verifiëren..." : "Verifieer identiteit"}
+              {isLoading ? "Doorsturen naar verificatie..." : "Verifieer identiteit"}
             </Button>
+          )}
+
+          {/* Beide voltooid */}
+          {userPaymentStatus === "paid" && userIdentityStatus === "verified" && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-green-800 text-sm font-medium">✓ Jouw deel is voltooid!</p>
+              <p className="text-green-700 text-sm mt-1">Wacht tot de andere partij ook klaar is.</p>
+            </div>
           )}
         </div>
 
@@ -145,7 +170,7 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
           <h4 className="font-medium">Status andere partij</h4>
 
           <div className="flex justify-between items-center">
-            <span className="text-sm">Betaling</span>
+            <span className="text-sm">Swap fee</span>
             {getStatusBadge(otherPaymentStatus)}
           </div>
 
@@ -158,7 +183,7 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
         {/* Voortgang indicator */}
         <div className="border-t pt-4">
           <div className="flex items-center justify-between text-sm">
-            <span>Voortgang</span>
+            <span>Totale voortgang</span>
             <span className="font-medium">
               {
                 [userPaymentStatus, userIdentityStatus, otherPaymentStatus, otherIdentityStatus].filter(
@@ -185,11 +210,24 @@ export function ExchangePayment({ exchange, isRequester }: ExchangePaymentProps)
           </div>
         </div>
 
-        {/* Informatie */}
-        <div className="bg-blue-50 p-3 rounded-md">
-          <p className="text-blue-800 text-sm">
-            <strong>Let op:</strong> Beide partijen moeten betalen en hun identiteit verifiëren voordat de swap
-            definitief wordt.
+        {/* Alle stappen voltooid */}
+        {userPaymentStatus === "paid" &&
+          userIdentityStatus === "verified" &&
+          otherPaymentStatus === "paid" &&
+          otherIdentityStatus === "verified" && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+              <h4 className="font-medium text-green-900 mb-2">🎉 Swap voltooid!</h4>
+              <p className="text-green-800 text-sm">
+                Beide partijen hebben betaald en zijn geverifieerd. De swap is nu officieel bevestigd!
+              </p>
+            </div>
+          )}
+
+        {/* Veiligheid info */}
+        <div className="bg-gray-50 p-3 rounded-md">
+          <p className="text-gray-700 text-sm">
+            <strong>Veilig:</strong> Alle betalingen en verificaties worden verwerkt door Stripe, een van de meest
+            vertrouwde betalingsproviders ter wereld.
           </p>
         </div>
       </CardContent>

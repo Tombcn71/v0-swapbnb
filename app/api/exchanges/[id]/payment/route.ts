@@ -10,7 +10,7 @@ const isValidUUID = (id: string) => {
   return uuidRegex.test(id)
 }
 
-// POST /api/exchanges/[id]/payment - Betaal de servicekosten
+// POST /api/exchanges/[id]/payment - Maak Stripe Checkout sessie voor swap fee
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
@@ -41,6 +41,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "You are not involved in this exchange" }, { status: 403 })
     }
 
+    // Controleer of de videocall voltooid is
+    if (exchange.status !== "videocall_completed") {
+      return NextResponse.json({ error: "Videocall must be completed before payment" }, { status: 400 })
+    }
+
     // Bepaal welke rol de gebruiker heeft
     const isRequester = exchange.requester_id === session.user.id
     const paymentField = isRequester ? "requester_payment_status" : "host_payment_status"
@@ -50,25 +55,32 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Payment already completed" }, { status: 400 })
     }
 
-    // In een echte applicatie zou hier de betalingsverwerking plaatsvinden
-    // Voor deze demo markeren we de betaling gewoon als voltooid
-
-    // Update de betalingsstatus
-    await executeQuery(`UPDATE exchanges SET ${paymentField} = $1 WHERE id = $2`, ["paid", exchangeId])
-
-    // Controleer of beide partijen hebben betaald
-    const updatedExchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
-
-    const updatedExchange = updatedExchanges[0]
-
-    if (updatedExchange.requester_payment_status === "paid" && updatedExchange.host_payment_status === "paid") {
-      // Als beide partijen hebben betaald, update de status naar confirmed
-      await executeQuery("UPDATE exchanges SET status = $1 WHERE id = $2", ["confirmed", exchangeId])
+    // Voor nu simuleren we Stripe - later vervangen door echte Stripe integratie
+    const mockStripeSession = {
+      id: `cs_mock_${Date.now()}`,
+      url: `https://checkout.stripe.com/pay/mock_session_${exchangeId}`,
     }
 
-    return NextResponse.json({ success: true })
+    // Update de payment session ID
+    const sessionField = isRequester ? "requester_payment_session_id" : "host_payment_session_id"
+    await executeQuery(`UPDATE exchanges SET ${sessionField} = $1 WHERE id = $2`, [mockStripeSession.id, exchangeId])
+
+    // Voor demo: automatisch markeren als betaald na 3 seconden
+    setTimeout(async () => {
+      try {
+        await executeQuery(`UPDATE exchanges SET ${paymentField} = $1 WHERE id = $2`, ["paid", exchangeId])
+        console.log(`Payment completed for exchange ${exchangeId}`)
+      } catch (error) {
+        console.error("Error updating payment status:", error)
+      }
+    }, 3000)
+
+    return NextResponse.json({
+      url: mockStripeSession.url,
+      sessionId: mockStripeSession.id,
+    })
   } catch (error) {
-    console.error("Error processing payment:", error)
-    return NextResponse.json({ error: "Failed to process payment" }, { status: 500 })
+    console.error("Error creating payment session:", error)
+    return NextResponse.json({ error: "Failed to create payment session" }, { status: 500 })
   }
 }
