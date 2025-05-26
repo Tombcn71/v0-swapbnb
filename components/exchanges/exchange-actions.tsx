@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { MessageSquare, Ban, CheckCircle, X, CreditCard, Shield } from "lucide-react"
+import { MessageSquare, Ban, CheckCircle, X } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeActionsProps {
@@ -126,88 +126,6 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     }
   }
 
-  const handlePayment = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to start payment")
-      }
-
-      const data = await response.json()
-
-      toast({
-        title: "Betaling wordt verwerkt",
-        description: "Je betaling van €50 wordt verwerkt...",
-      })
-
-      // Simuleer redirect naar betaalpagina
-      setTimeout(() => {
-        toast({
-          title: "Betaling succesvol",
-          description: "Je betaling is verwerkt. Wacht op de andere partij.",
-        })
-        router.refresh()
-      }, 2000)
-    } catch (error: any) {
-      toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de betaling niet starten. Probeer het later opnieuw.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleIdentityVerification = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/identity-verification`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to start identity verification")
-      }
-
-      const data = await response.json()
-
-      toast({
-        title: "ID-verificatie wordt gestart",
-        description: "Je wordt doorgestuurd naar de verificatiepagina...",
-      })
-
-      // Simuleer redirect naar verificatiepagina
-      setTimeout(() => {
-        toast({
-          title: "ID-verificatie succesvol",
-          description: "Je identiteit is geverifieerd.",
-        })
-        router.refresh()
-      }, 3000)
-    } catch (error: any) {
-      toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de ID-verificatie niet starten. Probeer het later opnieuw.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleCancel = async () => {
     setIsLoading(true)
     try {
@@ -242,7 +160,40 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     }
   }
 
-  // STAP 1: Pending - wacht op acceptatie door host
+  const handleComplete = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "completed" }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to complete exchange")
+      }
+
+      toast({
+        title: "Swap voltooid",
+        description: "De swap is gemarkeerd als voltooid.",
+      })
+
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: "Er is iets misgegaan",
+        description: error.message || "Kon de swap niet voltooien. Probeer het later opnieuw.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Stap 1: Pending - wacht op acceptatie door host
   if (exchange.status === "pending") {
     return (
       <div className="space-y-3">
@@ -314,7 +265,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     )
   }
 
-  // STAP 2: Accepted - beide partijen moeten bevestigen
+  // Stap 2: Accepted - beide partijen moeten bevestigen
   if (exchange.status === "accepted") {
     const userConfirmationStatus = isRequester
       ? exchange.requester_confirmation_status
@@ -337,8 +288,8 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
               <AlertDialogHeader>
                 <AlertDialogTitle>Swap bevestigen</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Door te bevestigen ga je akkoord met deze swap. Na wederzijdse bevestiging volgt de betaling van €50
-                  servicekosten en ID-verificatie.
+                  Door te bevestigen ga je akkoord met deze swap. Na wederzijdse bevestiging volgt de betaling en
+                  ID-verificatie.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -388,13 +339,8 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     )
   }
 
-  // STAP 3: Confirmed - betaling en ID verificatie
+  // Stap 3: Confirmed - ga naar betaling en verificatie
   if (exchange.status === "confirmed") {
-    const userPaymentStatus = isRequester ? exchange.requester_payment_status : exchange.host_payment_status
-    const userIdentityStatus = isRequester
-      ? exchange.requester_identity_verification_status
-      : exchange.host_identity_verification_status
-
     return (
       <div className="space-y-3">
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
@@ -402,42 +348,10 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
           <p className="text-gray-600 text-sm mt-1">Voltooi nu de betaling en ID-verificatie</p>
         </div>
 
-        {/* Betaling knop */}
-        {userPaymentStatus === "pending" && (
-          <Button
-            onClick={handlePayment}
-            disabled={isLoading}
-            className="w-full justify-start bg-green-600 hover:bg-green-700"
-          >
-            <CreditCard className="mr-2 h-4 w-4" />
-            {isLoading ? "Verwerken..." : "Betaal €50 servicekosten"}
-          </Button>
-        )}
-
-        {/* ID verificatie knop */}
-        {userPaymentStatus === "paid" && userIdentityStatus === "pending" && (
-          <Button
-            onClick={handleIdentityVerification}
-            disabled={isLoading}
-            className="w-full justify-start bg-blue-600 hover:bg-blue-700"
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            {isLoading ? "Verifiëren..." : "Verifieer je identiteit"}
-          </Button>
-        )}
-
-        {/* Status indicators */}
-        {userPaymentStatus === "paid" && (
-          <div className="p-2 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 text-xs">✓ Betaling voltooid</p>
-          </div>
-        )}
-
-        {userIdentityStatus === "verified" && (
-          <div className="p-2 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 text-xs">✓ Identiteit geverifieerd</p>
-          </div>
-        )}
+        <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700">
+          <CheckCircle className="mr-2 h-4 w-4" />
+          Ga naar betaling
+        </Button>
       </div>
     )
   }

@@ -10,7 +10,7 @@ const isValidUUID = (id: string) => {
   return uuidRegex.test(id)
 }
 
-// POST /api/exchanges/[id]/payment - Start betaling van servicekosten
+// POST /api/exchanges/[id]/payment - Betaal de servicekosten
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
@@ -41,51 +41,32 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "You are not involved in this exchange" }, { status: 403 })
     }
 
-    // Controleer of de uitwisseling bevestigd is
-    if (exchange.status !== "confirmed") {
-      return NextResponse.json({ error: "Exchange must be confirmed before payment" }, { status: 400 })
-    }
-
     // Bepaal welke rol de gebruiker heeft
     const isRequester = exchange.requester_id === session.user.id
     const paymentField = isRequester ? "requester_payment_status" : "host_payment_status"
-    const sessionField = isRequester ? "requester_payment_session_id" : "host_payment_session_id"
 
     // Controleer of de betaling al is gedaan
     if (exchange[paymentField] === "paid") {
       return NextResponse.json({ error: "Payment already completed" }, { status: 400 })
     }
 
-    // In een echte applicatie zou hier de Stripe Payment Intent worden aangemaakt
-    // Voor deze demo simuleren we het betalingsproces
-    const mockSessionId = `cs_${Math.random().toString(36).substr(2, 9)}`
+    // In een echte applicatie zou hier de betalingsverwerking plaatsvinden
+    // Voor deze demo markeren we de betaling gewoon als voltooid
 
-    // Update de sessie ID
-    await executeQuery(`UPDATE exchanges SET ${sessionField} = $1 WHERE id = $2`, [mockSessionId, exchangeId])
+    // Update de betalingsstatus
+    await executeQuery(`UPDATE exchanges SET ${paymentField} = $1 WHERE id = $2`, ["paid", exchangeId])
 
-    // Simuleer succesvolle betaling na 2 seconden (in productie zou dit via webhook gebeuren)
-    setTimeout(async () => {
-      try {
-        await executeQuery(`UPDATE exchanges SET ${paymentField} = $1 WHERE id = $2`, ["paid", exchangeId])
+    // Controleer of beide partijen hebben betaald
+    const updatedExchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
 
-        // Controleer of beide partijen hebben betaald
-        const updatedExchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
-        const updatedExchange = updatedExchanges[0]
+    const updatedExchange = updatedExchanges[0]
 
-        if (updatedExchange.requester_payment_status === "paid" && updatedExchange.host_payment_status === "paid") {
-          // Als beide partijen hebben betaald, update de status naar confirmed
-          await executeQuery("UPDATE exchanges SET status = $1 WHERE id = $2", ["confirmed", exchangeId])
-        }
-      } catch (error) {
-        console.error("Error updating payment status:", error)
-      }
-    }, 2000)
+    if (updatedExchange.requester_payment_status === "paid" && updatedExchange.host_payment_status === "paid") {
+      // Als beide partijen hebben betaald, update de status naar confirmed
+      await executeQuery("UPDATE exchanges SET status = $1 WHERE id = $2", ["confirmed", exchangeId])
+    }
 
-    return NextResponse.json({
-      sessionId: mockSessionId,
-      amount: 5000, // €50.00 in cents
-      redirectUrl: `/exchanges/${exchangeId}?payment=success`,
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error processing payment:", error)
     return NextResponse.json({ error: "Failed to process payment" }, { status: 500 })
