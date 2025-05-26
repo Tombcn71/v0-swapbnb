@@ -27,6 +27,7 @@ export interface Home {
   isOwner?: boolean
 }
 
+// Update de Exchange interface met alle nieuwe velden
 export interface Exchange {
   id: string
   requester_id: string
@@ -51,7 +52,7 @@ export interface Exchange {
   requester_identity_verification_status: "pending" | "verified" | "failed"
   host_identity_verification_status: "pending" | "verified" | "failed"
 
-  // Stripe session IDs
+  // Session IDs voor Stripe
   requester_identity_session_id?: string
   host_identity_session_id?: string
   requester_payment_session_id?: string
@@ -99,4 +100,15 @@ export interface Review {
   reviewer_profile_image?: string
   home_id?: string
   home_title?: string
+}
+
+// Voeg Availability interface toe
+export interface Availability {
+  id: string
+  home_id: string
+  start_date: string
+  end_date: string
+  status: "available" | "booked" | "blocked"
+  created_at: string
+  updated_at: string
 }

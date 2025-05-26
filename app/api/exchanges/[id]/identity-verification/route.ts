@@ -10,7 +10,7 @@ const isValidUUID = (id: string) => {
   return uuidRegex.test(id)
 }
 
-// POST /api/exchanges/[id]/payment - Start betaling van servicekosten
+// POST /api/exchanges/[id]/identity-verification - Start ID verificatie
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
@@ -43,51 +43,43 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Controleer of de uitwisseling bevestigd is
     if (exchange.status !== "confirmed") {
-      return NextResponse.json({ error: "Exchange must be confirmed before payment" }, { status: 400 })
+      return NextResponse.json({ error: "Exchange must be confirmed before identity verification" }, { status: 400 })
     }
 
     // Bepaal welke rol de gebruiker heeft
     const isRequester = exchange.requester_id === session.user.id
-    const paymentField = isRequester ? "requester_payment_status" : "host_payment_status"
-    const sessionField = isRequester ? "requester_payment_session_id" : "host_payment_session_id"
+    const verificationField = isRequester
+      ? "requester_identity_verification_status"
+      : "host_identity_verification_status"
+    const sessionField = isRequester ? "requester_identity_session_id" : "host_identity_session_id"
 
-    // Controleer of de betaling al is gedaan
-    if (exchange[paymentField] === "paid") {
-      return NextResponse.json({ error: "Payment already completed" }, { status: 400 })
+    // Controleer of de verificatie al is gedaan
+    if (exchange[verificationField] === "verified") {
+      return NextResponse.json({ error: "Identity verification already completed" }, { status: 400 })
     }
 
-    // In een echte applicatie zou hier de Stripe Payment Intent worden aangemaakt
-    // Voor deze demo simuleren we het betalingsproces
-    const mockSessionId = `cs_${Math.random().toString(36).substr(2, 9)}`
+    // In een echte applicatie zou hier de Stripe Identity sessie worden aangemaakt
+    // Voor deze demo simuleren we het proces
+    const mockSessionId = `is_${Math.random().toString(36).substr(2, 9)}`
 
     // Update de sessie ID
     await executeQuery(`UPDATE exchanges SET ${sessionField} = $1 WHERE id = $2`, [mockSessionId, exchangeId])
 
-    // Simuleer succesvolle betaling na 2 seconden (in productie zou dit via webhook gebeuren)
+    // Simuleer verificatie na 3 seconden (in productie zou dit via webhook gebeuren)
     setTimeout(async () => {
       try {
-        await executeQuery(`UPDATE exchanges SET ${paymentField} = $1 WHERE id = $2`, ["paid", exchangeId])
-
-        // Controleer of beide partijen hebben betaald
-        const updatedExchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
-        const updatedExchange = updatedExchanges[0]
-
-        if (updatedExchange.requester_payment_status === "paid" && updatedExchange.host_payment_status === "paid") {
-          // Als beide partijen hebben betaald, update de status naar confirmed
-          await executeQuery("UPDATE exchanges SET status = $1 WHERE id = $2", ["confirmed", exchangeId])
-        }
+        await executeQuery(`UPDATE exchanges SET ${verificationField} = $1 WHERE id = $2`, ["verified", exchangeId])
       } catch (error) {
-        console.error("Error updating payment status:", error)
+        console.error("Error updating verification status:", error)
       }
-    }, 2000)
+    }, 3000)
 
     return NextResponse.json({
       sessionId: mockSessionId,
-      amount: 5000, // €50.00 in cents
-      redirectUrl: `/exchanges/${exchangeId}?payment=success`,
+      redirectUrl: `/exchanges/${exchangeId}?verification=success`,
     })
   } catch (error) {
-    console.error("Error processing payment:", error)
-    return NextResponse.json({ error: "Failed to process payment" }, { status: 500 })
+    console.error("Error starting identity verification:", error)
+    return NextResponse.json({ error: "Failed to start identity verification" }, { status: 500 })
   }
 }
