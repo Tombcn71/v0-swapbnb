@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ChevronDown, User, Home, ArrowRightLeft, MessageSquare, Plus, LogOut, Search, Menu } from "lucide-react"
+import { ChevronDown, User, Home, ArrowRightLeft, MessageSquare, Plus, LogOut, Search, Menu, Heart } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import Link from "next/link"
 
@@ -16,6 +16,7 @@ export function UserSidebar() {
 
   const menuItems = [
     { icon: Home, label: "Mijn Woningen", href: "/homes" },
+    { icon: Heart, label: "Favoriete Woningen", href: "/favorites" },
     { icon: Search, label: "Woningen Zoeken", href: "/listings" },
     { icon: ArrowRightLeft, label: "Uitwisselingen", href: "/exchanges" },
     { icon: MessageSquare, label: "Berichten", href: "/messages" },
