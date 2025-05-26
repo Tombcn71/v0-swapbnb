@@ -46,7 +46,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
 
       toast({
         title: "Swap-verzoek geaccepteerd",
-        description: "Je hebt het swap-verzoek geaccepteerd. Beide partijen moeten nu de swap bevestigen.",
+        description: "Je hebt het swap-verzoek geaccepteerd. Plan nu een videocall om elkaar te leren kennen.",
       })
 
       router.refresh()
@@ -94,38 +94,6 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     }
   }
 
-  const handleConfirm = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/confirm`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to confirm exchange")
-      }
-
-      toast({
-        title: "Swap bevestigd",
-        description: "Je hebt de swap bevestigd. Zodra beide partijen bevestigen, volgt betaling en verificatie.",
-      })
-
-      router.refresh()
-    } catch (error: any) {
-      toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de swap niet bevestigen. Probeer het later opnieuw.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleCancel = async () => {
     setIsLoading(true)
     try {
@@ -153,39 +121,6 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
       toast({
         title: "Er is iets misgegaan",
         description: error.message || "Kon de swap niet annuleren. Probeer het later opnieuw.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleComplete = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: "completed" }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to complete exchange")
-      }
-
-      toast({
-        title: "Swap voltooid",
-        description: "De swap is gemarkeerd als voltooid.",
-      })
-
-      router.refresh()
-    } catch (error: any) {
-      toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de swap niet voltooien. Probeer het later opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -265,53 +200,17 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     )
   }
 
-  // Stap 2: Accepted - beide partijen moeten bevestigen
-  if (exchange.status === "accepted") {
-    const userConfirmationStatus = isRequester
-      ? exchange.requester_confirmation_status
-      : exchange.host_confirmation_status
-    const otherConfirmationStatus = isRequester
-      ? exchange.host_confirmation_status
-      : exchange.requester_confirmation_status
-
+  // Stap 2: Accepted - plan videocall (wordt getoond in VideocallScheduler component)
+  if (exchange.status === "accepted" || exchange.status === "videocall_scheduled") {
     return (
       <div className="space-y-3">
-        {userConfirmationStatus === "pending" ? (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Bevestig Swap
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Swap bevestigen</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Door te bevestigen ga je akkoord met deze swap. Na wederzijdse bevestiging volgt de betaling en
-                  ID-verificatie.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Terug</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleConfirm}
-                  disabled={isLoading}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isLoading ? "Bezig..." : "Bevestigen"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 text-sm">✓ Je hebt de swap bevestigd</p>
-            {otherConfirmationStatus === "pending" && (
-              <p className="text-gray-600 text-sm mt-1">Wacht op bevestiging van de andere partij...</p>
-            )}
-          </div>
-        )}
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-blue-800 text-sm">
+            {exchange.status === "accepted"
+              ? "✓ Swap geaccepteerd! Plan nu een videocall."
+              : "✓ Videocall gepland. Wacht op voltooiing."}
+          </p>
+        </div>
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -323,9 +222,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
-              <AlertDialogDescription>
-                Weet je zeker dat je deze swap wilt annuleren? Dit kan gevolgen hebben voor je reputatie.
-              </AlertDialogDescription>
+              <AlertDialogDescription>Weet je zeker dat je deze swap wilt annuleren?</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Terug</AlertDialogCancel>
@@ -339,18 +236,17 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     )
   }
 
-  // Stap 3: Confirmed - ga naar betaling en verificatie
-  if (exchange.status === "confirmed") {
+  // Stap 3: Videocall voltooid - ga naar betaling
+  if (exchange.status === "videocall_completed") {
     return (
       <div className="space-y-3">
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-blue-800 text-sm">✓ Swap bevestigd door beide partijen</p>
-          <p className="text-gray-600 text-sm mt-1">Voltooi nu de betaling en ID-verificatie</p>
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-green-800 text-sm">✓ Videocall voltooid! Ga nu door naar betaling en ID-verificatie.</p>
         </div>
 
         <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700">
           <CheckCircle className="mr-2 h-4 w-4" />
-          Ga naar betaling
+          Ga naar betaling (€20)
         </Button>
       </div>
     )

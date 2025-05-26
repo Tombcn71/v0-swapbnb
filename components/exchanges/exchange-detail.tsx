@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ExchangeActions } from "./exchange-actions"
+import { VideocallScheduler } from "./videocall-scheduler"
 import { ExchangePayment } from "./exchange-payment"
 import { Calendar, MapPin, Users, MessageSquare } from "lucide-react"
 import type { Exchange } from "@/lib/types"
@@ -20,8 +21,12 @@ export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
         return <Badge className="bg-yellow-100 text-yellow-800">⏳ In afwachting</Badge>
       case "accepted":
         return <Badge className="bg-blue-100 text-blue-800">✓ Geaccepteerd</Badge>
-      case "confirmed":
-        return <Badge className="bg-green-100 text-green-800">✓ Bevestigd</Badge>
+      case "videocall_scheduled":
+        return <Badge className="bg-purple-100 text-purple-800">📹 Videocall gepland</Badge>
+      case "videocall_completed":
+        return <Badge className="bg-green-100 text-green-800">✓ Videocall voltooid</Badge>
+      case "payment_pending":
+        return <Badge className="bg-orange-100 text-orange-800">💳 Betaling in behandeling</Badge>
       case "completed":
         return <Badge className="bg-green-100 text-green-800">✓ Voltooid</Badge>
       case "rejected":
@@ -47,13 +52,21 @@ export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
       case 1:
         return exchange.status !== "pending" ? "completed" : "current"
       case 2:
-        return exchange.status === "accepted" || exchange.status === "confirmed" || exchange.status === "completed"
+        return exchange.status === "accepted" ||
+          exchange.status === "videocall_scheduled" ||
+          exchange.status === "videocall_completed" ||
+          exchange.status === "payment_pending" ||
+          exchange.status === "completed"
           ? "completed"
           : exchange.status === "pending"
             ? "pending"
             : "current"
       case 3:
-        return exchange.status === "confirmed" || exchange.status === "completed" ? "completed" : "pending"
+        return exchange.status === "videocall_completed" ||
+          exchange.status === "payment_pending" ||
+          exchange.status === "completed"
+          ? "completed"
+          : "pending"
       case 4:
         return exchange.status === "completed" ? "completed" : "pending"
       default:
@@ -99,8 +112,8 @@ export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
         <CardContent className="space-y-4">
           <StepIndicator step={1} title="Swap aangevraagd" status={getStepStatus(1)} />
           <StepIndicator step={2} title="Geaccepteerd door gastheer" status={getStepStatus(2)} />
-          <StepIndicator step={3} title="Bevestigd door beide partijen" status={getStepStatus(3)} />
-          <StepIndicator step={4} title="Betaling & verificatie voltooid" status={getStepStatus(4)} />
+          <StepIndicator step={3} title="Videocall voltooid" status={getStepStatus(3)} />
+          <StepIndicator step={4} title="Betaling & ID-verificatie voltooid" status={getStepStatus(4)} />
         </CardContent>
       </Card>
 
@@ -218,10 +231,11 @@ export function ExchangeDetail({ exchange, isRequester }: ExchangeDetailProps) {
         </CardContent>
       </Card>
 
-      {/* Betaling & Verificatie (alleen als geaccepteerd of bevestigd) */}
-      {(exchange.status === "accepted" || exchange.status === "confirmed") && (
-        <ExchangePayment exchange={exchange} isRequester={isRequester} />
-      )}
+      {/* Videocall Planning */}
+      <VideocallScheduler exchange={exchange} isRequester={isRequester} />
+
+      {/* Betaling & Verificatie (alleen na videocall) */}
+      {exchange.status === "videocall_completed" && <ExchangePayment exchange={exchange} isRequester={isRequester} />}
     </div>
   )
 }

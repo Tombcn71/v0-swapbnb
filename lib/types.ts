@@ -37,13 +37,22 @@ export interface Exchange {
   end_date: string
   guests: number
   message?: string
-  status: "pending" | "accepted" | "rejected" | "confirmed" | "completed" | "cancelled"
+  status:
+    | "pending"
+    | "accepted"
+    | "videocall_scheduled"
+    | "videocall_completed"
+    | "payment_pending"
+    | "completed"
+    | "rejected"
+    | "cancelled"
 
-  // Bevestiging statussen
-  requester_confirmation_status: "pending" | "confirmed"
-  host_confirmation_status: "pending" | "confirmed"
+  // Videocall informatie
+  videocall_scheduled_at?: string
+  videocall_link?: string
+  videocall_completed_at?: string
 
-  // Betaling statussen
+  // Betaling statussen (vereenvoudigd)
   requester_payment_status: "pending" | "paid" | "failed"
   host_payment_status: "pending" | "paid" | "failed"
 
@@ -61,7 +70,7 @@ export interface Exchange {
   created_at: string
   updated_at: string
   accepted_at?: string
-  confirmed_at?: string
+  completed_at?: string
 
   // Uitgebreide informatie (optioneel, voor joins)
   requester_home_title?: string
