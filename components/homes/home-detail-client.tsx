@@ -8,7 +8,6 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Users, MapPin, Wifi, Car, Utensils, Tv, Coffee } from "lucide-react"
 import { format } from "date-fns"
-import { nl } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -39,7 +38,7 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
     if (!session) {
       toast({
         title: "Je moet ingelogd zijn",
-        description: "Log in om contact op te nemen met de eigenaar.",
+        description: "Log in om een swap aan te vragen.",
         variant: "destructive",
       })
       router.push("/login")
@@ -67,46 +66,61 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("/api/messages", {
+      // Eerst haal de huizen van de gebruiker op
+      const userHomesResponse = await fetch("/api/homes/user")
+      if (!userHomesResponse.ok) {
+        throw new Error("Kon je huizen niet ophalen")
+      }
+      const userHomes = await userHomesResponse.json()
+
+      if (userHomes.length === 0) {
+        toast({
+          title: "Geen huizen gevonden",
+          description: "Je moet eerst een huis toevoegen om te kunnen ruilen.",
+          variant: "destructive",
+        })
+        router.push("/homes/new")
+        return
+      }
+
+      // Gebruik het eerste huis van de gebruiker
+      const userHomeId = userHomes[0].id
+
+      const response = await fetch("/api/exchanges", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          recipientId: home.user_id,
-          homeId: home.id,
-          content: `Hallo! Ik ben geïnteresseerd in je woning "${home.title}".
-
-Aankomst: ${format(checkIn, "d MMMM yyyy", { locale: nl })}
-Vertrek: ${format(checkOut, "d MMMM yyyy", { locale: nl })}
-Aantal gasten: ${guests}
-
-${message}
-
-Groeten,
-${session.user?.name}`,
+          requesterHomeId: userHomeId,
+          hostHomeId: home.id,
+          hostId: home.user_id,
+          startDate: format(checkIn, "yyyy-MM-dd"),
+          endDate: format(checkOut, "yyyy-MM-dd"),
+          guests: guests,
+          message: message,
         }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to send message")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create exchange")
       }
 
+      const exchange = await response.json()
+
       toast({
-        title: "Bericht verzonden!",
-        description: "Je bericht is succesvol verzonden naar de eigenaar.",
+        title: "Swap aanvraag verzonden!",
+        description: "Je aanvraag is succesvol verzonden naar de eigenaar.",
       })
 
-      // Reset form
-      setCheckIn(undefined)
-      setCheckOut(undefined)
-      setGuests(1)
-      setMessage("")
+      // Redirect naar de exchange pagina
+      router.push(`/exchanges/${exchange.id}`)
     } catch (error) {
-      console.error("Error sending message:", error)
+      console.error("Error creating exchange:", error)
       toast({
         title: "Fout",
-        description: "Er is een fout opgetreden. Probeer het opnieuw.",
+        description: error.message || "Er is een fout opgetreden. Probeer het opnieuw.",
         variant: "destructive",
       })
     } finally {
