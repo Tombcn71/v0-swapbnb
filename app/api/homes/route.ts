@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
     const endDate = url.searchParams.get("endDate")
     const amenities = url.searchParams.get("amenities")?.split(",") || []
 
+    console.log("API filters applied:", { city, minBedrooms, maxBedrooms, minGuests, startDate, endDate, amenities })
+
     let query = `
       SELECT h.*, u.name as owner_name, u.profile_image as owner_profile_image
       FROM homes h
@@ -71,11 +73,14 @@ export async function GET(request: NextRequest) {
 
     query += " ORDER BY h.created_at DESC"
 
-    console.log("Executing homes query:", query)
-    console.log("With params:", params)
+    console.log("Final query:", query)
+    console.log("Query params:", params)
 
     const homes = await executeQuery(query, params)
-    console.log(`Found ${homes.length} homes`)
+    console.log(
+      `Database returned ${homes.length} homes:`,
+      homes.map((h) => ({ id: h.id, title: h.title, city: h.city })),
+    )
 
     return NextResponse.json(homes)
   } catch (error) {
