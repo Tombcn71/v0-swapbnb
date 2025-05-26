@@ -6,7 +6,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { CalendarIcon, Users, MapPin, Wifi, Car, Utensils, Tv, Coffee } from "lucide-react"
+import { Users, MapPin, Wifi, Car, Utensils, Tv, Coffee } from "lucide-react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
@@ -14,10 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
 
 interface HomeDetailClientProps {
   home: any
@@ -166,7 +163,9 @@ ${session.user?.name}`,
             <h1 className="text-3xl font-bold mb-4">{home.title}</h1>
             <div className="flex items-center text-gray-600 mb-4">
               <MapPin className="h-5 w-5 mr-2" />
-              <span>{home.location}</span>
+              <span>
+                {home.address}, {home.city}
+              </span>
             </div>
             <p className="text-gray-700 mb-6">{home.description}</p>
 
@@ -226,60 +225,34 @@ ${session.user?.name}`,
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Datum selectie */}
+                  {/* Datum selectie - vervang de complexe Popover sectie met: */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Aankomst</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !checkIn && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkIn ? format(checkIn, "d MMM yyyy", { locale: nl }) : "Selecteer datum"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={checkIn}
-                            onSelect={setCheckIn}
-                            disabled={(date) => date < new Date()}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Label htmlFor="checkin">Aankomst</Label>
+                      <Input
+                        id="checkin"
+                        type="date"
+                        value={checkIn ? format(checkIn, "yyyy-MM-dd") : ""}
+                        onChange={(e) => setCheckIn(e.target.value ? new Date(e.target.value) : undefined)}
+                        min={format(new Date(), "yyyy-MM-dd")}
+                        className="w-full"
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Vertrek</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !checkOut && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {checkOut ? format(checkOut, "d MMM yyyy", { locale: nl }) : "Selecteer datum"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={checkOut}
-                            onSelect={setCheckOut}
-                            disabled={(date) => date < new Date() || (checkIn && date <= checkIn)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Label htmlFor="checkout">Vertrek</Label>
+                      <Input
+                        id="checkout"
+                        type="date"
+                        value={checkOut ? format(checkOut, "yyyy-MM-dd") : ""}
+                        onChange={(e) => setCheckOut(e.target.value ? new Date(e.target.value) : undefined)}
+                        min={
+                          checkIn
+                            ? format(new Date(checkIn.getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd")
+                            : format(new Date(), "yyyy-MM-dd")
+                        }
+                        className="w-full"
+                      />
                     </div>
                   </div>
 
