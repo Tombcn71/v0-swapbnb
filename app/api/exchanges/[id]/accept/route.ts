@@ -10,23 +10,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Simuleer Stripe betaling
-    // In productie zou je hier Stripe Payment Intent maken
-
-    // Update exchange status
+    // Update exchange status naar accepted
     await executeQuery(
       `UPDATE exchanges 
-       SET status = 'completed'
-       WHERE id = $1 AND (requester_id = $2 OR host_id = $2)`,
+       SET status = 'accepted', accepted_at = NOW() 
+       WHERE id = $1 AND host_id = $2`,
       [params.id, session.user.id],
     )
 
-    return NextResponse.json({
-      success: true,
-      message: "Betaling succesvol verwerkt",
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error processing payment:", error)
+    console.error("Error accepting exchange:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
