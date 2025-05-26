@@ -111,7 +111,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
 
       toast({
         title: "Swap bevestigd",
-        description: "Je hebt de swap bevestigd. Wacht tot de andere partij ook bevestigt.",
+        description: "Je hebt de swap bevestigd. Zodra beide partijen bevestigen, volgt betaling en verificatie.",
       })
 
       router.refresh()
