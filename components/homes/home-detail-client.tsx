@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Edit, Trash2, User, Calendar, Users, Home, ArrowLeft, MessageCircle } from "lucide-react"
+import { Edit, Trash2, User, Calendar, Users, Home, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -20,7 +20,6 @@ import { HomeGallery } from "@/components/homes/home-gallery"
 import { HomeAmenities } from "@/components/homes/home-amenities"
 import { HomeMap } from "@/components/homes/home-map"
 import { HomeExchanges } from "@/components/homes/home-exchanges"
-import { HomeContact } from "@/components/homes/home-contact"
 import type { Home as HomeType } from "@/lib/types"
 
 interface HomeDetailClientProps {
@@ -34,7 +33,6 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
   const { toast } = useToast()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [showContactForm, setShowContactForm] = useState(false)
 
   async function deleteHome() {
     if (!isOwner) return
@@ -166,20 +164,11 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
             </CardHeader>
             <CardContent>
               {!isOwner && userId ? (
-                <div className="space-y-4">
-                  <div className="text-center py-4">
-                    <p className="mb-4">Geïnteresseerd in een huizenruil?</p>
-                    <Button asChild className="w-full mb-2">
-                      <Link href={`/homes/${home.id}/swap-request`}>Swap aanvragen</Link>
-                    </Button>
-                    <Button variant="outline" onClick={() => setShowContactForm(true)} className="w-full">
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Contact opnemen
-                    </Button>
-                  </div>
-                  {showContactForm && (
-                    <HomeContact homeId={home.id} ownerId={home.user_id} onSuccess={() => setShowContactForm(false)} />
-                  )}
+                <div className="text-center py-4">
+                  <p className="mb-4">Geïnteresseerd in een huizenruil?</p>
+                  <Button asChild className="w-full">
+                    <Link href={`/homes/${home.id}/swap-request`}>Swap aanvragen</Link>
+                  </Button>
                 </div>
               ) : !userId ? (
                 <div className="text-center py-4">
