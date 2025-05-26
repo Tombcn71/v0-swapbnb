@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -10,24 +11,32 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Calendar, MapPin } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import type { Exchange } from "@/lib/types"
 
 export function DashboardExchanges() {
-  const [exchanges, setExchanges] = useState<Exchange[]>([])
+  const { data: session, status } = useSession()
+  const [exchanges, setExchanges] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
 
   useEffect(() => {
+    if (status === "loading") return
+    if (!session) {
+      setIsLoading(false)
+      return
+    }
+
     const fetchExchanges = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch("/api/exchanges?type=upcoming")
+        const response = await fetch("/api/exchanges")
         if (!response.ok) {
           throw new Error("Failed to fetch exchanges")
         }
 
         const data = await response.json()
-        setExchanges(data)
+        // Filter alleen geaccepteerde exchanges voor dashboard
+        const acceptedExchanges = data.filter((exchange: any) => exchange.status === "accepted")
+        setExchanges(acceptedExchanges)
       } catch (error) {
         console.error("Error fetching exchanges:", error)
         toast({
@@ -41,9 +50,9 @@ export function DashboardExchanges() {
     }
 
     fetchExchanges()
-  }, [toast])
+  }, [session, status, toast])
 
-  if (isLoading) {
+  if (status === "loading" || isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -55,6 +64,16 @@ export function DashboardExchanges() {
               <div className="h-9 bg-gray-200 rounded w-24"></div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!session) {
+    return (
+      <Card>
+        <CardContent className="pt-6 text-center">
+          <p className="text-gray-600 py-8">Log in om je swaps te bekijken</p>
         </CardContent>
       </Card>
     )
@@ -81,8 +100,11 @@ export function DashboardExchanges() {
         <Card key={exchange.id} className="overflow-hidden">
           <div className="relative h-48 w-full">
             <Image
-              src={`/abstract-geometric-shapes.png?height=400&width=600&query=${exchange.homeTitle}`}
-              alt={exchange.homeTitle}
+              src={
+                exchange.host_home_images?.[0] ||
+                `/placeholder.svg?height=400&width=600&query=${exchange.host_home_title}`
+              }
+              alt={exchange.host_home_title || "Woning"}
               fill
               className="object-cover"
             />
@@ -91,16 +113,16 @@ export function DashboardExchanges() {
             </div>
           </div>
           <CardContent className="p-4">
-            <h3 className="font-semibold text-lg mb-2">{exchange.homeTitle}</h3>
+            <h3 className="font-semibold text-lg mb-2">{exchange.host_home_title}</h3>
             <div className="flex items-center text-gray-600 mb-3">
               <MapPin className="h-4 w-4 mr-1" />
-              <span>{exchange.homeCity}</span>
+              <span>{exchange.host_home_city}</span>
             </div>
             <div className="flex items-center text-gray-600 mb-3">
               <Calendar className="h-4 w-4 mr-1" />
               <span className="text-sm">
-                {format(new Date(exchange.startDate), "d MMMM yyyy", { locale: nl })} -{" "}
-                {format(new Date(exchange.endDate), "d MMMM yyyy", { locale: nl })}
+                {format(new Date(exchange.start_date), "d MMMM yyyy", { locale: nl })} -{" "}
+                {format(new Date(exchange.end_date), "d MMMM yyyy", { locale: nl })}
               </span>
             </div>
           </CardContent>
