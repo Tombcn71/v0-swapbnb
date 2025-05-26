@@ -55,34 +55,51 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Exchange must be accepted before it can be confirmed" }, { status: 400 })
     }
 
-    // Bepaal of de gebruiker de aanvrager of gastheer is
+    // Bepaal of de gebruiker de requester of host is
     const isRequester = exchange.requester_id === userId
-    const confirmationField = isRequester ? "requester_confirmation_status" : "host_confirmation_status"
+    const isHost = exchange.host_id === userId
 
-    // Controleer of de gebruiker al heeft bevestigd
-    if (exchange[confirmationField] === "confirmed") {
-      return NextResponse.json({ error: "You have already confirmed this exchange" }, { status: 400 })
+    if (!isRequester && !isHost) {
+      return NextResponse.json({ error: "You are not part of this exchange" }, { status: 403 })
     }
 
-    // Update de bevestigingsstatus
-    await executeQuery(`UPDATE exchanges SET ${confirmationField} = 'confirmed', updated_at = NOW() WHERE id = $1`, [
-      exchangeId,
-    ])
+    // Update de juiste bevestigingsstatus
+    let updateQuery = ""
+    if (isRequester) {
+      // Controleer of al bevestigd
+      if (exchange.requester_confirmation_status === "confirmed") {
+        return NextResponse.json({ error: "You have already confirmed this exchange" }, { status: 400 })
+      }
+      updateQuery = "UPDATE exchanges SET requester_confirmation_status = 'confirmed', updated_at = NOW() WHERE id = $1"
+    } else {
+      // Controleer of al bevestigd
+      if (exchange.host_confirmation_status === "confirmed") {
+        return NextResponse.json({ error: "You have already confirmed this exchange" }, { status: 400 })
+      }
+      updateQuery = "UPDATE exchanges SET host_confirmation_status = 'confirmed', updated_at = NOW() WHERE id = $1"
+    }
 
-    // Controleer of beide partijen hebben bevestigd
+    // Voer de update uit
+    await executeQuery(updateQuery, [exchangeId])
+
+    // Haal de bijgewerkte uitwisseling op
     const updatedExchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
 
     const updatedExchange = updatedExchanges[0]
 
-    // Als beide partijen hebben bevestigd, update de status naar "confirmed"
+    // Controleer of beide partijen hebben bevestigd
     if (
       updatedExchange.requester_confirmation_status === "confirmed" &&
       updatedExchange.host_confirmation_status === "confirmed"
     ) {
-      await executeQuery("UPDATE exchanges SET status = 'confirmed', confirmed_at = NOW() WHERE id = $1", [exchangeId])
+      // Update de status naar confirmed
+      await executeQuery(
+        "UPDATE exchanges SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW() WHERE id = $1",
+        [exchangeId],
+      )
     }
 
-    // Haal de bijgewerkte uitwisseling op met alle details
+    // Haal de definitieve uitwisseling op met alle details
     const finalExchanges = await executeQuery(
       `SELECT e.*, 
               rh.title as requester_home_title, rh.city as requester_home_city, rh.images as requester_home_images,
