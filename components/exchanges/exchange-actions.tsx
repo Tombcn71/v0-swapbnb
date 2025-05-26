@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { MessageSquare, Ban, CheckCircle, X, CreditCard } from "lucide-react"
+import { MessageSquare, Ban, CheckCircle, X } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeActionsProps {
@@ -128,47 +128,6 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     }
   }
 
-  const handlePayment = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create payment session")
-      }
-
-      const { url } = await response.json()
-
-      toast({
-        title: "Doorsturen naar betaling",
-        description: "Je wordt doorgestuurd naar Stripe voor de betaling...",
-      })
-
-      // Voor demo: simuleer redirect
-      setTimeout(() => {
-        toast({
-          title: "Betaling succesvol!",
-          description: "Je swap fee van €20 is betaald. Nu kun je je identiteit verifiëren.",
-        })
-        router.refresh()
-      }, 3000)
-    } catch (error: any) {
-      toast({
-        title: "Betaling mislukt",
-        description: error.message || "Er is iets misgegaan met de betaling. Probeer het opnieuw.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   // Stap 1: Pending - wacht op acceptatie door host
   if (exchange.status === "pending") {
     return (
@@ -241,7 +200,7 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     )
   }
 
-  // Stap 2: Accepted - plan videocall (wordt getoond in VideocallScheduler component)
+  // Stap 2: Accepted - plan videocall
   if (exchange.status === "accepted" || exchange.status === "videocall_scheduled") {
     return (
       <div className="space-y-3">
@@ -277,32 +236,14 @@ export function ExchangeActions({ exchange, isRequester }: ExchangeActionsProps)
     )
   }
 
-  // Stap 3: Videocall voltooid - ga naar betaling
+  // Stap 3: Videocall voltooid - alleen status tonen
   if (exchange.status === "videocall_completed") {
-    const userPaymentStatus = isRequester ? exchange.requester_payment_status : exchange.host_payment_status
-
     return (
       <div className="space-y-3">
         <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-          <p className="text-green-800 text-sm">✓ Videocall voltooid! Ga nu door naar betaling en ID-verificatie.</p>
+          <p className="text-green-800 text-sm">✓ Videocall voltooid!</p>
+          <p className="text-gray-600 text-sm mt-1">Ga naar de betaling sectie hieronder om door te gaan.</p>
         </div>
-
-        {userPaymentStatus === "pending" && (
-          <Button
-            onClick={handlePayment}
-            disabled={isLoading}
-            className="w-full justify-start bg-blue-600 hover:bg-blue-700"
-          >
-            <CreditCard className="mr-2 h-4 w-4" />
-            {isLoading ? "Bezig..." : "Betaal swap fee (€20)"}
-          </Button>
-        )}
-
-        {userPaymentStatus === "paid" && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 text-sm">✓ Betaling voltooid! Verifieer nu je identiteit.</p>
-          </div>
-        )}
       </div>
     )
   }
