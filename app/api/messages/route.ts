@@ -130,9 +130,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    // Voeg bericht toe aan database
+    // Voeg bericht toe aan database - gebruik receiver_id in plaats van recipient_id
     const result = await sql`
-      INSERT INTO messages (sender_id, recipient_id, home_id, content, created_at)
+      INSERT INTO messages (sender_id, receiver_id, exchange_id, content, created_at)
       VALUES (${session.user.id}, ${recipientId}, ${homeId}, ${content}, NOW())
       RETURNING id, created_at
     `
