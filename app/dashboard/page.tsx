@@ -2,7 +2,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { DashboardNav } from "@/components/dashboard/dashboard-nav"
 import { DashboardExchanges } from "@/components/dashboard/dashboard-exchanges"
 import { DashboardFavorites } from "@/components/dashboard/dashboard-favorites"
 import { MessageSquare, User, Plus, Home, MapPin } from "lucide-react"
@@ -36,11 +35,9 @@ export default async function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-2">Welkom {userName}!</h1>
-      <p className="text-gray-600 mb-6">Beheer je woning, uitwisselingen en berichten op één plek.</p>
+      <p className="text-gray-600 mb-8">Beheer je woning, uitwisselingen en berichten op één plek.</p>
 
-      <DashboardNav currentPage="dashboard" />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Mijn Woning</CardTitle>
@@ -53,7 +50,7 @@ export default async function DashboardPage() {
                     src={
                       userHome.images && Array.isArray(userHome.images) && userHome.images.length > 0
                         ? userHome.images[0]
-                        : `/abstract-geometric-shapes.png?height=400&width=600&query=${userHome.title}`
+                        : `/placeholder.svg?height=400&width=600&query=${userHome.title}`
                     }
                     alt={userHome.title}
                     fill
