@@ -34,8 +34,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-// PUT /api/homes/[id] - Update een woning (alleen voor de eigenaar)
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+// PATCH /api/homes/[id] - Update een woning (alleen voor de eigenaar)
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -97,6 +97,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     console.error("Error updating home:", error)
     return NextResponse.json({ error: "Failed to update home" }, { status: 500 })
   }
+}
+
+// PUT /api/homes/[id] - Update een woning (alleen voor de eigenaar) - Alias voor PATCH
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  return PATCH(request, { params })
 }
 
 // DELETE /api/homes/[id] - Verwijder een woning (alleen voor de eigenaar)
