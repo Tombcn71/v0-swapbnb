@@ -15,10 +15,10 @@ export function UserSidebar() {
   if (!session?.user) return null
 
   const menuItems = [
-    { icon: Home, label: "Mijn Woning", href: "/my-homes" },
+    { icon: Home, label: "Mijn Woning", href: "/my-homes" },   
+    { icon: ArrowRightLeft, label: "Mijn swaps", href: "/exchanges" },
     { icon: Heart, label: "Favoriete Woningen", href: "/favorites" },
     { icon: Search, label: "Woningen Zoeken", href: "/listings" },
-    { icon: ArrowRightLeft, label: "Uitwisselingen", href: "/exchanges" },
     { icon: MessageSquare, label: "Berichten", href: "/messages" },
     { icon: User, label: "Profiel", href: "/profile" },
     { icon: Plus, label: "Woning Toevoegen", href: "/homes/new" },
