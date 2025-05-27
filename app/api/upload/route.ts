@@ -29,9 +29,9 @@ export async function POST(request: Request) {
     }
 
     // Genereer een unieke bestandsnaam
-    const fileName = `profile-${session.user.id}-${Date.now()}.${file.type.split("/")[1]}`
+    const fileName = `home-${session.user.id}-${Date.now()}.${file.type.split("/")[1]}`
 
-    // Upload naar Vercel Blob
+    // Upload naar Vercel Blob - gebruik de file direct, niet formData
     const blob = await put(fileName, file, {
       access: "public",
     })
