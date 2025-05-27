@@ -14,7 +14,27 @@ export async function GET() {
     const userId = session.user.id
 
     // Haal alle huizen van de gebruiker op
-    const homes = await executeQuery(`SELECT * FROM homes WHERE user_id = $1 ORDER BY created_at DESC`, [userId])
+    const homes = await executeQuery(
+      `
+      SELECT 
+        id,
+        title,
+        description,
+        location,
+        price_per_night,
+        bedrooms,
+        bathrooms,
+        max_guests,
+        amenities,
+        images,
+        created_at,
+        updated_at
+      FROM homes 
+      WHERE user_id = $1 
+      ORDER BY created_at DESC
+    `,
+      [userId],
+    )
 
     return NextResponse.json(homes)
   } catch (error) {
