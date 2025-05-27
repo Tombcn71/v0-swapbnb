@@ -17,8 +17,11 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Zoek de gebruiker op basis van e-mail
-          const users = await executeQuery("SELECT * FROM users WHERE email = $1", [credentials.email])
+          // Zoek de gebruiker op basis van e-mail EN haal profile_image op
+          const users = await executeQuery(
+            "SELECT id, name, email, password_hash, profile_image FROM users WHERE email = $1",
+            [credentials.email],
+          )
 
           if (users.length === 0) {
             console.log("Gebruiker niet gevonden:", credentials.email)
@@ -34,12 +37,12 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          // Geef de gebruikersgegevens terug
+          // Geef de gebruikersgegevens terug MET profile_image
           return {
             id: user.id,
             name: user.name,
             email: user.email,
-            image: user.image || null,
+            image: user.profile_image || null, // Gebruik profile_image als image
           }
         } catch (error) {
           console.error("Fout bij autorisatie:", error)
@@ -58,8 +61,21 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.name = user.name
         token.email = user.email
-        token.picture = user.image
+        token.picture = user.image // profile_image wordt hier opgeslagen
       }
+
+      // Refresh profile_image bij elke JWT call
+      if (token.email) {
+        try {
+          const users = await executeQuery("SELECT profile_image FROM users WHERE email = $1", [token.email])
+          if (users.length > 0) {
+            token.picture = users[0].profile_image || null
+          }
+        } catch (error) {
+          console.error("Fout bij ophalen profile_image:", error)
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -67,7 +83,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.name = token.name as string
         session.user.email = token.email as string
-        session.user.image = token.picture as string | null
+        session.user.image = token.picture as string | null // profile_image komt hier terecht
       }
       return session
     },
