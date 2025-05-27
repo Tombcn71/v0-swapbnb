@@ -24,6 +24,9 @@ export function UserSidebar() {
     { icon: Plus, label: "Woning Toevoegen", href: "/homes/new" },
   ]
 
+  // Gebruik profile_image uit de session
+  const profileImage = session.user.profile_image || session.user.image
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -38,7 +41,7 @@ export function UserSidebar() {
         {/* Desktop: Hi, Name dropdown with profile photo */}
         <Button variant="ghost" className="hidden sm:flex items-center gap-2 px-3 py-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={session.user.image || ""} alt={session.user.name || "User"} className="object-cover" />
+            <AvatarImage src={profileImage || ""} alt={session.user.name || "User"} className="object-cover" />
             <AvatarFallback className="bg-blue-500 text-white">
               {session.user.name?.charAt(0)?.toUpperCase() || "U"}
             </AvatarFallback>
@@ -52,7 +55,7 @@ export function UserSidebar() {
         <SheetHeader className="pb-6">
           <div className="flex items-center gap-3">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={session.user.image || ""} alt={session.user.name || "User"} className="object-cover" />
+              <AvatarImage src={profileImage || ""} alt={session.user.name || "User"} className="object-cover" />
               <AvatarFallback className="bg-blue-500 text-white text-lg">
                 {session.user.name?.charAt(0)?.toUpperCase() || "U"}
               </AvatarFallback>
