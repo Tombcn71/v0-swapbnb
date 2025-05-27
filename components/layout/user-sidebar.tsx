@@ -15,8 +15,8 @@ export function UserSidebar() {
   if (!session?.user) return null
 
   const menuItems = [
-    { icon: Home, label: "Mijn Woning", href: "/my-homes" },   
-    { icon: ArrowRightLeft, label: "Mijn swaps", href: "/exchanges" },
+    { icon: Home, label: "Mijn Woning", href: "/my-homes" },
+    { icon: ArrowRightLeft, label: "Mijn Swaps", href: "/exchanges" },
     { icon: Heart, label: "Favoriete Woningen", href: "/favorites" },
     { icon: Search, label: "Woningen Zoeken", href: "/listings" },
     { icon: MessageSquare, label: "Berichten", href: "/messages" },
@@ -35,11 +35,13 @@ export function UserSidebar() {
       </SheetTrigger>
 
       <SheetTrigger asChild>
-        {/* Desktop: Hi, Name dropdown */}
+        {/* Desktop: Hi, Name dropdown with profile photo */}
         <Button variant="ghost" className="hidden sm:flex items-center gap-2 px-3 py-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={session.user.image || ""} />
-            <AvatarFallback>{session.user.name?.charAt(0) || "U"}</AvatarFallback>
+            <AvatarImage src={session.user.image || ""} alt={session.user.name || "User"} className="object-cover" />
+            <AvatarFallback className="bg-blue-500 text-white">
+              {session.user.name?.charAt(0)?.toUpperCase() || "U"}
+            </AvatarFallback>
           </Avatar>
           <span>Hi, {session.user.name}</span>
           <ChevronDown className="h-4 w-4" />
@@ -50,11 +52,14 @@ export function UserSidebar() {
         <SheetHeader className="pb-6">
           <div className="flex items-center gap-3">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={session.user.image || ""} />
-              <AvatarFallback className="text-lg">{session.user.name?.charAt(0) || "U"}</AvatarFallback>
+              <AvatarImage src={session.user.image || ""} alt={session.user.name || "User"} className="object-cover" />
+              <AvatarFallback className="bg-blue-500 text-white text-lg">
+                {session.user.name?.charAt(0)?.toUpperCase() || "U"}
+              </AvatarFallback>
             </Avatar>
             <div>
               <SheetTitle className="text-left">{session.user.name}</SheetTitle>
+              <p className="text-sm text-muted-foreground">{session.user.email}</p>
             </div>
           </div>
         </SheetHeader>
