@@ -89,11 +89,11 @@ export function AddHomeForm() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
 
-        // Upload via de API route in plaats van direct naar Vercel Blob
+        // Upload via de specifieke API route voor woning foto's
         const formData = new FormData()
         formData.append("file", file)
 
-        const response = await fetch("/api/upload", {
+        const response = await fetch("/api/upload/homes", {
           method: "POST",
           body: formData,
         })

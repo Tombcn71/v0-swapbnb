@@ -31,10 +31,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "File size must be less than 5MB" }, { status: 400 })
     }
 
-    // Genereer een unieke bestandsnaam
+    // Genereer een unieke bestandsnaam voor woning foto's
     const fileName = `home-${session.user.id}-${Date.now()}.${file.type.split("/")[1]}`
 
-    console.log("Uploading file:", fileName, "Size:", file.size, "Type:", file.type)
+    console.log("Uploading home image:", fileName, "Size:", file.size, "Type:", file.type)
 
     // Upload naar Vercel Blob
     const blob = await put(fileName, file.stream(), {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: blob.url })
   } catch (error) {
-    console.error("Error uploading file:", error)
+    console.error("Error uploading home image:", error)
     return NextResponse.json(
       {
         error: "Failed to upload file",
