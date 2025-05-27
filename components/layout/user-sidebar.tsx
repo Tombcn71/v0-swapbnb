@@ -15,7 +15,7 @@ export function UserSidebar() {
   if (!session?.user) return null
 
   const menuItems = [
-    { icon: Home, label: "Mijn Woningen", href: "/homes" },
+    { icon: Home, label: "Mijn Woningen", href: "/my-homes" },
     { icon: Heart, label: "Favoriete Woningen", href: "/favorites" },
     { icon: Search, label: "Woningen Zoeken", href: "/listings" },
     { icon: ArrowRightLeft, label: "Uitwisselingen", href: "/exchanges" },
