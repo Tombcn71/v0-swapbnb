@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { Calendar } from "@/components/ui/calendar"
 
 interface HomeDetailClientProps {
   home: any
@@ -31,6 +32,38 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
   const [guests, setGuests] = useState(1)
   const [message, setMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [availabilities, setAvailabilities] = useState([])
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(true)
+
+  // Fetch availabilities
+  useEffect(() => {
+    async function fetchAvailabilities() {
+      try {
+        setIsLoadingAvailability(true)
+        const response = await fetch(`/api/availabilities?homeId=${home.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setAvailabilities(data || [])
+        }
+      } catch (error) {
+        console.error("Error fetching availabilities:", error)
+      } finally {
+        setIsLoadingAvailability(false)
+      }
+    }
+
+    fetchAvailabilities()
+  }, [home.id])
+
+  // Function to check if a date is available
+  const isDateAvailable = (date: Date) => {
+    return availabilities.some((availability) => {
+      const startDate = new Date(availability.start_date || availability.startDate)
+      const endDate = new Date(availability.end_date || availability.endDate)
+      return date >= startDate && date <= endDate
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -226,6 +259,40 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
                 <p className="text-gray-600">Lid sinds {new Date(home.created_at).getFullYear()}</p>
               </div>
             </div>
+          </div>
+
+          {/* Availability Calendar */}
+          <div className="border-t pt-6 mt-6">
+            <h3 className="text-xl font-semibold mb-4">Beschikbaarheid</h3>
+            {isLoadingAvailability ? (
+              <div className="flex justify-center p-8">
+                <div className="text-gray-500">Beschikbaarheid laden...</div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg border p-4">
+                <Calendar
+                  mode="multiple"
+                  selected={[]}
+                  numberOfMonths={3}
+                  modifiers={{
+                    available: (date) => isDateAvailable(date),
+                  }}
+                  modifiersStyles={{
+                    available: {
+                      backgroundColor: "#5eead4",
+                      color: "#0f766e",
+                      fontWeight: "600",
+                      borderRadius: "4px",
+                    },
+                  }}
+                  className="rounded-md"
+                />
+                <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                  <div className="w-4 h-4 bg-teal-300 rounded"></div>
+                  <span>Beschikbare periodes</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
