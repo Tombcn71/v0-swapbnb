@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar } from "@/components/ui/calendar"
+import { nl } from "date-fns/locale"
 
 interface HomeDetailClientProps {
   home: any
@@ -274,6 +275,7 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
                   mode="multiple"
                   selected={[]}
                   numberOfMonths={3}
+                  locale={nl}
                   modifiers={{
                     available: (date) => isDateAvailable(date),
                   }}
@@ -286,6 +288,29 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
                     },
                   }}
                   className="rounded-md"
+                  classNames={{
+                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                    month: "space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center",
+                    caption_label: "text-sm font-medium",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex",
+                    head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] flex-1 text-center",
+                    row: "flex w-full mt-2",
+                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20 flex-1",
+                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 mx-auto",
+                    day_selected:
+                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground",
+                    day_outside: "text-muted-foreground opacity-50",
+                    day_disabled: "text-muted-foreground opacity-50",
+                    day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                    day_hidden: "invisible",
+                  }}
                 />
                 <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
                   <div className="w-4 h-4 bg-teal-300 rounded"></div>
