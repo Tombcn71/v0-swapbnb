@@ -11,7 +11,7 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const { name, email, image } = await request.json()
+    const { name, email, bio, image } = await request.json()
 
     // Valideer input
     if (!name || !email) {
@@ -32,8 +32,8 @@ export async function PATCH(request: Request) {
 
     // Update het gebruikersprofiel
     const result = await executeQuery(
-      "UPDATE users SET name = $1, email = $2, profile_image = $3 WHERE id = $4 RETURNING id, name, email, profile_image",
-      [name, email, image, session.user.id],
+      "UPDATE users SET name = $1, email = $2, bio = $3, profile_image = $4 WHERE id = $5 RETURNING id, name, email, bio, profile_image",
+      [name, email, bio, image, session.user.id],
     )
 
     const updatedUser = result[0]
@@ -42,7 +42,8 @@ export async function PATCH(request: Request) {
       id: updatedUser.id,
       name: updatedUser.name,
       email: updatedUser.email,
-      image: updatedUser.profile_image, // Gebruik profile_image maar geef het terug als image voor compatibiliteit
+      bio: updatedUser.bio,
+      image: updatedUser.profile_image,
     })
   } catch (error) {
     console.error("Error updating profile:", error)

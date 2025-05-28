@@ -13,7 +13,7 @@ export default async function HomePage({ params }: { params: { id: string } }) {
     console.log("HomePage - Fetching home with ID:", params.id)
 
     const homes = await executeQuery(
-      `SELECT h.*, u.name as owner_name, u.profile_image as owner_profile_image
+      `SELECT h.*, u.name as owner_name, u.profile_image as owner_profile_image, u.bio as owner_bio
       FROM homes h
       JOIN users u ON h.user_id = u.id
       WHERE h.id = $1`,

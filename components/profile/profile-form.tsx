@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Upload, User } from "lucide-react"
@@ -20,7 +21,8 @@ interface ProfileFormProps {
 export function ProfileForm({ user }: ProfileFormProps) {
   const [name, setName] = useState(user.name || "")
   const [email, setEmail] = useState(user.email || "")
-  const [image, setImage] = useState<string | null>(user.profile_image || null) // Gebruik profile_image
+  const [bio, setBio] = useState(user.bio || "")
+  const [image, setImage] = useState<string | null>(user.profile_image || null)
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -79,7 +81,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
     try {
       // Upload de afbeelding als er een nieuwe is geselecteerd
-      let imageUrl = user.profile_image // Gebruik profile_image
+      let imageUrl = user.profile_image
       if (file) {
         imageUrl = await uploadImage()
         if (!imageUrl) {
@@ -97,6 +99,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         body: JSON.stringify({
           name,
           email,
+          bio,
           image: imageUrl,
         }),
       })
@@ -167,6 +170,21 @@ export function ProfileForm({ user }: ProfileFormProps) {
               placeholder="je@email.nl"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bio">Over jezelf</Label>
+            <Textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Vertel iets over jezelf, je werk, hobbies, waarom je graag huizen ruilt..."
+              rows={4}
+              className="resize-none"
+            />
+            <p className="text-sm text-gray-500">
+              Dit wordt getoond aan andere gebruikers die geïnteresseerd zijn in je woning.
+            </p>
           </div>
         </CardContent>
         <CardFooter>

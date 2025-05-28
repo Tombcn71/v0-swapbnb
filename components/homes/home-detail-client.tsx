@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Users, MapPin, Wifi, Car, Utensils, Tv, Coffee } from "lucide-react"
+import { Users, MapPin, Wifi, Car, Utensils, Tv, Coffee, User } from "lucide-react"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar } from "@/components/ui/calendar"
 import { nl } from "date-fns/locale"
+import { ProfileView } from "@/components/profile/profile-view"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface HomeDetailClientProps {
   home: any
@@ -239,26 +241,52 @@ export function HomeDetailClient({ home, userId, isOwner }: HomeDetailClientProp
 
           {/* Owner Info */}
           <div className="border-t pt-6">
-            <div className="flex items-center">
-              {home.owner_profile_image ? (
-                <Image
-                  src={home.owner_profile_image || "/placeholder.svg"}
-                  alt={home.owner_name}
-                  width={60}
-                  height={60}
-                  className="w-15 h-15 rounded-full mr-4"
-                />
-              ) : (
-                <div className="w-15 h-15 bg-gray-300 rounded-full mr-4 flex items-center justify-center">
-                  <span className="text-gray-600 text-lg font-semibold">
-                    {home.owner_name?.charAt(0).toUpperCase()}
-                  </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                {home.owner_profile_image ? (
+                  <Image
+                    src={home.owner_profile_image || "/placeholder.svg"}
+                    alt={home.owner_name}
+                    width={60}
+                    height={60}
+                    className="w-15 h-15 rounded-full mr-4"
+                  />
+                ) : (
+                  <div className="w-15 h-15 bg-gray-300 rounded-full mr-4 flex items-center justify-center">
+                    <span className="text-gray-600 text-lg font-semibold">
+                      {home.owner_name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold">Eigenaar: {home.owner_name}</h3>
+                  <p className="text-gray-600">Lid sinds {new Date(home.created_at).getFullYear()}</p>
                 </div>
-              )}
-              <div>
-                <h3 className="font-semibold">Eigenaar: {home.owner_name}</h3>
-                <p className="text-gray-600">Lid sinds {new Date(home.created_at).getFullYear()}</p>
               </div>
+
+              {/* Bekijk Profiel Button */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    Bekijk profiel
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Profiel van {home.owner_name}</DialogTitle>
+                  </DialogHeader>
+                  <ProfileView
+                    user={{
+                      id: home.user_id,
+                      name: home.owner_name,
+                      bio: home.owner_bio,
+                      profile_image: home.owner_profile_image,
+                      created_at: home.created_at,
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 

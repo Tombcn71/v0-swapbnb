@@ -160,7 +160,7 @@ importers:
         version: 11.10.0
       bun-types:
         specifier: latest
-        version: 1.2.14
+        version: 1.2.15
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -175,7 +175,7 @@ importers:
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.44.0(60371e31a2ec0ce7f201ae0ec0f50fd7)
+        version: 0.44.0(ae093ee742fe15b4cec3e6d03f8cabd0)
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -2640,8 +2640,8 @@ packages:
     resolution: {integrity: sha512-WDtdLmJvAuNNPzByAYpRo2rF1Mmradw6gvWsQKf63476DDXmomT9zUiGypLcG4ibIM67vhAj8jJRdbmEws2Aqw==}
     engines: {node: '>=6.14.2'}
 
-  bun-types@1.2.14:
-    resolution: {integrity: sha512-Kuh4Ub28ucMRWeiUUWMHsT9Wcbr4H3kLIO72RZZElSDxSu7vpetRvxIUDUaW6QtaIeixIpm7OXtNnZPf82EzwA==}
+  bun-types@1.2.15:
+    resolution: {integrity: sha512-NarRIaS+iOaQU1JPfyKhZm4AsUOrwUOqRNHY0XxI8GI8jYxiLXLcdjYMG9UKS+fwWasc1uw1htV9AX24dD+p4w==}
 
   busboy@1.6.0:
     resolution: {integrity: sha512-8SFQbg/0hQ9xy3UNTB0YEnsNBbWfhf7RtnzpL7TkBiTBRfrQ9Fxcnz7VJsleJpyp6rVLvXiuORqjlHi5q+PYuA==}
@@ -8498,7 +8498,7 @@ snapshots:
     dependencies:
       node-gyp-build: 4.8.4
 
-  bun-types@1.2.14:
+  bun-types@1.2.15:
     dependencies:
       '@types/node': 22.0.0
 
@@ -8848,7 +8848,7 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.44.0(60371e31a2ec0ce7f201ae0ec0f50fd7):
+  drizzle-orm@0.44.0(ae093ee742fe15b4cec3e6d03f8cabd0):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.817.0
       '@cloudflare/workers-types': 4.20250528.0
@@ -8868,7 +8868,7 @@ snapshots:
       '@vercel/postgres': 0.10.0
       '@xata.io/client': 0.30.1(typescript@5.0.2)
       better-sqlite3: 11.10.0
-      bun-types: 1.2.14
+      bun-types: 1.2.15
       expo-sqlite: 15.2.10(expo@53.0.9(@babel/core@7.27.3)(bufferutil@4.0.9)(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.27.3)(@types/react@19.0.0)(bufferutil@4.0.9)(react@19.0.0))(react@19.0.0)
       gel: 2.1.0
       knex: 3.1.0(better-sqlite3@11.10.0)(mysql2@3.14.1)(pg@8.16.0)(sqlite3@5.1.7)

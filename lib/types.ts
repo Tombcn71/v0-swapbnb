@@ -2,6 +2,7 @@ export interface User {
   id: string
   name: string
   email: string
+  bio?: string
   profile_image?: string
   created_at: string
   updated_at: string
@@ -24,6 +25,7 @@ export interface Home {
   updated_at: string
   owner_name?: string
   owner_profile_image?: string
+  owner_bio?: string
   isOwner?: boolean
 }
 
