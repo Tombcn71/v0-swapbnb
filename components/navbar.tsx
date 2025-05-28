@@ -43,9 +43,9 @@ export function Navbar() {
               <Button variant="ghost" asChild>
                 <Link href="/login">Inloggen</Link>
               </Button>
-              <Button asChild>
-                <Link href="/register">Registreren</Link>
-              </Button>
+              <Link href="/register">
+                <Button>Registreren</Button>
+              </Link>
             </>
           )}
         </div>

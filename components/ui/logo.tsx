@@ -21,10 +21,16 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
 
   return (
     <Link href="/" className="flex items-center space-x-2">
-      <div className="bg-blue-600 text-white p-1 rounded-md">
+      <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white p-1 rounded-md shadow-lg">
         <Home className={sizeClasses[size]} />
       </div>
-      {showText && <span className={`font-bold text-black ${textSizeClasses[size]}`}>SwapBnB</span>}
+      {showText && (
+        <span
+          className={`font-bold bg-gradient-to-r from-teal-500 to-teal-700 bg-clip-text text-transparent ${textSizeClasses[size]}`}
+        >
+          SwapBnB
+        </span>
+      )}
     </Link>
   )
 }

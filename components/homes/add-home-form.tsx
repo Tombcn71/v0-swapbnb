@@ -241,7 +241,7 @@ export function AddHomeForm() {
           <div className="flex items-center">
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                step >= 1 ? "bg-google-blue text-white" : "bg-gray-200"
+                step >= 1 ? "bg-teal-500 text-white" : "bg-gray-200"
               } mr-3`}
             >
               {step > 1 ? <Check className="h-5 w-5" /> : "1"}
@@ -252,7 +252,7 @@ export function AddHomeForm() {
           <div className="flex items-center">
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                step >= 2 ? "bg-google-blue text-white" : "bg-gray-200"
+                step >= 2 ? "bg-teal-500 text-white" : "bg-gray-200"
               } mr-3`}
             >
               {step > 2 ? <Check className="h-5 w-5" /> : "2"}
@@ -263,7 +263,7 @@ export function AddHomeForm() {
           <div className="flex items-center">
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                step >= 3 ? "bg-google-blue text-white" : "bg-gray-200"
+                step >= 3 ? "bg-teal-500 text-white" : "bg-gray-200"
               } mr-3`}
             >
               {step > 3 ? <Check className="h-5 w-5" /> : "3"}
@@ -274,7 +274,7 @@ export function AddHomeForm() {
           <div className="flex items-center">
             <div
               className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                step >= 4 ? "bg-google-blue text-white" : "bg-gray-200"
+                step >= 4 ? "bg-teal-500 text-white" : "bg-gray-200"
               } mr-3`}
             >
               {step > 4 ? <Check className="h-5 w-5" /> : "4"}
@@ -357,7 +357,7 @@ export function AddHomeForm() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button type="button" onClick={nextStep} className="bg-google-blue hover:bg-blue-600">
+                  <Button type="button" onClick={nextStep} className="bg-teal-500 hover:bg-teal-600">
                     Volgende stap
                   </Button>
                 </div>
@@ -556,7 +556,7 @@ export function AddHomeForm() {
                   <Button type="button" variant="outline" onClick={prevStep}>
                     Vorige stap
                   </Button>
-                  <Button type="button" onClick={nextStep} className="bg-google-blue hover:bg-blue-600">
+                  <Button type="button" onClick={nextStep} className="bg-teal-500 hover:bg-teal-600">
                     Volgende stap
                   </Button>
                 </div>
@@ -633,7 +633,7 @@ export function AddHomeForm() {
                   <Button
                     type="button"
                     onClick={nextStep}
-                    className="bg-google-blue hover:bg-blue-600"
+                    className="bg-teal-500 hover:bg-teal-600"
                     disabled={formData.availabilities.length === 0}
                   >
                     Volgende stap
@@ -841,7 +841,7 @@ export function AddHomeForm() {
                   <Button
                     type="submit"
                     disabled={isSubmitting || formData.images.length < 3}
-                    className="bg-google-blue hover:bg-blue-600"
+                    className="bg-teal-500 hover:bg-teal-600"
                   >
                     {isSubmitting ? "Bezig met opslaan..." : "Woning toevoegen"}
                   </Button>

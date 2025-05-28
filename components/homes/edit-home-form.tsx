@@ -377,7 +377,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
         </Button>
 
         {hasChanges && (
-          <Button type="submit" disabled={isSubmitting} className="bg-google-blue hover:bg-blue-600">
+          <Button type="submit" disabled={isSubmitting} className="bg-teal-500 hover:bg-teal-600">
             {isSubmitting ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
           </Button>
         )}
@@ -469,14 +469,14 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                   </Button>
                   <div className="space-x-2">
                     {hasChanges && (
-                      <Button type="submit" disabled={isSubmitting} className="bg-google-blue hover:bg-blue-600">
+                      <Button type="submit" disabled={isSubmitting} className="bg-teal-500 hover:bg-teal-600">
                         {isSubmitting ? "Bezig met opslaan..." : "Opslaan"}
                       </Button>
                     )}
                     <Button
                       type="button"
                       onClick={() => setActiveTab("details")}
-                      className="bg-google-blue hover:bg-blue-600"
+                      className="bg-teal-500 hover:bg-teal-600"
                     >
                       Volgende: Details & Voorzieningen
                     </Button>
@@ -680,14 +680,14 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                   </Button>
                   <div className="space-x-2">
                     {hasChanges && (
-                      <Button type="submit" disabled={isSubmitting} className="bg-google-blue hover:bg-blue-600">
+                      <Button type="submit" disabled={isSubmitting} className="bg-teal-500 hover:bg-teal-600">
                         {isSubmitting ? "Bezig met opslaan..." : "Opslaan"}
                       </Button>
                     )}
                     <Button
                       type="button"
                       onClick={() => setActiveTab("availability")}
-                      className="bg-google-blue hover:bg-blue-600"
+                      className="bg-teal-500 hover:bg-teal-600"
                     >
                       Volgende: Beschikbaarheid
                     </Button>
@@ -766,7 +766,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                     <Button
                       type="button"
                       onClick={() => setActiveTab("photos")}
-                      className="bg-google-blue hover:bg-blue-600"
+                      className="bg-teal-500 hover:bg-teal-600"
                     >
                       Volgende: Foto's
                     </Button>
@@ -873,7 +873,7 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
                       <Button
                         type="submit"
                         disabled={isSubmitting || formData.images.length < 3}
-                        className="bg-google-blue hover:bg-blue-600"
+                        className="bg-teal-500 hover:bg-teal-600"
                       >
                         {isSubmitting ? "Bezig met opslaan..." : "Wijzigingen opslaan"}
                       </Button>
