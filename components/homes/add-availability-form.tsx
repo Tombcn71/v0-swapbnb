@@ -51,6 +51,10 @@ export function AddAvailabilityForm({ homeId, onAdd, onSuccess }: AddAvailabilit
     if (onAdd) {
       onAdd(dateRange.from, dateRange.to)
       setDateRange({ from: undefined, to: undefined })
+      toast({
+        title: "Beschikbaarheid toegevoegd",
+        description: "De beschikbaarheidsperiode is toegevoegd aan je woning",
+      })
       return
     }
 

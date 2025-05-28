@@ -14,7 +14,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, X, ImageIcon, Loader2, Calendar, ArrowLeft } from "lucide-react"
 import Image from "next/image"
-import { upload } from "@vercel/blob/client"
+// Verwijder deze regel:
+// import { upload } from "@vercel/blob/client"
 import { AddAvailabilityForm } from "@/components/homes/add-availability-form"
 
 interface EditHomeFormProps {
@@ -141,13 +142,23 @@ export function EditHomeForm({ home }: EditHomeFormProps) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
 
-        // Upload the file directly to Vercel Blob
-        const blob = await upload(file.name, file, {
-          access: "public",
-          handleUploadUrl: "/api/upload",
+        // Maak FormData voor de upload
+        const formData = new FormData()
+        formData.append("file", file)
+
+        // Upload via onze API route
+        const response = await fetch("/api/upload/homes", {
+          method: "POST",
+          body: formData,
         })
 
-        uploadedUrls.push(blob.url)
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Upload failed")
+        }
+
+        const { url } = await response.json()
+        uploadedUrls.push(url)
       }
 
       // Update the form state with the new images
