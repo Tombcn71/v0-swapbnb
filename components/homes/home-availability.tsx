@@ -164,16 +164,32 @@ export function HomeAvailability({ homeId, isOwner }: HomeAvailabilityProps) {
           selected={[]}
           modifiers={{
             available: (date) => isDateAvailable(date),
+            unavailable: (date) => !isDateAvailable(date),
           }}
           modifiersStyles={{
-            available: { backgroundColor: "#dcfce7", color: "#166534" },
+            available: {
+              backgroundColor: "#dcfce7",
+              color: "#166534",
+              fontWeight: "600",
+              border: "2px solid #16a34a",
+            },
+            unavailable: {
+              backgroundColor: "#f9fafb",
+              color: "#9ca3af",
+            },
           }}
           className="rounded-md border"
         />
-        <p className="mt-2 text-sm text-gray-500">
-          <span className="inline-block w-3 h-3 bg-green-100 mr-2 rounded-sm"></span>
-          Beschikbare data
-        </p>
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-100 border-2 border-green-500 rounded"></div>
+            <span>Beschikbare data</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
+            <span>Niet beschikbaar</span>
+          </div>
+        </div>
       </div>
 
       {availabilities.length > 0 ? (
