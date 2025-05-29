@@ -60,28 +60,38 @@ export default function Dashboard() {
       const pitch = await generatePitch(formData)
       setGeneratedPitch(pitch)
       setActiveTab("result")
+      toast({
+        title: "Success!",
+        description: "Your pitch has been generated successfully.",
+      })
     } catch (error) {
-      console.error("Error generating pitch:", error)
-
-      if (error instanceof Error) {
-        setError(`Error generating pitch: ${error.message}`)
-      } else {
-        setError(
-          "An unexpected error occurred while generating your pitch. Please check your API configuration and try again.",
-        )
-      }
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      setError(errorMessage)
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
     } finally {
       setIsGenerating(false)
     }
   }
 
-  const handleCopyToClipboard = () => {
+  const handleCopyToClipboard = async () => {
     if (generatedPitch) {
-      navigator.clipboard.writeText(generatedPitch)
-      toast({
-        title: "Copied to clipboard",
-        description: "Your pitch has been copied to the clipboard",
-      })
+      try {
+        await navigator.clipboard.writeText(generatedPitch)
+        toast({
+          title: "Copied!",
+          description: "Pitch copied to clipboard",
+        })
+      } catch (error) {
+        toast({
+          title: "Copy failed",
+          description: "Please copy manually",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -90,7 +100,7 @@ export default function Dashboard() {
       const element = document.createElement("a")
       const file = new Blob([generatedPitch], { type: "text/plain" })
       element.href = URL.createObjectURL(file)
-      element.download = "pitch-canvas.txt"
+      element.download = "pitch.txt"
       document.body.appendChild(element)
       element.click()
       document.body.removeChild(element)
@@ -100,59 +110,13 @@ export default function Dashboard() {
   const formatPitchText = (text: string) => {
     if (!text) return null
 
-    const lines = text.split("\n")
-    const formattedLines = lines.map((line, index) => {
-      if (line.startsWith("# ")) {
-        return (
-          <h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-primary border-b pb-2">
-            {line.substring(2)}
-          </h1>
-        )
-      } else if (line.startsWith("## ")) {
-        return (
-          <h2 key={index} className="text-xl font-semibold mt-5 mb-3 text-primary/90">
-            {line.substring(3)}
-          </h2>
-        )
-      } else if (line.startsWith("### ")) {
-        return (
-          <h3 key={index} className="text-lg font-medium mt-4 mb-2 text-primary/80">
-            {line.substring(4)}
-          </h3>
-        )
-      } else if (line.trim() === "") {
-        return <div key={index} className="h-2"></div>
-      } else if (line.startsWith("- ")) {
-        return (
-          <li key={index} className="my-1 ml-4 list-disc leading-relaxed">
-            {line.substring(2)}
-          </li>
-        )
-      } else if (line.startsWith("1. ") || line.startsWith("2. ") || line.startsWith("3. ")) {
-        return (
-          <li key={index} className="my-1 ml-4 list-decimal leading-relaxed">
-            {line.substring(line.indexOf(" ") + 1)}
-          </li>
-        )
-      } else {
-        return (
-          <p key={index} className="my-2 leading-relaxed">
-            {line}
-          </p>
-        )
-      }
-    })
-
     return (
-      <div className="space-y-1 pitch-content p-8 bg-card border rounded-md shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center">
-            <FileText className="h-6 w-6 text-primary mr-2" />
-            <h2 className="text-2xl font-bold">Your 3-Minute Pitch</h2>
-          </div>
-          <div className="text-sm text-muted-foreground">Based on David Beckett's Pitch Canvas</div>
+      <div className="space-y-4 p-6 bg-card border rounded-lg">
+        <div className="flex items-center mb-4">
+          <FileText className="h-5 w-5 text-primary mr-2" />
+          <h3 className="text-lg font-semibold">Your 3-Minute Pitch</h3>
         </div>
-        <div className="prose prose-sm md:prose-base lg:prose-lg dark:prose-invert max-w-none">{formattedLines}</div>
+        <div className="whitespace-pre-wrap text-sm leading-relaxed">{text}</div>
       </div>
     )
   }
@@ -184,102 +148,110 @@ export default function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>David Beckett's Pitch Canvas</CardTitle>
-                <CardDescription>Fill in the details below to generate your 3-minute pitch</CardDescription>
+                <CardDescription>Fill in all fields to generate your 3-minute pitch</CardDescription>
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="problem">Problem</Label>
+                      <Label htmlFor="problem">Problem *</Label>
                       <Textarea
                         id="problem"
                         placeholder="What problem are you solving?"
                         value={formData.problem}
                         onChange={(e) => handleInputChange("problem", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="solution">Solution</Label>
+                      <Label htmlFor="solution">Solution *</Label>
                       <Textarea
                         id="solution"
                         placeholder="How does your solution work?"
                         value={formData.solution}
                         onChange={(e) => handleInputChange("solution", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="uniqueness">Uniqueness</Label>
+                      <Label htmlFor="uniqueness">Uniqueness *</Label>
                       <Textarea
                         id="uniqueness"
                         placeholder="What makes your solution unique?"
                         value={formData.uniqueness}
                         onChange={(e) => handleInputChange("uniqueness", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="market">Target Market</Label>
+                      <Label htmlFor="market">Target Market *</Label>
                       <Textarea
                         id="market"
                         placeholder="Who is your target audience?"
                         value={formData.market}
                         onChange={(e) => handleInputChange("market", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="traction">Traction</Label>
+                      <Label htmlFor="traction">Traction *</Label>
                       <Textarea
                         id="traction"
-                        placeholder="What traction do you have so far?"
+                        placeholder="What traction do you have?"
                         value={formData.traction}
                         onChange={(e) => handleInputChange("traction", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="business">Business Model</Label>
+                      <Label htmlFor="business">Business Model *</Label>
                       <Textarea
                         id="business"
                         placeholder="How will you generate revenue?"
                         value={formData.business}
                         onChange={(e) => handleInputChange("business", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="team">Team</Label>
+                      <Label htmlFor="team">Team *</Label>
                       <Textarea
                         id="team"
                         placeholder="Who is part of your team?"
                         value={formData.team}
                         onChange={(e) => handleInputChange("team", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="ask">The Ask</Label>
+                      <Label htmlFor="ask">The Ask *</Label>
                       <Textarea
                         id="ask"
                         placeholder="What are you asking for?"
                         value={formData.ask}
                         onChange={(e) => handleInputChange("ask", e.target.value)}
                         required
+                        rows={3}
                       />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" disabled={isGenerating}>
+                  <Button type="submit" disabled={isGenerating} size="lg">
                     {isGenerating ? "Generating..." : "Generate Pitch"}
                   </Button>
                 </CardFooter>
@@ -291,9 +263,7 @@ export default function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Your Generated Pitch</CardTitle>
-                <CardDescription>
-                  Here's your AI-generated 3-minute pitch based on David Beckett's method
-                </CardDescription>
+                <CardDescription>AI-generated 3-minute pitch based on David Beckett's method</CardDescription>
               </CardHeader>
               <CardContent>
                 <div ref={pitchRef}>{formatPitchText(generatedPitch)}</div>
@@ -305,7 +275,7 @@ export default function Dashboard() {
                   </Button>
                   <Button variant="outline" onClick={handleCopyToClipboard}>
                     <Copy className="mr-2 h-4 w-4" />
-                    Copy Text
+                    Copy
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-3">

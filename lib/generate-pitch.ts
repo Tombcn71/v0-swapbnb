@@ -1,8 +1,5 @@
 "use server"
 
-import { generateText } from "ai"
-import { createGoogleGenerativeAI } from "@ai-sdk/google"
-
 interface PitchFormData {
   problem: string
   solution: string
@@ -16,78 +13,84 @@ interface PitchFormData {
 
 export async function generatePitch(data: PitchFormData): Promise<string> {
   try {
-    // Get API key from environment variable - this works on the server
-    const apiKey = process.env.GOOGLE_API_KEY
-
-    if (!apiKey) {
-      throw new Error("Google API key is not configured. Please add GOOGLE_API_KEY to your environment variables.")
+    // Validate input data
+    if (
+      !data.problem ||
+      !data.solution ||
+      !data.uniqueness ||
+      !data.market ||
+      !data.traction ||
+      !data.business ||
+      !data.team ||
+      !data.ask
+    ) {
+      throw new Error("All fields are required to generate a pitch.")
     }
 
-    // Create a custom Google client with explicit API key
-    const googleClient = createGoogleGenerativeAI({
-      apiKey: apiKey,
-    })
+    // Check API key
+    const apiKey = process.env.GOOGLE_API_KEY
+    if (!apiKey) {
+      throw new Error("Google API key is not configured.")
+    }
 
-    // English prompt
-    const prompt = `
-Create a professional 3-minute pitch based on David Beckett's pitch canvas method using the following information:
+    // Create the prompt
+    const prompt = `Create a professional 3-minute pitch based on David Beckett's pitch canvas method:
 
-PROBLEM:
-${data.problem}
+PROBLEM: ${data.problem}
+SOLUTION: ${data.solution}
+UNIQUENESS: ${data.uniqueness}
+TARGET MARKET: ${data.market}
+TRACTION: ${data.traction}
+BUSINESS MODEL: ${data.business}
+TEAM: ${data.team}
+THE ASK: ${data.ask}
 
-SOLUTION:
-${data.solution}
+Format as a well-structured 3-minute pitch script with clear sections and transitions.`
 
-UNIQUENESS:
-${data.uniqueness}
+    // Make API call
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          },
+        }),
+      },
+    )
 
-TARGET MARKET:
-${data.market}
-
-TRACTION:
-${data.traction}
-
-BUSINESS MODEL:
-${data.business}
-
-TEAM:
-${data.team}
-
-THE ASK:
-${data.ask}
-
-Format the pitch as a well-structured script that can be presented in exactly 3 minutes. Include clear sections, transitions, and compelling opening and closing. The pitch should be persuasive, concise, and follow best practices for pitch presentations.
-`
-
-    // English system message
-    const systemMessage =
-      "You are an expert pitch writer who specializes in creating compelling 3-minute pitches based on David Beckett's pitch canvas methodology. Your pitches are clear, concise, and persuasive."
-
-    // Use the custom client to create a model
-    const geminiModel = googleClient("gemini-1.5-pro")
-
-    // Use the model instance in generateText
-    const { text } = await generateText({
-      model: geminiModel,
-      prompt,
-      system: systemMessage,
-    })
-
-    return text
-  } catch (error) {
-    console.error("Error generating pitch:", error)
-
-    // Provide more specific error messages
-    if (error instanceof Error) {
-      if (error.message.includes("API key")) {
-        throw new Error("API key configuration error. Please check your Google API key.")
-      } else if (error.message.includes("quota")) {
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Invalid API key. Please check your Google API key.")
+      } else if (response.status === 429) {
         throw new Error("API quota exceeded. Please try again later.")
-      } else if (error.message.includes("network")) {
-        throw new Error("Network error. Please check your internet connection and try again.")
       } else {
-        throw new Error(`Pitch generation failed: ${error.message}`)
+        throw new Error(`API error: ${response.status}`)
       }
+    }
+
+    const result = await response.json()
+
+    if (!result.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error("No content generated. Please try again.")
+    }
+
+    return result.candidates[0].content.parts[0].text
+  } catch (error) {
+    console.error("Generate pitch error:", error)
+
+    if (error instanceof Error) {
+      throw new Error(error.message)
     }
 
     throw new Error("Failed to generate pitch. Please try again.")
