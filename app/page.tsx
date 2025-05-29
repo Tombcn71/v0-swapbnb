@@ -1,242 +1,294 @@
-import { Navbar } from "@/components/navbar"
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Sparkles } from "lucide-react"
+import { ArrowRightIcon, UserPlus, Search, RefreshCw } from 'lucide-react'
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative py-20 md:py-32 overflow-hidden bg-background">
-          <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-muted/20"></div>
-            <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-          </div>
+    <div className="flex flex-col min-h-screen">
+      {/* Hero Section - Tekst links, foto rechts */}
+      <div className="container mx-auto py-16 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Tekst links */}
+          <div className="flex flex-col space-y-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900">Swap je woning, eropuit in Nederland</h1>
 
-          <div className="container relative z-10 px-4 md:px-6">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                  Create Perfect Pitches with AI
-                </h1>
-                <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                  Generate professional 3-minute pitches based on David Beckett's pitch canvas method. Free pitch
-                  generation with optional professional coaching.
-                </p>
-              </div>
-              <div className="space-x-4 mt-6">
-                <Link href="/dashboard">
-                  <Button size="lg" className="bg-primary hover:bg-primary/90">
-                    <Sparkles className="mr-2 h-5 w-5 text-yellow-400" />
-                    Get Started
-                  </Button>
-                </Link>
-                <Link href="/contact">
-                  <Button variant="outline" size="lg">
-                    Contact Coach
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+            <p className="text-lg md:text-xl text-gray-600">
+              Korte breaks, slim budget: geen abonnementskosten, betaal per swap.
+            </p>
 
-        <div className="h-px w-full bg-border"></div>
-
-        {/* Features Section */}
-        <section className="py-12 md:py-24 bg-background relative">
-          <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-10 md:gap-6 lg:grid-cols-2 lg:gap-12">
-              <div className="space-y-4 p-6 rounded-xl bg-card border shadow-sm">
-                <div className="inline-block p-3 rounded-lg bg-muted mb-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-6 w-6 text-primary"
-                  >
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                  </svg>
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">The Best 3-Minute Pitch Method</h2>
-                <p className="text-muted-foreground md:text-xl">
-                  Based on David Beckett's proven pitch canvas methodology, our AI helps you create compelling pitches
-                  that capture attention and drive results.
-                </p>
-                <ul className="space-y-2">
-                  <li className="flex items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2 h-5 w-5 text-primary"
-                    >
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Define your problem and solution clearly</span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2 h-5 w-5 text-primary"
-                    >
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Highlight your unique value proposition</span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2 h-5 w-5 text-primary"
-                    >
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Structure your pitch for maximum impact</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="space-y-4 p-6 rounded-xl bg-card border shadow-sm">
-                <div className="inline-block p-3 rounded-lg bg-muted mb-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-6 w-6 text-primary"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </div>
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Professional Coaching</h2>
-                <p className="text-muted-foreground md:text-xl">
-                  Get personalized coaching from Martina Guzman to perfect your pitch delivery and presentation.
-                </p>
-                <ul className="space-y-2">
-                  <li className="flex items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2 h-5 w-5 text-primary"
-                    >
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Build confidence in your presentation</span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2 h-5 w-5 text-primary"
-                    >
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Refine your presentation style</span>
-                  </li>
-                  <li className="flex items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mr-2 h-5 w-5 text-primary"
-                    >
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Get expert feedback on your pitch</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Call to Action */}
-        <section className="py-12 relative overflow-hidden bg-background">
-          <div className="container relative z-10 px-4 md:px-6">
-            <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl font-bold mb-4">Ready to Create Your Perfect Pitch?</h2>
-              <p className="text-muted-foreground mb-6">
-                Start using our AI-powered pitch generator today and transform your ideas into compelling presentations.
-              </p>
-              <Link href="/dashboard">
-                <Button size="lg" className="bg-primary hover:bg-primary/90">
-                  <Sparkles className="mr-2 h-5 w-5 text-yellow-400" />
-                  Start Now
+            <div className="flex gap-4 pt-4">
+              <Link href="/listings">
+                <Button size="lg" className="bg-teal-500 hover:bg-teal-600 text-white text-lg py-6 px-8">
+                  Ontdek woningen
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="outline" className="border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white text-lg py-6 px-8">
+                  Inloggen
                 </Button>
               </Link>
             </div>
           </div>
-        </section>
-      </main>
-      <footer className="border-t py-6 md:py-0 bg-background">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            © 2025 PitchAI. All rights reserved.
-          </p>
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-2">
-            <p className="text-center text-sm leading-loose text-muted-foreground">
-              Pitch generation is free • Professional coaching is a paid service
-            </p>
+
+          {/* Foto rechts */}
+          <div className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden shadow-xl">
+            <Image
+              src="https://images.pexels.com/photos/6338457/pexels-photo-6338457.jpeg?auto=compress&cs=tinysrgb&w=1600"
+              alt="Gelukkig gezin"
+              fill
+              priority
+              style={{ objectFit: "cover" }}
+              className="rounded-3xl"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Hoe werkt het Section */}
+      <section className="py-16 px-4 bg-gray-50">
+        <div className="container mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">Hoe werkt het?</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <UserPlus className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Maak een profiel aan</h3>
+              <p className="text-gray-600">
+                Registreer je en maak een aantrekkelijk profiel voor je woning met foto's en beschrijvingen.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <Search className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Vind je match</h3>
+              <p className="text-gray-600">
+                Zoek naar woningen op je gewenste bestemming en neem contact op met de eigenaren.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <RefreshCw className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Swap en geniet</h3>
+              <p className="text-gray-600">
+                Maak afspraken over de swap, wissel sleutels uit en geniet van je verblijf!
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center mt-12">
+            <Link href="/signup">
+              <Button size="lg" className="bg-teal-500 hover:bg-teal-600 text-white text-lg py-6 px-10">
+                Begin nu met swappen
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Prijsvergelijking Section - NIEUW */}
+      <section className="py-16 px-4 bg-white">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="flex flex-col space-y-6">
+              <h2 className="text-4xl font-bold text-gray-900">Swap & verblijf voor een fractie van de kosten</h2>
+
+              <p className="text-lg text-gray-600">2 nachten vergelijking</p>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="border p-6 rounded-lg">
+                  <p className="text-lg font-medium mb-2">Swap met SwapBnB</p>
+                  <p className="text-4xl font-bold">€20</p>
+                </div>
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <p className="text-lg font-medium mb-2">Hotel of huurwoning</p>
+                  <p className="text-4xl font-bold">€220+</p>
+                </div>
+              </div>
+
+              <p className="text-gray-600 mt-4">
+                Geen lidmaatschapskosten.
+                <br />
+                Betaal alleen voor platformkosten per verblijf.
+              </p>
+
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white text-lg py-5 px-8"
+                >
+                  Meer over prijzen <ArrowRightIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="relative w-full h-[400px] md:h-[500px] rounded-xl overflow-hidden shadow-xl">
+              <Image
+                src="https://images.pexels.com/photos/5330982/pexels-photo-5330982.jpeg?auto=compress&cs=tinysrgb&w=1600"
+                alt="Gezellige woonkamer met planten"
+                fill
+                style={{ objectFit: "cover" }}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section - NIEUW */}
+      <section className="py-16 px-4 bg-gray-50">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Veelgestelde vragen</h2>
+            <p className="text-lg text-gray-600">Alles wat je wilt weten over huizenswap met SwapBnB</p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Linker kolom */}
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-3 text-teal-600">Hoe werkt huizenswap?</h3>
+                  <p className="text-gray-600">
+                    Je ruilt tijdelijk van woning met een ander gezin. Jullie verblijven in elkaars huis terwijl de eigenaren er niet zijn. Zo geniet je van een volledige woning zonder hotelkosten.
+                  </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-3 text-teal-600">Wat kost het?</h3>
+                  <p className="text-gray-600">
+                    Geen lidmaatschapskosten! Je betaalt alleen €20 per succesvolle swap voor platformkosten en verificatie. Veel goedkoper dan hotels of vakantiehuizen.
+                  </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-3 text-teal-600">Is het veilig?</h3>
+                  <p className="text-gray-600">
+                    Ja! Alle gebruikers worden geverifieerd, we hebben een beoordelingssysteem en je communiceert eerst via ons platform voordat je een swap bevestigt.
+                  </p>
+                </div>
+              </div>
+
+              {/* Rechter kolom */}
+              <div className="space-y-6">
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-3 text-teal-600">Kan ik mijn eigen huis aanbieden?</h3>
+                  <p className="text-gray-600">
+                    Absoluut! Voeg je woning toe met foto's en beschrijving. Hoe aantrekkelijker je profiel, hoe meer kans op leuke swaps. Je bepaalt zelf wanneer je huis beschikbaar is.
+                  </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-3 text-teal-600">Wat als er iets kapot gaat?</h3>
+                  <p className="text-gray-600">
+                    We raden aan om vooraf afspraken te maken over kleine schades. Voor grotere problemen kun je contact opnemen met onze klantenservice voor bemiddeling.
+                  </p>
+                </div>
+
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-3 text-teal-600">Hoe lang kan ik swappen?</h3>
+                  <p className="text-gray-600">
+                    Van een weekend tot enkele weken - jullie bepalen samen de periode. Ideaal voor korte breaks, vakantie of een change of scenery tijdens thuiswerken.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center mt-12">
+              <p className="text-gray-600 mb-6">Heb je nog andere vragen?</p>
+              <Link href="/contact">
+                <Button variant="outline" className="border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white text-lg py-5 px-8">
+                  Neem contact op
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer met Teal Gradient */}
+      <footer className="bg-gradient-to-br from-teal-500 to-teal-700 text-white py-12">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">SwapBnB</h3>
+              <p className="text-teal-50">
+                Ontdek Nederland door huizen te swappen en geniet van authentieke ervaringen zonder hotelkosten.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Links</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/listings" className="text-teal-100 hover:text-white transition-colors">
+                    Woningen
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/how-it-works" className="text-teal-100 hover:text-white transition-colors">
+                    Hoe het werkt
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about" className="text-teal-100 hover:text-white transition-colors">
+                    Over ons
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="text-teal-100 hover:text-white transition-colors">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Account</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/login" className="text-teal-100 hover:text-white transition-colors">
+                    Inloggen
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/signup" className="text-teal-100 hover:text-white transition-colors">
+                    Registreren
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard" className="text-teal-100 hover:text-white transition-colors">
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/profile" className="text-teal-100 hover:text-white transition-colors">
+                    Profiel
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Contact</h4>
+              <address className="not-italic text-teal-50">
+                <p>Swapstraat 123</p>
+                <p>1234 AB Amsterdam</p>
+                <p>Nederland</p>
+                <p className="mt-2">info@swapbnb.nl</p>
+                <p>+31 20 123 4567</p>
+              </address>
+            </div>
+          </div>
+
+          <div className="border-t border-teal-400/30 mt-8 pt-8 text-center text-teal-50">
+            <p>&copy; {new Date().getFullYear()} SwapBnB. Alle rechten voorbehouden.</p>
           </div>
         </div>
       </footer>

@@ -1,0 +1,36 @@
+import { Home } from "lucide-react"
+import Link from "next/link"
+
+interface LogoProps {
+  size?: "sm" | "md" | "lg"
+  showText?: boolean
+}
+
+export function Logo({ size = "md", showText = true }: LogoProps) {
+  const sizeClasses = {
+    sm: "h-5 w-5",
+    md: "h-6 w-6",
+    lg: "h-8 w-8",
+  }
+
+  const textSizeClasses = {
+    sm: "text-lg",
+    md: "text-xl",
+    lg: "text-2xl",
+  }
+
+  return (
+    <Link href="/" className="flex items-center space-x-2">
+      <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white p-1 rounded-md shadow-lg">
+        <Home className={sizeClasses[size]} />
+      </div>
+      {showText && (
+        <span
+          className={`font-bold bg-gradient-to-r from-teal-500 to-teal-700 bg-clip-text text-transparent ${textSizeClasses[size]}`}
+        >
+          SwapBnB
+        </span>
+      )}
+    </Link>
+  )
+}

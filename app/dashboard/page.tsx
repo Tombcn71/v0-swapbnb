@@ -1,298 +1,134 @@
-"use client"
-
-import type React from "react"
-
-import { useState, useRef } from "react"
-import { Navbar } from "@/components/navbar"
+import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { generatePitch } from "@/lib/generate-pitch"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Download, Printer, Copy, FileText } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { DashboardExchanges } from "@/components/dashboard/dashboard-exchanges"
+import { DashboardFavorites } from "@/components/dashboard/dashboard-favorites"
+import { MessageSquare, User, Plus, Home, MapPin } from "lucide-react"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import { executeQuery } from "@/lib/db"
+import type { Home as HomeType } from "@/lib/types"
 
-interface PitchFormData {
-  problem: string
-  solution: string
-  uniqueness: string
-  market: string
-  traction: string
-  business: string
-  team: string
-  ask: string
-}
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions)
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("form")
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedPitch, setGeneratedPitch] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const pitchRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
-
-  const [formData, setFormData] = useState<PitchFormData>({
-    problem: "",
-    solution: "",
-    uniqueness: "",
-    market: "",
-    traction: "",
-    business: "",
-    team: "",
-    ask: "",
-  })
-
-  const handleInputChange = (field: keyof PitchFormData, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+  if (!session?.user) {
+    redirect("/login")
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsGenerating(true)
-    setError(null)
+  const userName = session.user.name || "gebruiker"
 
-    try {
-      const pitch = await generatePitch(formData)
-      setGeneratedPitch(pitch)
-      setActiveTab("result")
-      toast({
-        title: "Success!",
-        description: "Your pitch has been generated successfully.",
-      })
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-      setError(errorMessage)
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
-    } finally {
-      setIsGenerating(false)
-    }
-  }
+  // Haal de woning van de gebruiker op
+  const userHomes = await executeQuery(
+    `SELECT h.*, u.name as owner_name 
+    FROM homes h 
+    JOIN users u ON h.user_id = u.id 
+    WHERE h.user_id = $1 
+    LIMIT 1`,
+    [session.user.id],
+  )
 
-  const handleCopyToClipboard = async () => {
-    if (generatedPitch) {
-      try {
-        await navigator.clipboard.writeText(generatedPitch)
-        toast({
-          title: "Copied!",
-          description: "Pitch copied to clipboard",
-        })
-      } catch (error) {
-        toast({
-          title: "Copy failed",
-          description: "Please copy manually",
-          variant: "destructive",
-        })
-      }
-    }
-  }
-
-  const handleDownload = () => {
-    if (generatedPitch) {
-      const element = document.createElement("a")
-      const file = new Blob([generatedPitch], { type: "text/plain" })
-      element.href = URL.createObjectURL(file)
-      element.download = "pitch.txt"
-      document.body.appendChild(element)
-      element.click()
-      document.body.removeChild(element)
-    }
-  }
-
-  const formatPitchText = (text: string) => {
-    if (!text) return null
-
-    return (
-      <div className="space-y-4 p-6 bg-card border rounded-lg">
-        <div className="flex items-center mb-4">
-          <FileText className="h-5 w-5 text-primary mr-2" />
-          <h3 className="text-lg font-semibold">Your 3-Minute Pitch</h3>
-        </div>
-        <div className="whitespace-pre-wrap text-sm leading-relaxed">{text}</div>
-      </div>
-    )
-  }
+  const userHome = userHomes.length > 0 ? (userHomes[0] as HomeType) : null
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      <main className="flex-1 container py-8">
-        <h1 className="text-3xl font-bold mb-6">Pitch Canvas Generator</h1>
-        <p className="text-muted-foreground mb-8">Create your perfect pitch with AI</p>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-2">Welkom {userName}!</h1>
+      <p className="text-gray-600 mb-8">Beheer je woning, uitwisselingen en berichten op één plek.</p>
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="form">Pitch Canvas</TabsTrigger>
-            <TabsTrigger value="result" disabled={!generatedPitch}>
-              Generated Pitch
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="form">
-            <Card>
-              <CardHeader>
-                <CardTitle>David Beckett's Pitch Canvas</CardTitle>
-                <CardDescription>Fill in all fields to generate your 3-minute pitch</CardDescription>
-              </CardHeader>
-              <form onSubmit={handleSubmit}>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="problem">Problem *</Label>
-                      <Textarea
-                        id="problem"
-                        placeholder="What problem are you solving?"
-                        value={formData.problem}
-                        onChange={(e) => handleInputChange("problem", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="solution">Solution *</Label>
-                      <Textarea
-                        id="solution"
-                        placeholder="How does your solution work?"
-                        value={formData.solution}
-                        onChange={(e) => handleInputChange("solution", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="uniqueness">Uniqueness *</Label>
-                      <Textarea
-                        id="uniqueness"
-                        placeholder="What makes your solution unique?"
-                        value={formData.uniqueness}
-                        onChange={(e) => handleInputChange("uniqueness", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="market">Target Market *</Label>
-                      <Textarea
-                        id="market"
-                        placeholder="Who is your target audience?"
-                        value={formData.market}
-                        onChange={(e) => handleInputChange("market", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="traction">Traction *</Label>
-                      <Textarea
-                        id="traction"
-                        placeholder="What traction do you have?"
-                        value={formData.traction}
-                        onChange={(e) => handleInputChange("traction", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="business">Business Model *</Label>
-                      <Textarea
-                        id="business"
-                        placeholder="How will you generate revenue?"
-                        value={formData.business}
-                        onChange={(e) => handleInputChange("business", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="team">Team *</Label>
-                      <Textarea
-                        id="team"
-                        placeholder="Who is part of your team?"
-                        value={formData.team}
-                        onChange={(e) => handleInputChange("team", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="ask">The Ask *</Label>
-                      <Textarea
-                        id="ask"
-                        placeholder="What are you asking for?"
-                        value={formData.ask}
-                        onChange={(e) => handleInputChange("ask", e.target.value)}
-                        required
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" disabled={isGenerating} size="lg">
-                    {isGenerating ? "Generating..." : "Generate Pitch"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="result">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Generated Pitch</CardTitle>
-                <CardDescription>AI-generated 3-minute pitch based on David Beckett's method</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div ref={pitchRef}>{formatPitchText(generatedPitch)}</div>
-              </CardContent>
-              <CardFooter className="flex flex-wrap gap-3 justify-between">
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="outline" onClick={() => setActiveTab("form")}>
-                    Edit Canvas
-                  </Button>
-                  <Button variant="outline" onClick={handleCopyToClipboard}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy
-                  </Button>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Mijn Woning</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {userHome ? (
+              <div className="space-y-3">
+                <div className="relative h-32 w-full overflow-hidden rounded-md">
+                  <Image
+                    src={
+                      userHome.images && Array.isArray(userHome.images) && userHome.images.length > 0
+                        ? userHome.images[0]
+                        : `/placeholder.svg?height=400&width=600&query=${userHome.title}`
+                    }
+                    alt={userHome.title}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="outline" onClick={() => window.print()}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print
-                  </Button>
-                  <Button onClick={handleDownload}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </Button>
+                <h3 className="font-medium">{userHome.title}</h3>
+                <div className="flex items-center text-gray-600 text-sm">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  <span>{userHome.city}</span>
                 </div>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
+                <div className="flex items-center text-gray-600 text-sm">
+                  <Home className="h-3 w-3 mr-1" />
+                  <span>
+                    {userHome.bedrooms} slaapkamer{userHome.bedrooms !== 1 && "s"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-600">Je hebt nog geen woning toegevoegd</p>
+            )}
+          </CardContent>
+          <CardFooter>
+            {userHome ? (
+              <Button variant="outline" asChild className="w-full">
+                <Link href={`/homes/${userHome.id}/edit`}>Bewerk woning</Link>
+              </Button>
+            ) : (
+              <Button asChild className="w-full">
+                <Link href="/homes/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Voeg woning toe
+                </Link>
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Berichten</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600">Je hebt geen ongelezen berichten</p>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/messages">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Bekijk berichten
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Mijn Profiel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600">Beheer je profielgegevens</p>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" asChild className="w-full">
+              <Link href="/profile">
+                <User className="mr-2 h-4 w-4" />
+                Bewerk profiel
+              </Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+
+      <h2 className="text-2xl font-bold mb-4">Favoriete Woningen</h2>
+      <DashboardFavorites />
+
+      <h2 className="text-2xl font-bold mt-8 mb-4">Aankomende Uitwisselingen</h2>
+      <DashboardExchanges />
     </div>
   )
 }
