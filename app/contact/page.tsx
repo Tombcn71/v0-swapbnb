@@ -68,8 +68,8 @@ export default function Contact() {
               <div className="flex flex-col sm:flex-row gap-6 items-center">
                 <div className="w-40 h-auto shrink-0">
                   <img
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/1738134532936-N1TDJiUYailbyIrcJyIThwF8G5pnaX.jpeg"
-                    alt="Martina Guzman - Coach Profesional de Pitch"
+                    src="/images/martina-guzman.png"
+                    alt="Martina Guzman - Professional Pitch Coach"
                     className="w-full rounded-md shadow-md"
                   />
                 </div>
@@ -130,6 +130,7 @@ export default function Contact() {
                   <Label htmlFor="name">{t("contact.name")}</Label>
                   <Input
                     id="name"
+                    placeholder="Your name"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     required
@@ -141,6 +142,7 @@ export default function Contact() {
                   <Input
                     id="email"
                     type="email"
+                    placeholder="your.email@example.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     required
@@ -151,6 +153,7 @@ export default function Contact() {
                   <Label htmlFor="message">{t("contact.message")}</Label>
                   <Textarea
                     id="message"
+                    placeholder="Tell us about your coaching needs..."
                     value={formData.message}
                     onChange={(e) => handleInputChange("message", e.target.value)}
                     required
@@ -311,6 +314,7 @@ export default function Contact() {
               </Card>
             </div>
           </div>
+
           {/* Video Course Section */}
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-6">{t("course.title")}</h2>

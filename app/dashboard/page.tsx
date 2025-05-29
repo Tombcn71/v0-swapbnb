@@ -65,11 +65,14 @@ export default function Dashboard() {
       setActiveTab("result")
     } catch (error) {
       console.error("Error generating pitch:", error)
-      // More detailed error message
+
+      // Better error handling with English messages
       if (error instanceof Error) {
-        setError(`Error al generar el pitch: ${error.message}`)
+        setError(`Error generating pitch: ${error.message}`)
       } else {
-        setError("Error al generar el pitch. Por favor, verifica tu clave API e inténtalo de nuevo.")
+        setError(
+          "An unexpected error occurred while generating your pitch. Please check your API configuration and try again.",
+        )
       }
     } finally {
       setIsGenerating(false)

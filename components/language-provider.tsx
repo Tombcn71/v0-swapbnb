@@ -132,6 +132,11 @@ const translations = {
   "auth.invalid": "Invalid email or password",
   "auth.passwordMismatch": "Passwords don't match",
   "auth.registrationFailed": "Registration failed. Please try again.",
+  "auth.emailPlaceholder": "your.email@example.com",
+  "auth.passwordPlaceholder": "••••••••",
+  "auth.signingIn": "Signing in...",
+  "auth.continueWith": "Or continue with",
+  "auth.invalidCredentials": "Invalid email or password",
 }
 
 interface LanguageContextType {

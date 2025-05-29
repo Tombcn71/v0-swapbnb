@@ -20,7 +20,7 @@ export async function generatePitch(data: PitchFormData): Promise<string> {
     const apiKey = process.env.GOOGLE_API_KEY
 
     if (!apiKey) {
-      throw new Error("Google API key is not set. Please add GOOGLE_API_KEY to your environment variables.")
+      throw new Error("Google API key is not configured. Please add GOOGLE_API_KEY to your environment variables.")
     }
 
     // Create a custom Google client with explicit API key
@@ -76,6 +76,20 @@ Format the pitch as a well-structured script that can be presented in exactly 3 
     return text
   } catch (error) {
     console.error("Error generating pitch:", error)
+
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes("API key")) {
+        throw new Error("API key configuration error. Please check your Google API key.")
+      } else if (error.message.includes("quota")) {
+        throw new Error("API quota exceeded. Please try again later.")
+      } else if (error.message.includes("network")) {
+        throw new Error("Network error. Please check your internet connection and try again.")
+      } else {
+        throw new Error(`Pitch generation failed: ${error.message}`)
+      }
+    }
+
     throw new Error("Failed to generate pitch. Please try again.")
   }
 }
