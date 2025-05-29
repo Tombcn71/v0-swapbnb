@@ -14,17 +14,15 @@ import { useRouter } from "next/navigation"
 import { FaGoogle } from "react-icons/fa"
 import { Separator } from "@/components/ui/separator"
 
-export default function SignUp() {
+export default function SignIn() {
   const { t } = useLanguage()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
-    confirmPassword: "",
   })
 
   const handleInputChange = (field: string, value: string) => {
@@ -43,15 +41,7 @@ export default function SignUp() {
     setIsLoading(true)
     setError("")
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords don't match")
-      setIsLoading(false)
-      return
-    }
-
     try {
-      // In a real app, you would register the user here
-      // For this demo, we'll just sign them in with credentials
       const result = await signIn("credentials", {
         redirect: false,
         email: formData.email,
@@ -59,12 +49,12 @@ export default function SignUp() {
       })
 
       if (result?.error) {
-        setError("Registration failed. Please try again.")
+        setError(t("auth.invalidCredentials"))
       } else {
         router.push("/dashboard")
       }
     } catch (error) {
-      setError("Ocurrió un error. Por favor, inténtalo de nuevo.")
+      setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -76,8 +66,8 @@ export default function SignUp() {
       <main className="flex-1 flex items-center justify-center py-12">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold">{t("auth.signup")}</CardTitle>
-            <CardDescription>Create an account to start generating professional pitches</CardDescription>
+            <CardTitle className="text-2xl font-bold">{t("auth.signin")}</CardTitle>
+            <CardDescription>{t("auth.signInDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button variant="outline" onClick={handleGoogleSignIn} className="w-full flex items-center justify-center">
@@ -90,7 +80,7 @@ export default function SignUp() {
                 <Separator className="w-full" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-background px-2 text-muted-foreground">{t("auth.continueWith")}</span>
               </div>
             </div>
 
@@ -99,22 +89,11 @@ export default function SignUp() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t("contact.name")}</Label>
-                  <Input
-                    id="name"
-                    placeholder="Your name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="email">{t("auth.email")}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="your.email@example.com"
+                    placeholder={t("auth.emailPlaceholder")}
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     required
@@ -126,36 +105,24 @@ export default function SignUp() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t("auth.passwordPlaceholder")}
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                     required
                   />
                 </div>
               </div>
 
               <Button type="submit" className="w-full mt-4" disabled={isLoading}>
-                {isLoading ? "Creating account..." : t("auth.signup")}
+                {isLoading ? t("auth.signingIn") : t("auth.signin")}
               </Button>
             </form>
           </CardContent>
           <CardFooter>
             <div className="text-sm text-center w-full">
-              {t("auth.hasAccount")}{" "}
-              <Button variant="link" className="p-0" onClick={() => router.push("/signin")}>
-                {t("auth.signin")}
+              {t("auth.noAccount")}{" "}
+              <Button variant="link" className="p-0" onClick={() => router.push("/signup")}>
+                {t("auth.signup")}
               </Button>
             </div>
           </CardFooter>
