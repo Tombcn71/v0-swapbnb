@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Calendar, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -32,9 +32,9 @@ interface Exchange {
   host_home_city?: string
   host_home_images?: string | string[]
   requester_name?: string
-  requester_profile_image?: string
+  requester_email?: string
   host_name?: string
-  host_profile_image?: string
+  host_email?: string
 }
 
 const getStatusBadge = (status: string) => {
@@ -68,10 +68,23 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
   const homeCity = isRequester ? exchange.host_home_city : exchange.requester_home_city
   const homeImages = isRequester ? exchange.host_home_images : exchange.requester_home_images
   const ownerName = isRequester ? exchange.host_name : exchange.requester_name
-  const ownerImage = isRequester ? exchange.host_profile_image : exchange.requester_profile_image
 
-  // Get first image
-  const firstImage = Array.isArray(homeImages) ? homeImages[0] : homeImages
+  // Get first image or use placeholder
+  let firstImage = ""
+  if (homeImages) {
+    if (Array.isArray(homeImages)) {
+      firstImage = homeImages[0] || ""
+    } else if (typeof homeImages === "string") {
+      try {
+        // Try to parse if it's a JSON string
+        const parsed = JSON.parse(homeImages)
+        firstImage = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : ""
+      } catch (e) {
+        // If not JSON, use as is
+        firstImage = homeImages
+      }
+    }
+  }
 
   return (
     <Link href={`/exchanges/${exchange.id}`}>
@@ -86,7 +99,6 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
           <div className="absolute top-3 right-3">{getStatusBadge(exchange.status)}</div>
           <div className="absolute top-3 left-3">
             <Avatar className="h-12 w-12 border-2 border-white shadow-md">
-              <AvatarImage src={ownerImage || "/placeholder.svg"} alt={ownerName} />
               <AvatarFallback className="bg-teal-500 text-white">
                 {ownerName?.charAt(0)?.toUpperCase() || "?"}
               </AvatarFallback>
@@ -141,8 +153,13 @@ const ExchangesPage = () => {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
         const data = await response.json()
-        setExchanges(data.exchanges || [])
-        setCurrentUserId(data.currentUserId || "")
+        console.log("Fetched exchanges data:", data) // Debug log
+        setExchanges(data)
+
+        // Get current user ID from session
+        const sessionRes = await fetch("/api/auth/session")
+        const sessionData = await sessionRes.json()
+        setCurrentUserId(sessionData?.user?.id || "")
       } catch (error) {
         console.error("Failed to fetch exchanges:", error)
         setExchanges([])
