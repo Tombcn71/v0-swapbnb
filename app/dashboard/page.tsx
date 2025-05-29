@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useRef } from "react"
 import { Navbar } from "@/components/navbar"
-import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -27,7 +26,6 @@ interface PitchFormData {
 }
 
 export default function Dashboard() {
-  const { t } = useLanguage()
   const [activeTab, setActiveTab] = useState("form")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedPitch, setGeneratedPitch] = useState("")
@@ -59,14 +57,12 @@ export default function Dashboard() {
     setError(null)
 
     try {
-      // No longer passing language parameter
       const pitch = await generatePitch(formData)
       setGeneratedPitch(pitch)
       setActiveTab("result")
     } catch (error) {
       console.error("Error generating pitch:", error)
 
-      // Better error handling with English messages
       if (error instanceof Error) {
         setError(`Error generating pitch: ${error.message}`)
       } else {
@@ -83,8 +79,8 @@ export default function Dashboard() {
     if (generatedPitch) {
       navigator.clipboard.writeText(generatedPitch)
       toast({
-        title: t("pitch.copied"),
-        description: t("pitch.copied.description"),
+        title: "Copied to clipboard",
+        description: "Your pitch has been copied to the clipboard",
       })
     }
   }
@@ -101,14 +97,11 @@ export default function Dashboard() {
     }
   }
 
-  // Enhanced function to format the pitch text with better styling
   const formatPitchText = (text: string) => {
     if (!text) return null
 
-    // Split the text by lines
     const lines = text.split("\n")
     const formattedLines = lines.map((line, index) => {
-      // Main headers (# or ##)
       if (line.startsWith("# ")) {
         return (
           <h1 key={index} className="text-2xl font-bold mt-6 mb-4 text-primary border-b pb-2">
@@ -128,7 +121,7 @@ export default function Dashboard() {
           </h3>
         )
       } else if (line.trim() === "") {
-        return <div key={index} className="h-2"></div> // Empty line spacing
+        return <div key={index} className="h-2"></div>
       } else if (line.startsWith("- ")) {
         return (
           <li key={index} className="my-1 ml-4 list-disc leading-relaxed">
@@ -155,9 +148,9 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <FileText className="h-6 w-6 text-primary mr-2" />
-            <h2 className="text-2xl font-bold">{t("pitch.your3min")}</h2>
+            <h2 className="text-2xl font-bold">Your 3-Minute Pitch</h2>
           </div>
-          <div className="text-sm text-muted-foreground">{t("pitch.based")}</div>
+          <div className="text-sm text-muted-foreground">Based on David Beckett's Pitch Canvas</div>
         </div>
         <div className="prose prose-sm md:prose-base lg:prose-lg dark:prose-invert max-w-none">{formattedLines}</div>
       </div>
@@ -168,8 +161,8 @@ export default function Dashboard() {
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1 container py-8">
-        <h1 className="text-3xl font-bold mb-6">{t("pitch.title")}</h1>
-        <p className="text-muted-foreground mb-8">{t("pitch.subtitle")}</p>
+        <h1 className="text-3xl font-bold mb-6">Pitch Canvas Generator</h1>
+        <p className="text-muted-foreground mb-8">Create your perfect pitch with AI</p>
 
         {error && (
           <Alert variant="destructive" className="mb-6">
@@ -181,26 +174,26 @@ export default function Dashboard() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="form">{t("pitch.canvas")}</TabsTrigger>
+            <TabsTrigger value="form">Pitch Canvas</TabsTrigger>
             <TabsTrigger value="result" disabled={!generatedPitch}>
-              {t("pitch.result")}
+              Generated Pitch
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="form">
             <Card>
               <CardHeader>
-                <CardTitle>{t("pitch.canvas.title")}</CardTitle>
-                <CardDescription>{t("pitch.canvas.description")}</CardDescription>
+                <CardTitle>David Beckett's Pitch Canvas</CardTitle>
+                <CardDescription>Fill in the details below to generate your 3-minute pitch</CardDescription>
               </CardHeader>
               <form onSubmit={handleSubmit}>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="problem">{t("pitch.problem")}</Label>
+                      <Label htmlFor="problem">Problem</Label>
                       <Textarea
                         id="problem"
-                        placeholder={t("pitch.problem.placeholder")}
+                        placeholder="What problem are you solving?"
                         value={formData.problem}
                         onChange={(e) => handleInputChange("problem", e.target.value)}
                         required
@@ -208,10 +201,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="solution">{t("pitch.solution")}</Label>
+                      <Label htmlFor="solution">Solution</Label>
                       <Textarea
                         id="solution"
-                        placeholder={t("pitch.solution.placeholder")}
+                        placeholder="How does your solution work?"
                         value={formData.solution}
                         onChange={(e) => handleInputChange("solution", e.target.value)}
                         required
@@ -219,10 +212,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="uniqueness">{t("pitch.uniqueness")}</Label>
+                      <Label htmlFor="uniqueness">Uniqueness</Label>
                       <Textarea
                         id="uniqueness"
-                        placeholder={t("pitch.uniqueness.placeholder")}
+                        placeholder="What makes your solution unique?"
                         value={formData.uniqueness}
                         onChange={(e) => handleInputChange("uniqueness", e.target.value)}
                         required
@@ -230,10 +223,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="market">{t("pitch.market")}</Label>
+                      <Label htmlFor="market">Target Market</Label>
                       <Textarea
                         id="market"
-                        placeholder={t("pitch.market.placeholder")}
+                        placeholder="Who is your target audience?"
                         value={formData.market}
                         onChange={(e) => handleInputChange("market", e.target.value)}
                         required
@@ -241,10 +234,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="traction">{t("pitch.traction")}</Label>
+                      <Label htmlFor="traction">Traction</Label>
                       <Textarea
                         id="traction"
-                        placeholder={t("pitch.traction.placeholder")}
+                        placeholder="What traction do you have so far?"
                         value={formData.traction}
                         onChange={(e) => handleInputChange("traction", e.target.value)}
                         required
@@ -252,10 +245,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="business">{t("pitch.business")}</Label>
+                      <Label htmlFor="business">Business Model</Label>
                       <Textarea
                         id="business"
-                        placeholder={t("pitch.business.placeholder")}
+                        placeholder="How will you generate revenue?"
                         value={formData.business}
                         onChange={(e) => handleInputChange("business", e.target.value)}
                         required
@@ -263,10 +256,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="team">{t("pitch.team")}</Label>
+                      <Label htmlFor="team">Team</Label>
                       <Textarea
                         id="team"
-                        placeholder={t("pitch.team.placeholder")}
+                        placeholder="Who is part of your team?"
                         value={formData.team}
                         onChange={(e) => handleInputChange("team", e.target.value)}
                         required
@@ -274,10 +267,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="ask">{t("pitch.ask")}</Label>
+                      <Label htmlFor="ask">The Ask</Label>
                       <Textarea
                         id="ask"
-                        placeholder={t("pitch.ask.placeholder")}
+                        placeholder="What are you asking for?"
                         value={formData.ask}
                         onChange={(e) => handleInputChange("ask", e.target.value)}
                         required
@@ -287,7 +280,7 @@ export default function Dashboard() {
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" disabled={isGenerating}>
-                    {isGenerating ? t("pitch.generating") : t("pitch.generate")}
+                    {isGenerating ? "Generating..." : "Generate Pitch"}
                   </Button>
                 </CardFooter>
               </form>
@@ -297,8 +290,10 @@ export default function Dashboard() {
           <TabsContent value="result">
             <Card>
               <CardHeader>
-                <CardTitle>{t("pitch.result.title")}</CardTitle>
-                <CardDescription>{t("pitch.result.description")}</CardDescription>
+                <CardTitle>Your Generated Pitch</CardTitle>
+                <CardDescription>
+                  Here's your AI-generated 3-minute pitch based on David Beckett's method
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div ref={pitchRef}>{formatPitchText(generatedPitch)}</div>
@@ -306,21 +301,21 @@ export default function Dashboard() {
               <CardFooter className="flex flex-wrap gap-3 justify-between">
                 <div className="flex flex-wrap gap-3">
                   <Button variant="outline" onClick={() => setActiveTab("form")}>
-                    {t("pitch.edit")}
+                    Edit Canvas
                   </Button>
                   <Button variant="outline" onClick={handleCopyToClipboard}>
                     <Copy className="mr-2 h-4 w-4" />
-                    {t("pitch.copy")}
+                    Copy Text
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <Button variant="outline" onClick={() => window.print()}>
                     <Printer className="mr-2 h-4 w-4" />
-                    {t("pitch.print")}
+                    Print
                   </Button>
                   <Button onClick={handleDownload}>
                     <Download className="mr-2 h-4 w-4" />
-                    {t("pitch.download")}
+                    Download
                   </Button>
                 </div>
               </CardFooter>

@@ -8,12 +8,10 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1">
-        {/* Hero Section - No Gradients */}
+        {/* Hero Section */}
         <section className="relative py-20 md:py-32 overflow-hidden bg-background">
-          {/* Simple Background */}
           <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-muted/20"></div>
-            {/* Pattern overlay */}
             <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           </div>
 
@@ -45,12 +43,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Simple Divider */}
         <div className="h-px w-full bg-border"></div>
 
-        {/* Features Section - No Gradients */}
+        {/* Features Section */}
         <section className="py-12 md:py-24 bg-background relative">
-          {/* Subtle Background Pattern */}
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
 
           <div className="container px-4 md:px-6">
@@ -214,8 +210,7 @@ export default function Home() {
           </div>
         </section>
 
-
-        {/* Call to Action - No Gradients */}
+        {/* Call to Action */}
         <section className="py-12 relative overflow-hidden bg-background">
           <div className="container relative z-10 px-4 md:px-6">
             <div className="max-w-2xl mx-auto text-center">

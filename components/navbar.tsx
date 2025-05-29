@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import { useLanguage } from "./language-provider"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "./theme-toggle"
 import { LogOut, Menu, Megaphone, Home, LayoutDashboard, Phone, LogIn } from "lucide-react"
@@ -11,7 +10,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { signOut, useSession } from "next-auth/react"
 
 export function Navbar() {
-  const { t } = useLanguage()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -19,7 +17,6 @@ export function Navbar() {
   const isAuthenticated = status === "authenticated"
 
   useEffect(() => {
-    // Cleanup function to restore scrolling when component unmounts
     return () => {
       document.body.style.overflow = ""
     }
@@ -29,9 +26,7 @@ export function Navbar() {
     setIsLoggingOut(true)
 
     try {
-      // Use NextAuth's signOut function to properly log out
       await signOut({ redirect: false })
-      // After successful logout, redirect to home page
       router.push("/")
     } catch (error) {
       console.error("Error logging out:", error)
@@ -53,17 +48,17 @@ export function Navbar() {
             <ThemeToggle />
             <Link href="/">
               <Button variant="ghost" size="sm">
-                {t("nav.home")}
+                Home
               </Button>
             </Link>
             <Link href="/dashboard">
               <Button variant="ghost" size="sm">
-                {t("nav.dashboard")}
+                Dashboard
               </Button>
             </Link>
             <Link href="/contact">
               <Button variant="ghost" size="sm">
-                {t("nav.contact")}
+                Contact Coach
               </Button>
             </Link>
 
@@ -76,13 +71,13 @@ export function Navbar() {
                 disabled={isLoggingOut}
               >
                 <LogOut className="h-4 w-4 mr-1" />
-                {isLoggingOut ? t("nav.loggingOut") : t("nav.logout")}
+                {isLoggingOut ? "Signing out..." : "Sign Out"}
               </Button>
             ) : (
               <Link href="/signin">
                 <Button variant="ghost" size="sm">
                   <LogIn className="h-4 w-4 mr-1" />
-                  {t("auth.signin")}
+                  Sign In
                 </Button>
               </Link>
             )}
@@ -95,7 +90,6 @@ export function Navbar() {
               open={isMenuOpen}
               onOpenChange={(open) => {
                 setIsMenuOpen(open)
-                // Prevent body scrolling when menu is open
                 if (open) {
                   document.body.style.overflow = "hidden"
                 } else {
@@ -111,7 +105,7 @@ export function Navbar() {
               </SheetTrigger>
               <SheetContent side="right">
                 <SheetHeader>
-                  <SheetTitle>{t("nav.menu")}</SheetTitle>
+                  <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-6">
                   <Button
@@ -123,7 +117,7 @@ export function Navbar() {
                     }}
                   >
                     <Home className="h-4 w-4 mr-2" />
-                    {t("nav.home")}
+                    Home
                   </Button>
                   <Button
                     variant="ghost"
@@ -134,7 +128,7 @@ export function Navbar() {
                     }}
                   >
                     <LayoutDashboard className="h-4 w-4 mr-2" />
-                    {t("nav.dashboard")}
+                    Dashboard
                   </Button>
                   <Button
                     variant="ghost"
@@ -145,7 +139,7 @@ export function Navbar() {
                     }}
                   >
                     <Phone className="h-4 w-4 mr-2" />
-                    {t("nav.contact")}
+                    Contact Coach
                   </Button>
 
                   {isAuthenticated ? (
@@ -156,7 +150,7 @@ export function Navbar() {
                       disabled={isLoggingOut}
                     >
                       <LogOut className="h-4 w-4 mr-2" />
-                      {isLoggingOut ? t("nav.loggingOut") : t("nav.logout")}
+                      {isLoggingOut ? "Signing out..." : "Sign Out"}
                     </Button>
                   ) : (
                     <Button
@@ -168,7 +162,7 @@ export function Navbar() {
                       }}
                     >
                       <LogIn className="h-4 w-4 mr-2" />
-                      {t("auth.signin")}
+                      Sign In
                     </Button>
                   )}
                 </div>

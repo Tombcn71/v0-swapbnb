@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState } from "react"
 import { Navbar } from "@/components/navbar"
-import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,7 +12,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 
 export default function Contact() {
-  const { t } = useLanguage()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -34,11 +32,10 @@ export default function Contact() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call
     setTimeout(() => {
       toast({
-        title: t("contact.success"),
-        description: t("contact.success.description"),
+        title: "Message sent successfully!",
+        description: "Martina Guzman will contact you soon.",
       })
 
       setFormData({
@@ -56,13 +53,13 @@ export default function Contact() {
       <Navbar />
       <main className="flex-1 container py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">{t("contact.title")}</h1>
-          <p className="text-muted-foreground mb-8">{t("contact.subtitle")}</p>
+          <h1 className="text-3xl font-bold mb-6">Contact Pitch Coach</h1>
+          <p className="text-muted-foreground mb-8">Get professional coaching from Martina Guzman</p>
 
           <Card className="mb-10">
             <CardHeader>
-              <CardTitle>{t("contact.coach.title")}</CardTitle>
-              <CardDescription>{t("contact.coach.description")}</CardDescription>
+              <CardTitle>Meet Your Coach</CardTitle>
+              <CardDescription>Professional pitch coaching from an industry expert</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-6 items-center">
@@ -75,7 +72,10 @@ export default function Contact() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold mb-2">Martina Guzman</h2>
-                  <p className="text-muted-foreground mb-4">{t("contact.coach.bio")}</p>
+                  <p className="text-muted-foreground mb-4">
+                    Professional Pitch Coach with over 10 years of experience helping entrepreneurs and executives
+                    deliver compelling presentations. Specialized in David Beckett's pitch canvas methodology.
+                  </p>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm">
                       <svg
@@ -121,13 +121,15 @@ export default function Contact() {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("contact.form.title")}</CardTitle>
-              <CardDescription>{t("contact.form.description")}</CardDescription>
+              <CardTitle>Contact Martina Guzman</CardTitle>
+              <CardDescription>
+                Get professional coaching to perfect your pitch delivery and presentation
+              </CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">{t("contact.name")}</Label>
+                  <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
                     placeholder="Your name"
@@ -138,7 +140,7 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">{t("contact.email")}</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -150,7 +152,7 @@ export default function Contact() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="message">{t("contact.message")}</Label>
+                  <Label htmlFor="message">Message</Label>
                   <Textarea
                     id="message"
                     placeholder="Tell us about your coaching needs..."
@@ -163,19 +165,19 @@ export default function Contact() {
               </CardContent>
               <CardFooter>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? t("contact.sending") : t("contact.submit")}
+                  {isSubmitting ? "Sending..." : "Send"}
                 </Button>
               </CardFooter>
             </form>
           </Card>
 
           <div className="mt-12 space-y-6">
-            <h2 className="text-2xl font-bold">{t("contact.services")}</h2>
+            <h2 className="text-2xl font-bold">Coaching Services</h2>
             <div className="grid gap-6 md:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>{t("contact.basic.title")}</CardTitle>
-                  <CardDescription>{t("contact.basic.description")}</CardDescription>
+                  <CardTitle>Basic Coaching</CardTitle>
+                  <CardDescription>Individual pitch review session</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
@@ -194,7 +196,7 @@ export default function Contact() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>{t("contact.basic.feature1")}</span>
+                      <span>60-minute virtual session</span>
                     </li>
                     <li className="flex items-center">
                       <svg
@@ -211,7 +213,7 @@ export default function Contact() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>{t("contact.basic.feature2")}</span>
+                      <span>Detailed feedback on your pitch</span>
                     </li>
                     <li className="flex items-center">
                       <svg
@@ -228,7 +230,7 @@ export default function Contact() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>{t("contact.basic.feature3")}</span>
+                      <span>Presentation tips and techniques</span>
                     </li>
                   </ul>
                 </CardContent>
@@ -236,8 +238,8 @@ export default function Contact() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>{t("contact.premium.title")}</CardTitle>
-                  <CardDescription>{t("contact.premium.description")}</CardDescription>
+                  <CardTitle>Premium Coaching</CardTitle>
+                  <CardDescription>Comprehensive pitch preparation</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
@@ -256,7 +258,7 @@ export default function Contact() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>{t("contact.premium.feature1")}</span>
+                      <span>3 coaching sessions (90 minutes each)</span>
                     </li>
                     <li className="flex items-center">
                       <svg
@@ -273,7 +275,7 @@ export default function Contact() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>{t("contact.premium.feature2")}</span>
+                      <span>Pitch content refinement</span>
                     </li>
                     <li className="flex items-center">
                       <svg
@@ -290,7 +292,7 @@ export default function Contact() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>{t("contact.premium.feature3")}</span>
+                      <span>Body language and voice coaching</span>
                     </li>
                     <li className="flex items-center">
                       <svg
@@ -307,145 +309,12 @@ export default function Contact() {
                       >
                         <polyline points="20 6 9 17 4 12"></polyline>
                       </svg>
-                      <span>{t("contact.premium.feature4")}</span>
+                      <span>Video recording and analysis</span>
                     </li>
                   </ul>
                 </CardContent>
               </Card>
             </div>
-          </div>
-
-          {/* Video Course Section */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-6">{t("course.title")}</h2>
-            <Card className="overflow-hidden">
-              <div className="sm:flex">
-                <div className="sm:w-1/3 bg-muted aspect-video sm:aspect-auto relative flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-primary/80"
-                  >
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polygon points="10 8 16 12 10 16 10 8"></polygon>
-                  </svg>
-                </div>
-                <div className="p-6 sm:w-2/3">
-                  <CardTitle className="mb-2">{t("course.name")}</CardTitle>
-                  <CardDescription className="mb-4 text-base">{t("course.description")}</CardDescription>
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mr-2 h-5 w-5 text-primary"
-                      >
-                        <path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"></path>
-                        <path d="M16.5 9.4 7.55 4.24"></path>
-                        <polyline points="3.29 7 12 12 20.71 7"></polyline>
-                        <line x1="12" y1="22" x2="12" y2="12"></line>
-                        <circle cx="18.5" cy="15.5" r="2.5"></circle>
-                        <path d="M20.27 17.27 22 19"></path>
-                      </svg>
-                      <span>{t("course.feature1")}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mr-2 h-5 w-5 text-primary"
-                      >
-                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                      </svg>
-                      <span>{t("course.feature2")}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mr-2 h-5 w-5 text-primary"
-                      >
-                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
-                        <path d="m9 12 2 2 4-4"></path>
-                      </svg>
-                      <span>{t("course.feature3")}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="mr-2 h-5 w-5 text-primary"
-                      >
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                      </svg>
-                      <span>{t("course.feature4")}</span>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                      <p className="font-bold text-2xl">$199</p>
-                      <div className="flex items-center mt-1">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-yellow-500 mr-1"
-                        >
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                        </svg>
-                        <span className="text-sm ml-1">{t("course.reviews")}</span>
-                      </div>
-                    </div>
-                    <Button>{t("course.purchase")}</Button>
-                  </div>
-                </div>
-              </div>
-            </Card>
           </div>
         </div>
       </main>
