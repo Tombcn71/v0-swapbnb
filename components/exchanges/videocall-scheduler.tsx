@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock, Video, ExternalLink } from "lucide-react"
+import { Calendar, Video, ExternalLink, Phone } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface VideocallSchedulerProps {
@@ -32,6 +32,10 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
 
     setIsLoading(true)
     try {
+      // Genereer een unieke Jitsi Meet room naam gebaseerd op exchange ID
+      const roomName = `swapbnb-${exchange.id.substring(0, 8)}`
+      const jitsiLink = `https://meet.jit.si/${roomName}`
+
       const scheduledDateTime = `${selectedDate}T${selectedTime}:00`
 
       const response = await fetch(`/api/exchanges/${exchange.id}/videocall`, {
@@ -41,6 +45,7 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
         },
         body: JSON.stringify({
           scheduled_at: scheduledDateTime,
+          videocall_link: jitsiLink,
         }),
       })
 
@@ -67,42 +72,23 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
     }
   }
 
+  const handleInstantCall = () => {
+    // Genereer een unieke Jitsi Meet room naam gebaseerd op exchange ID en timestamp
+    const roomName = `swapbnb-${exchange.id.substring(0, 8)}-${Date.now()}`
+    const jitsiLink = `https://meet.jit.si/${roomName}`
+
+    // Open Jitsi Meet in een nieuw tabblad
+    window.open(jitsiLink, "_blank")
+
+    toast({
+      title: "Videocall gestart",
+      description: "Deel de link met de andere persoon om samen te bellen.",
+    })
+  }
+
   const handleJoinCall = () => {
     if (exchange.videocall_link) {
       window.open(exchange.videocall_link, "_blank")
-    }
-  }
-
-  const handleCompleteCall = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/videocall/complete`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to complete videocall")
-      }
-
-      toast({
-        title: "Videocall voltooid",
-        description: "Ga nu door naar de betaling en ID-verificatie.",
-      })
-
-      // Refresh de pagina om de nieuwe status te tonen
-      window.location.reload()
-    } catch (error: any) {
-      toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de videocall niet voltooien. Probeer het later opnieuw.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -118,94 +104,78 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
     })
   }
 
-  // Alleen tonen als exchange geaccepteerd is
-  if (
-    exchange.status !== "accepted" &&
-    exchange.status !== "videocall_scheduled" &&
-    exchange.status !== "videocall_completed"
-  ) {
-    return null
-  }
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Video className="h-5 w-5" />
-          Videocall Planning
+          Videobellen
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {exchange.status === "accepted" && (
-          <>
-            <div className="bg-blue-50 p-3 rounded-md">
-              <p className="text-blue-800 text-sm">
-                <strong>Volgende stap:</strong> Plan een videocall om elkaar te leren kennen en de swap details te
-                bespreken.
-              </p>
-            </div>
+        <div className="bg-blue-50 p-3 rounded-md">
+          <p className="text-blue-800 text-sm">
+            <strong>Communiceer direct:</strong> Start een videocall om elkaar beter te leren kennen en details te
+            bespreken.
+          </p>
+        </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="date">Datum</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                />
-              </div>
+        {/* Directe videocall optie */}
+        <div className="space-y-3">
+          <Button onClick={handleInstantCall} className="w-full bg-green-600 hover:bg-green-700">
+            <Phone className="mr-2 h-4 w-4" />
+            Start Direct Videocall
+          </Button>
+          <p className="text-xs text-gray-500 text-center">
+            Start een directe videocall via Jitsi Meet (geen account nodig)
+          </p>
+        </div>
 
-              <div>
-                <Label htmlFor="time">Tijd</Label>
-                <Input id="time" type="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} />
-              </div>
+        <div className="border-t pt-4">
+          <h4 className="font-medium mb-3">Of plan een videocall</h4>
 
-              <Button onClick={handleScheduleCall} disabled={isLoading} className="w-full">
-                <Calendar className="mr-2 h-4 w-4" />
-                {isLoading ? "Plannen..." : "Plan Videocall"}
-              </Button>
-            </div>
-          </>
-        )}
-
-        {exchange.status === "videocall_scheduled" && exchange.videocall_scheduled_at && (
-          <>
-            <div className="bg-green-50 p-3 rounded-md">
+          {/* Geplande videocall weergave */}
+          {exchange.videocall_scheduled_at && (
+            <div className="bg-green-50 p-3 rounded-md mb-4">
               <p className="text-green-800 text-sm">
-                <strong>Videocall gepland voor:</strong>
+                <strong>Geplande videocall:</strong>
                 <br />
                 {formatDateTime(exchange.videocall_scheduled_at)}
               </p>
-            </div>
-
-            {exchange.videocall_link && (
-              <div className="space-y-3">
-                <Button onClick={handleJoinCall} className="w-full bg-green-600 hover:bg-green-700">
+              {exchange.videocall_link && (
+                <Button onClick={handleJoinCall} className="mt-2 w-full" variant="outline">
                   <Video className="mr-2 h-4 w-4" />
-                  Deelnemen aan videocall
+                  Deelnemen aan geplande call
                   <ExternalLink className="ml-2 h-4 w-4" />
                 </Button>
+              )}
+            </div>
+          )}
 
-                <Button onClick={handleCompleteCall} disabled={isLoading} variant="outline" className="w-full">
-                  <Clock className="mr-2 h-4 w-4" />
-                  {isLoading ? "Voltooien..." : "Videocall voltooid"}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+          {/* Planning interface */}
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="date">Datum</Label>
+              <Input
+                id="date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
 
-        {exchange.status === "videocall_completed" && (
-          <div className="bg-blue-50 p-3 rounded-md">
-            <p className="text-blue-800 text-sm">
-              <strong>✓ Videocall voltooid!</strong>
-              <br />
-              Ga nu door naar de betaling en ID-verificatie.
-            </p>
+            <div>
+              <Label htmlFor="time">Tijd</Label>
+              <Input id="time" type="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} />
+            </div>
+
+            <Button onClick={handleScheduleCall} disabled={isLoading} variant="outline" className="w-full">
+              <Calendar className="mr-2 h-4 w-4" />
+              {isLoading ? "Plannen..." : "Plan Videocall"}
+            </Button>
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   )
