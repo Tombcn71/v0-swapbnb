@@ -10,6 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { scheduled_at, videocall_link } = await request.json()
     const exchangeId = params.id
 
     // Controleer toegang
@@ -22,25 +23,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
     }
 
-    if (exchange[0].status !== "accepted") {
-      return NextResponse.json({ error: "Exchange must be accepted first" }, { status: 400 })
-    }
+    // Genereer Jitsi Meet link als er geen is meegegeven
+    const jitsiLink = videocall_link || `https://meet.jit.si/swapbnb-${exchangeId.substring(0, 8)}`
 
-    // Plan videocall (24 uur vanaf nu)
-    const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    const meetingLink = `https://meet.google.com/new` // Simpele link voor demo
-
+    // Update exchange met videocall informatie
     await executeQuery(
       `UPDATE exchanges 
-       SET status = 'videocall_scheduled', 
-           videocall_scheduled_at = $1, 
+       SET videocall_scheduled_at = $1, 
            videocall_link = $2,
            updated_at = NOW() 
        WHERE id = $3`,
-      [scheduledAt, meetingLink, exchangeId],
+      [scheduled_at, jitsiLink, exchangeId],
     )
 
-    return NextResponse.json({ success: true, scheduledAt, meetingLink })
+    return NextResponse.json({
+      success: true,
+      scheduledAt: scheduled_at,
+      meetingLink: jitsiLink,
+    })
   } catch (error) {
     console.error("Error scheduling videocall:", error)
     return NextResponse.json({ error: "Failed to schedule videocall" }, { status: 500 })
