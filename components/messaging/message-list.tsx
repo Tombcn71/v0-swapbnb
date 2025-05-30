@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Send, AlertCircle, Trash2, MoreVertical } from "lucide-react"
+import { Send, AlertCircle, Trash2, MoreVertical, Video, Phone } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -32,6 +32,7 @@ interface Message {
   created_at: string
   sender_name: string
   receiver_name: string
+  message_type?: string
 }
 
 interface MessageListProps {
@@ -182,6 +183,74 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
     }
   }
 
+  const renderMessageContent = (message: Message) => {
+    const isVideocallMessage =
+      message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite"
+
+    if (isVideocallMessage) {
+      // Split content op newlines en zoek naar Jitsi links
+      const lines = message.content.split("\n")
+
+      return (
+        <div className="space-y-2">
+          {lines.map((line, index) => {
+            // Check of de lijn een Jitsi link bevat
+            if (line.includes("https://meet.jit.si/")) {
+              const linkMatch = line.match(/(https:\/\/meet\.jit\.si\/[^\s]+)/)
+              if (linkMatch) {
+                const link = linkMatch[1]
+                const beforeLink = line.substring(0, linkMatch.index)
+                const afterLink = line.substring(linkMatch.index! + link.length)
+
+                return (
+                  <div key={index} className="flex items-center gap-2">
+                    {beforeLink && <span>{beforeLink}</span>}
+                    <Button
+                      onClick={() => window.open(link, "_blank")}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Video className="h-4 w-4 mr-1" />
+                      Deelnemen
+                    </Button>
+                    {afterLink && <span>{afterLink}</span>}
+                  </div>
+                )
+              }
+            }
+
+            return <div key={index}>{line}</div>
+          })}
+        </div>
+      )
+    }
+
+    // Normale berichten - zoek naar URLs en maak ze klikbaar
+    const urlRegex = /(https?:\/\/[^\s]+)/g
+    const parts = message.content.split(urlRegex)
+
+    return (
+      <div>
+        {parts.map((part, index) => {
+          if (part.match(urlRegex)) {
+            return (
+              <a
+                key={index}
+                href={part}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline hover:text-blue-800"
+              >
+                {part}
+              </a>
+            )
+          }
+          return <span key={index}>{part}</span>
+        })}
+      </div>
+    )
+  }
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center h-full">
@@ -224,6 +293,9 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
         ) : (
           messages.map((message) => {
             const isCurrentUser = message.sender_id === session?.user?.id
+            const isVideocallMessage =
+              message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite"
+
             return (
               <div key={message.id} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
                 <div
@@ -238,9 +310,31 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
                     </Avatar>
                   )}
                   <div className="relative group">
-                    <Card className={`${isCurrentUser ? "bg-teal-500 text-white" : "bg-gray-100"}`}>
+                    <Card
+                      className={`${
+                        isVideocallMessage
+                          ? "bg-blue-50 border-blue-200"
+                          : isCurrentUser
+                            ? "bg-teal-500 text-white"
+                            : "bg-gray-100"
+                      }`}
+                    >
                       <CardContent className="p-3">
-                        <p>{message.content}</p>
+                        {isVideocallMessage && (
+                          <div className="flex items-center gap-2 mb-2">
+                            {message.message_type === "videocall_scheduled" ? (
+                              <Video className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <Phone className="h-4 w-4 text-green-600" />
+                            )}
+                            <span className="text-sm font-medium text-blue-800">
+                              {message.message_type === "videocall_scheduled"
+                                ? "Videocall Gepland"
+                                : "Videocall Uitnodiging"}
+                            </span>
+                          </div>
+                        )}
+                        {renderMessageContent(message)}
                       </CardContent>
                     </Card>
                     <p className={`text-xs text-gray-500 mt-1 ${isCurrentUser ? "text-right" : ""}`}>

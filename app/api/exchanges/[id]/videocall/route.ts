@@ -13,15 +13,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const { scheduled_at, videocall_link, type = "scheduled" } = await request.json()
     const exchangeId = params.id
 
-    // Controleer toegang
+    // Haal exchange details op
     const exchange = await executeQuery(
-      "SELECT * FROM exchanges WHERE id = $1 AND (requester_id = $2 OR host_id = $2)",
+      `SELECT e.*, 
+              r.name as requester_name, 
+              h.name as host_name
+       FROM exchanges e
+       JOIN users r ON e.requester_id = r.id
+       JOIN users h ON e.host_id = h.id
+       WHERE e.id = $1 AND (e.requester_id = $2 OR e.host_id = $2)`,
       [exchangeId, session.user.id],
     )
 
     if (exchange.length === 0) {
       return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
     }
+
+    const exchangeData = exchange[0]
+
+    // Bepaal wie de ontvanger is (de andere persoon in de exchange)
+    const isRequester = exchangeData.requester_id === session.user.id
+    const receiverId = isRequester ? exchangeData.host_id : exchangeData.requester_id
+    const receiverName = isRequester ? exchangeData.host_name : exchangeData.requester_name
 
     // Genereer Jitsi Meet link
     const timestamp = type === "instant" ? Date.now() : new Date(scheduled_at).getTime()
@@ -53,7 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
          VALUES ($1, $2, $3, $4, 'videocall_scheduled')`,
         [
           session.user.id,
-          exchange[0].requester_id === session.user.id ? exchange[0].host_id : exchange[0].requester_id,
+          receiverId,
           exchangeId,
           `📹 Videocall gepland voor ${scheduledDate}\n\nJoin link: ${jitsiLink}`,
         ],
@@ -65,7 +78,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
          VALUES ($1, $2, $3, $4, 'videocall_invite')`,
         [
           session.user.id,
-          exchange[0].requester_id === session.user.id ? exchange[0].host_id : exchange[0].requester_id,
+          receiverId,
           exchangeId,
           `📞 ${session.user.name} wil nu videobellen!\n\nKlik hier om mee te doen: ${jitsiLink}`,
         ],
@@ -77,6 +90,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       scheduledAt: scheduled_at,
       meetingLink: jitsiLink,
       type,
+      receiverId,
+      receiverName,
     })
   } catch (error) {
     console.error("Error scheduling videocall:", error)
