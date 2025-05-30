@@ -10,6 +10,16 @@ const isValidUUID = (id: string) => {
   return uuidRegex.test(id)
 }
 
+// Helper functie om te controleren of een exchange voltooid kan worden
+const canCompleteExchange = (exchange: any) => {
+  return (
+    exchange.requester_payment_status === "paid" &&
+    exchange.host_payment_status === "paid" &&
+    exchange.requester_identity_verification_status === "verified" &&
+    exchange.host_identity_verification_status === "verified"
+  )
+}
+
 // GET /api/exchanges/[id] - Haal een specifieke uitwisseling op
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -90,7 +100,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { status } = await request.json()
 
     // Valideer input
-    if (!status || !["pending", "accepted", "rejected", "completed", "cancelled"].includes(status)) {
+    if (!status || !["pending", "accepted", "rejected", "cancelled"].includes(status)) {
       return NextResponse.json({ error: "Valid status is required" }, { status: 400 })
     }
 
@@ -117,6 +127,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // Alleen de aanvrager kan een uitwisseling annuleren
     if (status === "cancelled" && exchange.requester_id !== userId) {
       return NextResponse.json({ error: "Only the requester can cancel an exchange" }, { status: 403 })
+    }
+
+    // BELANGRIJK: Voorkom handmatige status update naar "completed"
+    if (status === "completed") {
+      return NextResponse.json(
+        {
+          error: "Exchange can only be completed automatically after payment and identity verification",
+        },
+        { status: 400 },
+      )
     }
 
     // Update de status van de uitwisseling

@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRightIcon, UserPlus, Search, RefreshCw } from 'lucide-react'
+import { ArrowRightIcon, UserPlus, Search, RefreshCw } from "lucide-react"
 
 export default function Home() {
   return (
@@ -24,7 +24,10 @@ export default function Home() {
                 </Button>
               </Link>
               <Link href="/login">
-                <Button variant="outline" className="border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white text-lg py-6 px-8">
+                <Button
+                  variant="outline"
+                  className="border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white text-lg py-6 px-8"
+                >
                   Inloggen
                 </Button>
               </Link>
@@ -156,21 +159,24 @@ export default function Home() {
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold mb-3 text-teal-600">Hoe werkt huizenswap?</h3>
                   <p className="text-gray-600">
-                    Je ruilt tijdelijk van woning met een ander gezin. Jullie verblijven in elkaars huis terwijl de eigenaren er niet zijn. Zo geniet je van een volledige woning zonder hotelkosten.
+                    Je ruilt tijdelijk van woning met een ander gezin. Jullie verblijven in elkaars huis terwijl de
+                    eigenaren er niet zijn. Zo geniet je van een volledige woning zonder hotelkosten.
                   </p>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold mb-3 text-teal-600">Wat kost het?</h3>
                   <p className="text-gray-600">
-                    Geen lidmaatschapskosten! Je betaalt alleen €20 per succesvolle swap voor platformkosten en verificatie. Veel goedkoper dan hotels of vakantiehuizen.
+                    Geen lidmaatschapskosten! Je betaalt alleen €20 per succesvolle swap voor platformkosten en
+                    verificatie. Veel goedkoper dan hotels of vakantiehuizen.
                   </p>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold mb-3 text-teal-600">Is het veilig?</h3>
                   <p className="text-gray-600">
-                    Ja! Alle gebruikers worden geverifieerd, we hebben een beoordelingssysteem en je communiceert eerst via ons platform voordat je een swap bevestigt.
+                    Ja! Alle gebruikers worden geverifieerd, we hebben een beoordelingssysteem en je communiceert eerst
+                    via ons platform voordat je een swap bevestigt.
                   </p>
                 </div>
               </div>
@@ -180,21 +186,24 @@ export default function Home() {
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold mb-3 text-teal-600">Kan ik mijn eigen huis aanbieden?</h3>
                   <p className="text-gray-600">
-                    Absoluut! Voeg je woning toe met foto's en beschrijving. Hoe aantrekkelijker je profiel, hoe meer kans op leuke swaps. Je bepaalt zelf wanneer je huis beschikbaar is.
+                    Absoluut! Voeg je woning toe met foto's en beschrijving. Hoe aantrekkelijker je profiel, hoe meer
+                    kans op leuke swaps. Je bepaalt zelf wanneer je huis beschikbaar is.
                   </p>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold mb-3 text-teal-600">Wat als er iets kapot gaat?</h3>
                   <p className="text-gray-600">
-                    We raden aan om vooraf afspraken te maken over kleine schades. Voor grotere problemen kun je contact opnemen met onze klantenservice voor bemiddeling.
+                    We raden aan om vooraf afspraken te maken over kleine schades. Voor grotere problemen kun je contact
+                    opnemen met onze klantenservice voor bemiddeling.
                   </p>
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                   <h3 className="text-lg font-semibold mb-3 text-teal-600">Hoe lang kan ik swappen?</h3>
                   <p className="text-gray-600">
-                    Van een weekend tot enkele weken - jullie bepalen samen de periode. Ideaal voor korte breaks, vakantie of een change of scenery tijdens thuiswerken.
+                    Van een weekend tot enkele weken - jullie bepalen samen de periode. Ideaal voor korte breaks,
+                    vakantie of een change of scenery tijdens thuiswerken.
                   </p>
                 </div>
               </div>
@@ -203,7 +212,10 @@ export default function Home() {
             <div className="text-center mt-12">
               <p className="text-gray-600 mb-6">Heb je nog andere vragen?</p>
               <Link href="/contact">
-                <Button variant="outline" className="border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white text-lg py-5 px-8">
+                <Button
+                  variant="outline"
+                  className="border-teal-500 text-teal-500 hover:bg-teal-500 hover:text-white text-lg py-5 px-8"
+                >
                   Neem contact op
                 </Button>
               </Link>

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/db"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import Stripe from "stripe"
 
 // Functie om te controleren of een string een geldige UUID is
 const isValidUUID = (id: string) => {
@@ -43,61 +44,60 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Bepaal welke rol de gebruiker heeft
     const isRequester = exchange.requester_id === session.user.id
-    const paymentField = isRequester ? "requester_payment_status" : "host_payment_status"
     const identityField = isRequester ? "requester_identity_verification_status" : "host_identity_verification_status"
-
-    // Controleer of de betaling is voltooid
-    if (exchange[paymentField] !== "paid") {
-      return NextResponse.json({ error: "Payment must be completed before identity verification" }, { status: 400 })
-    }
 
     // Controleer of de verificatie al is gedaan
     if (exchange[identityField] === "verified") {
       return NextResponse.json({ error: "Identity already verified" }, { status: 400 })
     }
 
-    // Voor nu simuleren we Stripe Identity - later vervangen door echte Stripe integratie
-    const mockIdentitySession = {
-      id: `vs_mock_${Date.now()}`,
-      url: `https://verify.stripe.com/start/mock_session_${exchangeId}`,
+    // Correcte Stripe Identity implementatie volgens de docs
+    // https://stripe.com/docs/identity/verify-identity-documents
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("Missing STRIPE_SECRET_KEY environment variable")
     }
 
-    // Update de identity session ID
-    const sessionField = isRequester ? "requester_identity_session_id" : "host_identity_session_id"
-    await executeQuery(`UPDATE exchanges SET ${sessionField} = $1 WHERE id = $2`, [mockIdentitySession.id, exchangeId])
-
-    // Voor demo: automatisch markeren als geverifieerd na 5 seconden
-    setTimeout(async () => {
-      try {
-        await executeQuery(`UPDATE exchanges SET ${identityField} = $1 WHERE id = $2`, ["verified", exchangeId])
-
-        // Controleer of beide partijen klaar zijn
-        const updatedExchanges = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
-        const updatedExchange = updatedExchanges[0]
-
-        if (
-          updatedExchange.requester_payment_status === "paid" &&
-          updatedExchange.host_payment_status === "paid" &&
-          updatedExchange.requester_identity_verification_status === "verified" &&
-          updatedExchange.host_identity_verification_status === "verified"
-        ) {
-          // Markeer exchange als voltooid
-          await executeQuery("UPDATE exchanges SET status = $1 WHERE id = $2", ["completed", exchangeId])
-          console.log(`Exchange ${exchangeId} completed!`)
-        }
-
-        console.log(`Identity verified for exchange ${exchangeId}`)
-      } catch (error) {
-        console.error("Error updating identity status:", error)
-      }
-    }, 5000)
-
-    return NextResponse.json({
-      url: mockIdentitySession.url,
-      sessionId: mockIdentitySession.id,
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2023-10-16", // Gebruik de meest recente API versie
     })
-  } catch (error) {
+
+    // 1. Maak een VerificationSession aan
+    const verificationSession = await stripe.identity.verificationSessions.create({
+      type: "document",
+      options: {
+        document: {
+          allowed_types: ["driving_license", "id_card", "passport"],
+          require_matching_selfie: true,
+          require_live_capture: true,
+        },
+      },
+      metadata: {
+        exchange_id: exchangeId,
+        user_id: session.user.id,
+        user_role: isRequester ? "requester" : "host",
+      },
+      return_url: `${process.env.NEXTAUTH_URL}/exchanges/${exchangeId}?verification_complete=true`,
+    })
+
+    // 2. Sla de verificatie sessie ID op
+    const sessionField = isRequester ? "requester_identity_session_id" : "host_identity_session_id"
+    await executeQuery(`UPDATE exchanges SET ${sessionField} = $1 WHERE id = $2`, [verificationSession.id, exchangeId])
+
+    // 3. Stuur de client_secret en URL terug naar de client
+    return NextResponse.json({
+      url: verificationSession.url,
+      client_secret: verificationSession.client_secret,
+      id: verificationSession.id,
+    })
+
+    // 4. De webhook handler (in een aparte route) zal de verificatie status updaten
+    // wanneer Stripe een event stuurt (zie app/api/webhooks/stripe/route.ts)
+  } catch (error: any) {
     console.error("Error creating identity verification session:", error)
-    return NextResponse.json({ error: "Failed to create identity verification session" }, { status: 500 })
+    return NextResponse.json(
+      { error: error.message || "Failed to create identity verification session" },
+      { status: 500 },
+    )
   }
 }
