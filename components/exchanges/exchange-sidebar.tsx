@@ -6,6 +6,7 @@ import { nl } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Users, Bed } from "lucide-react"
+import { VideocallScheduler } from "./videocall-scheduler"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeSidebarProps {
@@ -80,6 +81,9 @@ export function ExchangeSidebar({ exchange, isRequester, isHost }: ExchangeSideb
           </div>
         </CardContent>
       </Card>
+
+      {/* Videocall Scheduler */}
+      <VideocallScheduler exchange={exchange} isRequester={isRequester} />
 
       {/* Swap Details */}
       <Card>
