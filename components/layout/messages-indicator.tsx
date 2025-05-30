@@ -21,30 +21,63 @@ export function MessagesIndicator() {
         const exchangesResponse = await fetch("/api/exchanges")
         if (exchangesResponse.ok) {
           const exchanges = await exchangesResponse.json()
+          console.log("Fetched exchanges:", exchanges) // Debug log
 
-          // Vind de meest recente exchange met berichten
-          const activeExchanges = exchanges.filter(
-            (ex: any) => ex.status === "pending" || ex.status === "accepted" || ex.status === "confirmed",
-          )
-
-          if (activeExchanges.length > 0) {
-            // Sorteer op meest recente en pak de eerste
-            const sortedExchanges = activeExchanges.sort(
-              (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          if (Array.isArray(exchanges) && exchanges.length > 0) {
+            // Vind actieve exchanges
+            const activeExchanges = exchanges.filter(
+              (ex: any) =>
+                ex.status === "pending" ||
+                ex.status === "accepted" ||
+                ex.status === "confirmed" ||
+                ex.status === "videocall_scheduled",
             )
-            setLatestExchangeId(sortedExchanges[0].id)
+
+            console.log("Active exchanges:", activeExchanges) // Debug log
+
+            if (activeExchanges.length > 0) {
+              // Sorteer op meest recente en pak de eerste
+              const sortedExchanges = activeExchanges.sort(
+                (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+              )
+              setLatestExchangeId(sortedExchanges[0].id)
+              console.log("Latest exchange ID:", sortedExchanges[0].id) // Debug log
+            } else {
+              setLatestExchangeId(null)
+            }
+          } else {
+            setLatestExchangeId(null)
           }
         }
 
-        // Haal berichten op voor unread count
-        const messagesResponse = await fetch("/api/messages")
-        if (messagesResponse.ok) {
-          const conversations = await messagesResponse.json()
-          const totalUnread = conversations.reduce((total: number, conv: any) => total + (conv.unread_count || 0), 0)
-          setUnreadCount(totalUnread)
+        // Haal exchange berichten op voor unread count (niet algemene berichten)
+        let totalUnread = 0
+        const exchangesResponse2 = await fetch("/api/exchanges")
+        if (exchangesResponse2.ok) {
+          const exchanges = await exchangesResponse2.json()
+
+          // Tel ongelezen berichten per exchange
+          for (const exchange of exchanges) {
+            try {
+              const messagesResponse = await fetch(`/api/exchanges/${exchange.id}/messages`)
+              if (messagesResponse.ok) {
+                const messages = await messagesResponse.json()
+                // Tel berichten die niet van de huidige gebruiker zijn en nog niet gelezen
+                const unreadMessages = messages.filter((msg: any) => msg.sender_id !== session.user.id && !msg.read)
+                totalUnread += unreadMessages.length
+              }
+            } catch (error) {
+              console.error(`Error fetching messages for exchange ${exchange.id}:`, error)
+            }
+          }
         }
+
+        console.log("Total unread count:", totalUnread) // Debug log
+        setUnreadCount(totalUnread)
       } catch (error) {
         console.error("Error fetching exchange data:", error)
+        setUnreadCount(0)
+        setLatestExchangeId(null)
       }
     }
 

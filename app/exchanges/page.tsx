@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Calendar, MapPin, Users } from "lucide-react"
+import { Calendar, MapPin, Users, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { format } from "date-fns"
@@ -173,7 +173,13 @@ const ExchangesPage = () => {
 
   return (
     <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-8">Uitwisselingen</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">Uitwisselingen</h1>
+        <div className="flex items-center text-gray-600">
+          <MessageCircle className="h-5 w-5 mr-2" />
+          <span className="text-sm">{exchanges === null ? "Laden..." : `${exchanges.length} uitwisselingen`}</span>
+        </div>
+      </div>
 
       {loading ? (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -202,10 +208,19 @@ const ExchangesPage = () => {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">Geen uitwisselingen gevonden.</p>
-          <p className="text-gray-400 text-sm mt-2">
+          <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg mb-2">Geen uitwisselingen gevonden.</p>
+          <p className="text-gray-400 text-sm">
             Begin met het zoeken naar woningen om je eerste uitwisseling aan te vragen!
           </p>
+          <div className="mt-6">
+            <Link
+              href="/listings"
+              className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
+            >
+              Zoek woningen
+            </Link>
+          </div>
         </div>
       )}
     </div>
