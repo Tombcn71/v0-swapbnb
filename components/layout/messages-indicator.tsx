@@ -38,7 +38,7 @@ export function MessagesIndicator() {
 
   return (
     <Button variant="ghost" size="icon" asChild className="relative">
-      <Link href="/messages">
+      <Link href="/messages?filter=exchanges">
         <Mail className="h-5 w-5" />
         {unreadCount > 0 && (
           <Badge
