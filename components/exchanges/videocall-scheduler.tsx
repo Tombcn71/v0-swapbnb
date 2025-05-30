@@ -6,15 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Video, ExternalLink, Phone } from "lucide-react"
+import { Calendar, Video, ExternalLink, Phone, Copy } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface VideocallSchedulerProps {
   exchange: Exchange
   isRequester: boolean
+  onMessageSent: () => void
 }
 
-export function VideocallScheduler({ exchange, isRequester }: VideocallSchedulerProps) {
+export function VideocallScheduler({ exchange, isRequester, onMessageSent }: VideocallSchedulerProps) {
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -32,10 +33,6 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
 
     setIsLoading(true)
     try {
-      // Genereer een unieke Jitsi Meet room naam gebaseerd op exchange ID
-      const roomName = `swapbnb-${exchange.id.substring(0, 8)}`
-      const jitsiLink = `https://meet.jit.si/${roomName}`
-
       const scheduledDateTime = `${selectedDate}T${selectedTime}:00`
 
       const response = await fetch(`/api/exchanges/${exchange.id}/videocall`, {
@@ -45,7 +42,7 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
         },
         body: JSON.stringify({
           scheduled_at: scheduledDateTime,
-          videocall_link: jitsiLink,
+          type: "scheduled",
         }),
       })
 
@@ -56,11 +53,15 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
 
       toast({
         title: "Videocall gepland",
-        description: "De videocall is succesvol gepland. Beide partijen ontvangen een notificatie.",
+        description: "De videocall is gepland en toegevoegd aan de chat.",
       })
 
-      // Refresh de pagina om de nieuwe status te tonen
-      window.location.reload()
+      // Reset form
+      setSelectedDate("")
+      setSelectedTime("")
+
+      // Refresh messages
+      onMessageSent()
     } catch (error: any) {
       toast({
         title: "Er is iets misgegaan",
@@ -72,23 +73,66 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
     }
   }
 
-  const handleInstantCall = () => {
-    // Genereer een unieke Jitsi Meet room naam gebaseerd op exchange ID en timestamp
-    const roomName = `swapbnb-${exchange.id.substring(0, 8)}-${Date.now()}`
-    const jitsiLink = `https://meet.jit.si/${roomName}`
+  const handleInstantCall = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/videocall`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "instant",
+        }),
+      })
 
-    // Open Jitsi Meet in een nieuw tabblad
-    window.open(jitsiLink, "_blank")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to start videocall")
+      }
 
-    toast({
-      title: "Videocall gestart",
-      description: "Deel de link met de andere persoon om samen te bellen.",
-    })
+      const data = await response.json()
+
+      // Open de videocall
+      window.open(data.meetingLink, "_blank")
+
+      toast({
+        title: "Videocall gestart",
+        description: "De andere persoon is uitgenodigd via de chat.",
+      })
+
+      // Refresh messages
+      onMessageSent()
+    } catch (error: any) {
+      toast({
+        title: "Er is iets misgegaan",
+        description: error.message || "Kon de videocall niet starten.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleJoinCall = () => {
     if (exchange.videocall_link) {
       window.open(exchange.videocall_link, "_blank")
+    }
+  }
+
+  const copyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link)
+      toast({
+        title: "Link gekopieerd",
+        description: "De videocall link is gekopieerd naar je klembord.",
+      })
+    } catch (error) {
+      toast({
+        title: "Kon link niet kopiëren",
+        description: "Probeer de link handmatig te selecteren en kopiëren.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -115,19 +159,19 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
       <CardContent className="space-y-4">
         <div className="bg-blue-50 p-3 rounded-md">
           <p className="text-blue-800 text-sm">
-            <strong>Communiceer direct:</strong> Start een videocall om elkaar beter te leren kennen en details te
-            bespreken.
+            <strong>💡 Tip:</strong> Videocall uitnodigingen worden automatisch in de chat geplaatst zodat beide
+            personen de link kunnen zien.
           </p>
         </div>
 
         {/* Directe videocall optie */}
         <div className="space-y-3">
-          <Button onClick={handleInstantCall} className="w-full bg-green-600 hover:bg-green-700">
+          <Button onClick={handleInstantCall} disabled={isLoading} className="w-full bg-green-600 hover:bg-green-700">
             <Phone className="mr-2 h-4 w-4" />
-            Start Direct Videocall
+            {isLoading ? "Uitnodigen..." : "Start Direct Videocall"}
           </Button>
           <p className="text-xs text-gray-500 text-center">
-            Start een directe videocall via Jitsi Meet (geen account nodig)
+            Stuurt direct een uitnodiging via de chat (Jitsi Meet - geen account nodig)
           </p>
         </div>
 
@@ -135,20 +179,23 @@ export function VideocallScheduler({ exchange, isRequester }: VideocallScheduler
           <h4 className="font-medium mb-3">Of plan een videocall</h4>
 
           {/* Geplande videocall weergave */}
-          {exchange.videocall_scheduled_at && (
+          {exchange.videocall_scheduled_at && exchange.videocall_link && (
             <div className="bg-green-50 p-3 rounded-md mb-4">
-              <p className="text-green-800 text-sm">
+              <p className="text-green-800 text-sm mb-2">
                 <strong>Geplande videocall:</strong>
                 <br />
                 {formatDateTime(exchange.videocall_scheduled_at)}
               </p>
-              {exchange.videocall_link && (
-                <Button onClick={handleJoinCall} className="mt-2 w-full" variant="outline">
+              <div className="flex gap-2">
+                <Button onClick={handleJoinCall} className="flex-1" variant="outline">
                   <Video className="mr-2 h-4 w-4" />
-                  Deelnemen aan geplande call
+                  Deelnemen
                   <ExternalLink className="ml-2 h-4 w-4" />
                 </Button>
-              )}
+                <Button onClick={() => copyLink(exchange.videocall_link!)} variant="outline" size="icon">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
