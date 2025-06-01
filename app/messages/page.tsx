@@ -15,6 +15,33 @@ interface Conversation {
   unread_count: number
 }
 
+// Functie om system messages te filteren en te formatteren
+function formatLastMessage(content: string, messageType: string): string {
+  // Filter system messages uit het overzicht
+  if (messageType === 'system_message') {
+    return '' // Toon system messages niet in het overzicht
+  }
+
+  // Voor videocall berichten, toon een nette preview
+  if (messageType === 'videocall_scheduled' || messageType === 'videocall_invite') {
+    try {
+      const data = JSON.parse(content)
+      return data.text || content
+    } catch {
+      // Fallback voor oude format
+      if (content.includes('Videocall gepland')) {
+        return '📹 Videocall gepland'
+      }
+      if (content.includes('wil nu videobellen')) {
+        return '📞 Videocall uitnodiging'
+      }
+      return content
+    }
+  }
+
+  return content
+}
+
 export default async function MessagesPage() {
   const session = await getServerSession(authOptions)
 
@@ -22,7 +49,7 @@ export default async function MessagesPage() {
     redirect("/login?callbackUrl=/messages")
   }
 
-  // Haal alle gesprekken op
+  // Haal alle gesprekken op - EXCLUSIEF system messages in het overzicht
   const conversations = await executeQuery(
     `SELECT DISTINCT
        CASE
@@ -38,14 +65,25 @@ export default async function MessagesPage() {
          FROM messages
          WHERE (sender_id = $1 AND receiver_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END)
             OR (sender_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END AND receiver_id = $1)
+           AND message_type != 'system_message'  -- EXCLUDE system messages from preview
          ORDER BY created_at DESC
          LIMIT 1
        ) as last_message_content,
+       (
+         SELECT message_type
+         FROM messages
+         WHERE (sender_id = $1 AND receiver_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END)
+            OR (sender_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END AND receiver_id = $1)
+           AND message_type != 'system_message'  -- EXCLUDE system messages from preview
+         ORDER BY created_at DESC
+         LIMIT 1
+       ) as last_message_type,
        (
          SELECT created_at
          FROM messages
          WHERE (sender_id = $1 AND receiver_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END)
             OR (sender_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END AND receiver_id = $1)
+           AND message_type != 'system_message'  -- EXCLUDE system messages from preview
          ORDER BY created_at DESC
          LIMIT 1
        ) as last_message_time,
@@ -55,11 +93,13 @@ export default async function MessagesPage() {
          WHERE receiver_id = $1 
            AND sender_id = CASE WHEN m.sender_id = $1 THEN m.receiver_id ELSE m.sender_id END
            AND read = false
+           AND message_type != 'system_message'  -- EXCLUDE system messages from unread count
        ) as unread_count
      FROM messages m
      JOIN users sender ON m.sender_id = sender.id
      JOIN users receiver ON m.receiver_id = receiver.id
-     WHERE m.sender_id = $1 OR m.receiver_id = $1
+     WHERE (m.sender_id = $1 OR m.receiver_id = $1)
+       AND m.message_type != 'system_message'  -- EXCLUDE system messages from conversations
      ORDER BY last_message_time DESC`,
     [session.user.id],
   )
@@ -75,38 +115,53 @@ export default async function MessagesPage() {
           </div>
         ) : (
           <ul className="divide-y">
-            {conversations.map((conversation: Conversation) => (
-              <li key={conversation.other_user_id}>
-                <Link
-                  href={`/messages/${conversation.other_user_id}`}
-                  className="flex items-center p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <Avatar className="h-12 w-12 mr-4">
-                    <AvatarImage
-                      src={`/abstract-geometric-shapes.png?height=48&width=48&query=${conversation.other_user_name}`}
-                    />
-                    <AvatarFallback>{conversation.other_user_name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-medium truncate">{conversation.other_user_name}</h2>
-                      <span className="text-sm text-gray-500">
-                        {formatDistanceToNow(new Date(conversation.last_message_time), {
-                          addSuffix: true,
-                          locale: nl,
-                        })}
-                      </span>
+            {conversations.map((conversation: any) => {
+              // Format de laatste bericht preview
+              const formattedMessage = formatLastMessage(
+                conversation.last_message_content || '', 
+                conversation.last_message_type || 'text'
+              )
+
+              // Skip conversations without real messages (only system messages)
+              if (!formattedMessage) {
+                return null
+              }
+
+              return (
+                <li key={conversation.other_user_id}>
+                  <Link
+                    href={`/messages/${conversation.other_user_id}`}
+                    className="flex items-center p-4 hover:bg-gray-50 transition-colors"
+                  >
+                    <Avatar className="h-12 w-12 mr-4">
+                      <AvatarImage
+                        src={`/abstract-geometric-shapes.png?height=48&width=48&query=${conversation.other_user_name}`}
+                      />
+                      <AvatarFallback>{conversation.other_user_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-medium truncate">{conversation.other_user_name}</h2>
+                        {conversation.last_message_time && (
+                          <span className="text-sm text-gray-500">
+                            {formatDistanceToNow(new Date(conversation.last_message_time), {
+                              addSuffix: true,
+                              locale: nl,
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-600 truncate">{formattedMessage}</p>
                     </div>
-                    <p className="text-gray-600 truncate">{conversation.last_message_content}</p>
-                  </div>
-                  {conversation.unread_count > 0 && (
-                    <div className="ml-4 bg-teal-500 text-white text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center">
-                      {conversation.unread_count}
-                    </div>
-                  )}
-                </Link>
-              </li>
-            ))}
+                    {conversation.unread_count > 0 && (
+                      <div className="ml-4 bg-teal-500 text-white text-xs font-medium rounded-full h-5 w-5 flex items-center justify-center">
+                        {conversation.unread_count}
+                      </div>
+                    )}
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
