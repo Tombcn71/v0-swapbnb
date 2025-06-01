@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const { scheduled_at, videocall_link, type = "scheduled" } = await request.json()
     const exchangeId = params.id
 
-    // Haal exchange details op
+    // Get exchange details
     const exchange = await executeQuery(
       `SELECT e.*, 
               r.name as requester_name, 
@@ -30,18 +30,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const exchangeData = exchange[0]
-
-    // Bepaal wie de ontvanger is (de andere persoon in de exchange)
+    
+    // Determine who is the receiver (the other person in the exchange)
     const isRequester = exchangeData.requester_id === session.user.id
     const receiverId = isRequester ? exchangeData.host_id : exchangeData.requester_id
     const receiverName = isRequester ? exchangeData.host_name : exchangeData.requester_name
 
-    // Genereer Jitsi Meet link
+    // Generate Jitsi Meet link
     const timestamp = type === "instant" ? Date.now() : new Date(scheduled_at).getTime()
     const jitsiLink = videocall_link || `https://meet.jit.si/swapbnb-${exchangeId.substring(0, 8)}-${timestamp}`
 
     if (type === "scheduled") {
-      // Update exchange met geplande videocall
+      // Update exchange with scheduled videocall
       await executeQuery(
         `UPDATE exchanges 
          SET videocall_scheduled_at = $1, 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         [scheduled_at, jitsiLink, exchangeId],
       )
 
-      // Voeg automatisch bericht toe aan chat
+      // Add scheduled call message to chat - sent TO the other person
       const scheduledDate = new Date(scheduled_at).toLocaleString("nl-NL", {
         weekday: "long",
         year: "numeric",
@@ -61,26 +61,52 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         minute: "2-digit",
       })
 
+      // Message appears in the OTHER person's chat (they receive it)
       await executeQuery(
-        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type)
-         VALUES ($1, $2, $3, $4, 'videocall_scheduled')`,
+        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
+         VALUES ($1, $2, $3, $4, 'videocall_scheduled', NOW())`,
         [
-          session.user.id,
-          receiverId,
+          session.user.id,           // You are sending
+          receiverId,               // They are receiving
           exchangeId,
-          `📹 Videocall gepland voor ${scheduledDate}\n\nJoin link: ${jitsiLink}`,
+          `📹 Videocall gepland voor ${scheduledDate}\n\n🔗 <a href="${jitsiLink}" target="_blank" rel="noopener noreferrer" class="videocall-link">Klik hier om deel te nemen</a>`,
         ],
       )
-    } else if (type === "instant") {
-      // Voeg direct call bericht toe aan chat
+
+      // OPTIONAL: Add a confirmation message to YOUR chat
       await executeQuery(
-        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type)
-         VALUES ($1, $2, $3, $4, 'videocall_invite')`,
+        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
+         VALUES ($1, $2, $3, $4, 'videocall_confirmation', NOW())`,
         [
-          session.user.id,
-          receiverId,
+          session.user.id,           // System message to you
+          session.user.id,           // You receive it
           exchangeId,
-          `📞 ${session.user.name} wil nu videobellen!\n\nKlik hier om mee te doen: ${jitsiLink}`,
+          `✅ Videocall gepland voor ${scheduledDate}. ${receiverName} heeft een uitnodiging ontvangen.`,
+        ],
+      )
+
+    } else if (type === "instant") {
+      // Add instant call message - sent TO the other person
+      await executeQuery(
+        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
+         VALUES ($1, $2, $3, $4, 'videocall_invite', NOW())`,
+        [
+          session.user.id,           // You are sending
+          receiverId,               // They are receiving  
+          exchangeId,
+          `📞 ${session.user.name} wil nu videobellen!\n\n🔗 <a href="${jitsiLink}" target="_blank" rel="noopener noreferrer" class="videocall-link">Klik hier om mee te doen</a>`,
+        ],
+      )
+
+      // OPTIONAL: Add a "calling..." message to YOUR chat
+      await executeQuery(
+        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
+         VALUES ($1, $2, $3, $4, 'videocall_calling', NOW())`,
+        [
+          session.user.id,           // System message to you
+          session.user.id,           // You receive it
+          exchangeId,
+          `📞 Videocall uitnodiging verstuurd naar ${receiverName}...`,
         ],
       )
     }
@@ -92,7 +118,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       type,
       receiverId,
       receiverName,
+      // Don't return the link in the response if you don't want it shown to the sender
     })
+
   } catch (error) {
     console.error("Error scheduling videocall:", error)
     return NextResponse.json({ error: "Failed to schedule videocall" }, { status: 500 })
