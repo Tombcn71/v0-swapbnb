@@ -14,7 +14,10 @@ export default function Home() {
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900">Swap je woning, eropuit in Nederland</h1>
 
             <p className="text-lg md:text-xl text-gray-600">
-              Korte breaks, slim budget: geen abonnementskosten, betaal per swap.
+✅ Eenvoudig korte breaks plannen door heel Nederland <br/>
+✅ Betaal per swap, zonder vaste verplichtingen<br/>
+✅ Veilige uitwisseling dankzij ID-verificatie
+
             </p>
 
             <div className="flex gap-4 pt-4">
@@ -107,7 +110,7 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="border p-6 rounded-lg">
                   <p className="text-lg font-medium mb-2">Swap met SwapBnB</p>
-                  <p className="text-4xl font-bold">€20</p>
+                  <p className="text-4xl font-bold">€10</p>
                 </div>
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <p className="text-lg font-medium mb-2">Hotel of huurwoning</p>

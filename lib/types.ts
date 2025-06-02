@@ -4,6 +4,8 @@ export interface User {
   email: string
   bio?: string
   profile_image?: string
+  identity_verification_status?: "pending" | "verified" | "failed" | "not_started"
+  onboarding_completed?: boolean
   created_at: string
   updated_at: string
 }
@@ -26,6 +28,7 @@ export interface Home {
   owner_name?: string
   owner_profile_image?: string
   owner_bio?: string
+  owner_verified?: boolean
   isOwner?: boolean
 }
 
@@ -92,6 +95,7 @@ export interface Message {
   exchange_id: string
   sender_id: string
   content: string
+  message_type?: "text" | "videocall_invitation" | "videocall_scheduled"
   created_at: string
   updated_at: string
   sender_name?: string

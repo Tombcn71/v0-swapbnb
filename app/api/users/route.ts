@@ -21,10 +21,10 @@ export async function POST(request: NextRequest) {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Insert the new user
+    // Insert the new user with onboarding status
     const result = await executeQuery(
-      "INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email",
-      [name, email, hashedPassword],
+      "INSERT INTO users (name, email, password_hash, onboarding_completed) VALUES ($1, $2, $3, $4) RETURNING id, name, email",
+      [name, email, hashedPassword, false],
     )
 
     const newUser = result[0]
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
+        onboarding_completed: false,
       },
       { status: 201 },
     )
