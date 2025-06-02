@@ -63,10 +63,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
     }
 
-    // Maak bericht aan
+    // Maak bericht aan (zonder updated_at kolom)
     const message = await executeQuery(
-      `INSERT INTO messages (exchange_id, sender_id, content, created_at, updated_at)
-       VALUES ($1, $2, $3, NOW(), NOW())
+      `INSERT INTO messages (exchange_id, sender_id, content, created_at)
+       VALUES ($1, $2, $3, NOW())
        RETURNING *`,
       [exchangeId, session.user.id, content],
     )
