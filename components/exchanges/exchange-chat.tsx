@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
@@ -48,12 +48,26 @@ export function ExchangeChat({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
+  // Debug logging
+  useEffect(() => {
+    console.log("Exchange Chat Props:", {
+      exchangeId: exchange.id,
+      status: exchange.status,
+      currentUserId,
+      isRequester,
+      isHost,
+      requesterId: exchange.requester_id,
+      hostId: exchange.host_id,
+    })
+  }, [exchange, currentUserId, isRequester, isHost])
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim()) return
 
     setIsSubmitting(true)
     try {
+      console.log("Sending message to:", `/api/exchanges/${exchange.id}/messages`)
       const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,12 +82,14 @@ export function ExchangeChat({
           description: "Je bericht is succesvol verzonden.",
         })
       } else {
-        throw new Error("Failed to send message")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to send message")
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error sending message:", error)
       toast({
         title: "Fout",
-        description: "Er is een fout opgetreden bij het verzenden van je bericht.",
+        description: error.message || "Er is een fout opgetreden bij het verzenden van je bericht.",
         variant: "destructive",
       })
     } finally {
@@ -83,6 +99,7 @@ export function ExchangeChat({
 
   const handleAccept = async () => {
     try {
+      console.log("Accepting exchange:", exchange.id)
       const response = await fetch(`/api/exchanges/${exchange.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -96,12 +113,14 @@ export function ExchangeChat({
         })
         onStatusUpdate()
       } else {
-        throw new Error("Failed to accept")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to accept exchange")
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error accepting exchange:", error)
       toast({
         title: "Fout",
-        description: "Er is een fout opgetreden.",
+        description: error.message || "Er is een fout opgetreden.",
         variant: "destructive",
       })
     }
@@ -109,6 +128,7 @@ export function ExchangeChat({
 
   const handleReject = async () => {
     try {
+      console.log("Rejecting exchange:", exchange.id)
       const response = await fetch(`/api/exchanges/${exchange.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -122,12 +142,14 @@ export function ExchangeChat({
         })
         onStatusUpdate()
       } else {
-        throw new Error("Failed to reject")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to reject exchange")
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error rejecting exchange:", error)
       toast({
         title: "Fout",
-        description: "Er is een fout opgetreden.",
+        description: error.message || "Er is een fout opgetreden.",
         variant: "destructive",
       })
     }
@@ -135,6 +157,7 @@ export function ExchangeChat({
 
   const handleCancel = async () => {
     try {
+      console.log("Cancelling exchange:", exchange.id)
       const response = await fetch(`/api/exchanges/${exchange.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -148,12 +171,14 @@ export function ExchangeChat({
         })
         onStatusUpdate()
       } else {
-        throw new Error("Failed to cancel")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to cancel exchange")
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error cancelling exchange:", error)
       toast({
         title: "Fout",
-        description: "Er is een fout opgetreden.",
+        description: error.message || "Er is een fout opgetreden.",
         variant: "destructive",
       })
     }
@@ -290,8 +315,8 @@ export function ExchangeChat({
           )}
         </div>
 
-        {/* Bericht invoer - Alleen bij pending en accepted */}
-        {(exchange.status === "pending" || exchange.status === "accepted") && (
+        {/* Bericht invoer - Altijd beschikbaar behalve bij rejected/cancelled */}
+        {exchange.status !== "rejected" && exchange.status !== "cancelled" && (
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={newMessage}
