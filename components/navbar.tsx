@@ -1,46 +1,55 @@
 "use client"
 
-import { useSession, signIn, signOut } from "next-auth/react"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { useSession } from "next-auth/react"
+import { UserSidebar } from "./layout/user-sidebar"
+import { MessagesIndicator } from "./layout/messages-indicator"
+import { Logo } from "@/components/ui/logo"
 
-export default function Navbar() {
-  const { data: session } = useSession()
+export function Navbar() {
+  const { data: session, status } = useSession()
 
   return (
-    <nav className="bg-gray-800 p-4">
-      <div className="container mx-auto flex items-center justify-between">
-        <Link href="/" className="text-white text-lg font-bold">
-          My App
-        </Link>
+    <header className="border-b bg-white">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <Logo size="lg" />
 
-        <div className="space-x-4">
-          <Link href="/about" className="text-gray-300 hover:text-white">
-            About
+        <nav className="hidden md:flex items-center space-x-6">
+          <Link href="/listings" className="text-gray-600 hover:text-gray-900">
+            Woningen
           </Link>
-          <Link href="/contact" className="text-gray-300 hover:text-white">
+          <Link href="/about" className="text-gray-600 hover:text-gray-900">
+            Over ons
+          </Link>
+          <Link href="/contact" className="text-gray-600 hover:text-gray-900">
             Contact
           </Link>
+        </nav>
 
-          {session ? (
+        <div className="flex items-center space-x-2">
+          {status === "loading" ? (
+            <div className="h-8 w-20 bg-gray-200 animate-pulse rounded" />
+          ) : session ? (
             <>
-              <span className="text-gray-300">Signed in as {session.user?.email}</span>
-              <button
-                onClick={() => signOut()}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Sign out
-              </button>
+              {/* Messages indicator - alleen op desktop */}
+              <div className="hidden sm:block">
+                <MessagesIndicator />
+              </div>
+              <UserSidebar />
             </>
           ) : (
-            <button
-              onClick={() => signIn()}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Sign in
-            </button>
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login">Inloggen</Link>
+              </Button>
+              <Link href="/register">
+                <Button>Registreren</Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   )
 }
