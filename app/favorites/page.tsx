@@ -1,4 +1,3 @@
-"use client"
 import { DashboardFavorites } from "@/components/dashboard/dashboard-favorites"
 
 export default function FavoritesPage() {
