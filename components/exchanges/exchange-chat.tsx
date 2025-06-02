@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Send, CheckCircle, X, Ban, CreditCard } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,7 @@ export function ExchangeChat({
   const [newMessage, setNewMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [localMessages, setLocalMessages] = useState(messages)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
   // Update local messages when props change
@@ -54,11 +56,19 @@ export function ExchangeChat({
     setLocalMessages(messages)
   }, [messages])
 
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [localMessages])
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim()) return
 
     setIsSubmitting(true)
+
+    // Get current user profile image
+    const currentUserProfileImage = messages.find((msg) => msg.sender_id === currentUserId)?.sender_profile_image || ""
 
     // Optimistically add message to UI
     const optimisticMessage = {
@@ -69,6 +79,8 @@ export function ExchangeChat({
       exchange_id: exchange.id,
       receiver_id: isRequester ? exchange.host_id : exchange.requester_id,
       message_type: "text" as const,
+      sender_name: isRequester ? exchange.requester_name : exchange.host_name,
+      sender_profile_image: currentUserProfileImage,
     }
 
     setLocalMessages((prev) => [...prev, optimisticMessage])
@@ -82,8 +94,11 @@ export function ExchangeChat({
       })
 
       if (response.ok) {
-        // Refresh messages from server to get real ID
-        onMessageSent()
+        const newMessage = await response.json()
+
+        // Replace optimistic message with real one
+        setLocalMessages((prev) => prev.map((msg) => (msg.id === optimisticMessage.id ? newMessage : msg)))
+
         toast({
           title: "Bericht verzonden",
           description: "Je bericht is succesvol verzonden.",
@@ -237,6 +252,16 @@ export function ExchangeChat({
   const currentUserPaidCredits = isRequester ? exchange.requester_credits_paid : exchange.host_credits_paid
   const otherUserPaidCredits = isRequester ? exchange.host_credits_paid : exchange.requester_credits_paid
 
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
+  }
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
@@ -250,7 +275,16 @@ export function ExchangeChat({
         {/* Origineel swap bericht */}
         <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-blue-900">{exchange.requester_name}</span>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage
+                  src={exchange.requester_profile_image || "/placeholder.svg?height=40&width=40&query=user"}
+                  alt={exchange.requester_name}
+                />
+                <AvatarFallback>{getInitials(exchange.requester_name || "")}</AvatarFallback>
+              </Avatar>
+              <span className="font-semibold text-blue-900">{exchange.requester_name}</span>
+            </div>
             <span className="text-sm text-blue-600">
               {format(new Date(exchange.created_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
             </span>
@@ -275,16 +309,28 @@ export function ExchangeChat({
                 className={`flex ${message.sender_id === currentUserId ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.sender_id === currentUserId ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
-                  }`}
+                  className={`flex gap-2 max-w-xs lg:max-w-md ${message.sender_id === currentUserId ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  <p>{message.content}</p>
-                  <p className="text-xs mt-1 opacity-75">{format(new Date(message.created_at), "HH:mm")}</p>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={message.sender_profile_image || "/placeholder.svg?height=40&width=40&query=user"}
+                      alt={message.sender_name || ""}
+                    />
+                    <AvatarFallback>{getInitials(message.sender_name || "")}</AvatarFallback>
+                  </Avatar>
+                  <div
+                    className={`px-4 py-2 rounded-lg ${
+                      message.sender_id === currentUserId ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
+                    }`}
+                  >
+                    <p>{message.content}</p>
+                    <p className="text-xs mt-1 opacity-75">{format(new Date(message.created_at), "HH:mm")}</p>
+                  </div>
                 </div>
               </div>
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Action Buttons */}

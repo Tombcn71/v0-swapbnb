@@ -22,9 +22,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
     }
 
-    // Haal berichten op
+    // Haal berichten op met profielfoto's
     const messages = await executeQuery(
-      `SELECT m.*, u.name as sender_name 
+      `SELECT m.*, 
+              u.name as sender_name, 
+              u.profile_image as sender_profile_image
        FROM messages m
        JOIN users u ON m.sender_id = u.id
        WHERE m.exchange_id = $1
@@ -76,7 +78,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       [exchangeId, session.user.id, receiverId, content],
     )
 
-    return NextResponse.json(message[0], { status: 201 })
+    // Haal gebruikersgegevens op voor het nieuwe bericht
+    const messageWithUser = await executeQuery(
+      `SELECT m.*, 
+              u.name as sender_name, 
+              u.profile_image as sender_profile_image
+       FROM messages m
+       JOIN users u ON m.sender_id = u.id
+       WHERE m.id = $1`,
+      [message[0].id],
+    )
+
+    return NextResponse.json(messageWithUser[0], { status: 201 })
   } catch (error) {
     console.error("Error creating message:", error)
     return NextResponse.json({ error: "Failed to create message" }, { status: 500 })
