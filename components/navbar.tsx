@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { UserSidebar } from "./layout/user-sidebar"
 import { MessagesIndicator } from "./layout/messages-indicator"
 import { Logo } from "@/components/ui/logo"
+import { CreditsDisplay } from "./layout/credits-display"
 
 export function Navbar() {
   const { data: session, status } = useSession()
@@ -32,6 +33,8 @@ export function Navbar() {
             <div className="h-8 w-20 bg-gray-200 animate-pulse rounded" />
           ) : session ? (
             <>
+              {/* Credits display */}
+              <CreditsDisplay />
               {/* Messages indicator - alleen op desktop */}
               <div className="hidden sm:block">
                 <MessagesIndicator />
