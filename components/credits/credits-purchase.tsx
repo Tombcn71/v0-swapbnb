@@ -2,11 +2,16 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Coins } from "lucide-react"
+import { useEffect } from "react"
 
-// TypeScript declaration for Stripe Pricing Table
+interface CreditsPurchaseProps {
+  currentCredits: number
+  userEmail: string
+}
+
+// TypeScript declaration voor Stripe Pricing Table
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -18,11 +23,6 @@ declare global {
       }
     }
   }
-}
-
-interface CreditsPurchaseProps {
-  currentCredits: number
-  userEmail: string
 }
 
 export function CreditsPurchase({ currentCredits, userEmail }: CreditsPurchaseProps) {
@@ -43,46 +43,46 @@ export function CreditsPurchase({ currentCredits, userEmail }: CreditsPurchasePr
   }, [])
 
   return (
-    <div className="space-y-6">
-      {/* Current Credits Display */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Coins className="h-5 w-5 text-amber-600" />
-            <span>Jouw Credits</span>
-          </CardTitle>
-          <CardDescription>Credits worden gebruikt om swaps te bevestigen</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-amber-600">{currentCredits} credits</div>
-          <p className="text-sm text-gray-600 mt-2">Elke swap kost 1 credit per persoon</p>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <Coins className="h-5 w-5 text-amber-600" />
+          <span>Credits Kopen</span>
+        </CardTitle>
+        <div className="text-sm text-gray-600">
+          <p>
+            Huidige credits: <span className="font-semibold text-amber-600">{currentCredits}</span>
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Hoe werken credits?</h3>
+          <ul className="text-sm text-gray-600 space-y-1">
+            <li>• Elke bevestigde swap kost 1 credit per persoon</li>
+            <li>• Je krijgt 1 gratis credit bij je eerste woning upload</li>
+            <li>• Credits verlopen niet</li>
+            <li>• Gebruik coupon codes voor kortingen</li>
+          </ul>
+        </div>
 
-      {/* Stripe Pricing Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Credits Kopen</CardTitle>
-          <CardDescription>
-            Kies een pakket dat bij jou past. Coupon codes kunnen toegepast worden tijdens checkout.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Replace with your actual Stripe Pricing Table ID and Publishable Key */}
+        {/* Stripe Pricing Table */}
+        <div className="border rounded-lg p-4 bg-white">
           <stripe-pricing-table
-            pricing-table-id="prctbl_1234567890" // Replace with your actual pricing table ID
-            publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_..."} // Replace with your publishable key
+            pricing-table-id="prctbl_1234567890" // TODO: Replace with actual Stripe Pricing Table ID
+            publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
             customer-email={userEmail}
-            client-reference-id={`user_credits_purchase`}
+            client-reference-id={`credits-${userEmail}`}
           />
+        </div>
 
-          {/* Fallback message while Stripe loads */}
-          <div className="text-center py-8 text-gray-500">
-            <p>Pricing table wordt geladen...</p>
-            <p className="text-sm mt-2">Als dit lang duurt, controleer of JavaScript is ingeschakeld.</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <div className="mt-4 text-xs text-gray-500">
+          <p>
+            Betalingen worden veilig verwerkt door Stripe. Je ontvangt een bevestiging per e-mail en je credits worden
+            automatisch toegevoegd.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

@@ -1,51 +1,46 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSession } from "next-auth/react"
-import { Coins } from "lucide-react"
 import Link from "next/link"
-
-interface CreditsData {
-  credits: number
-  transactions: any[]
-}
+import { Button } from "@/components/ui/button"
+import { Coins } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 export function CreditsDisplay() {
   const { data: session } = useSession()
-  const [creditsData, setCreditsData] = useState<CreditsData | null>(null)
+  const [credits, setCredits] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (session?.user) {
-      fetchCredits()
-    }
-  }, [session])
+    if (!session?.user) return
 
-  const fetchCredits = async () => {
-    try {
-      const response = await fetch("/api/credits")
-      if (response.ok) {
-        const data = await response.json()
-        setCreditsData(data)
+    const fetchCredits = async () => {
+      try {
+        const response = await fetch("/api/credits")
+        if (response.ok) {
+          const data = await response.json()
+          setCredits(data.credits)
+        }
+      } catch (error) {
+        console.error("Error fetching credits:", error)
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error("Error fetching credits:", error)
-    } finally {
-      setLoading(false)
     }
-  }
+
+    fetchCredits()
+  }, [session])
 
   if (!session?.user || loading) {
     return null
   }
 
   return (
-    <Link
-      href="/credits"
-      className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors"
-    >
-      <Coins className="h-4 w-4 text-amber-600" />
-      <span className="text-sm font-medium text-amber-800">{creditsData?.credits || 0} credits</span>
-    </Link>
+    <Button variant="outline" size="sm" asChild className="flex items-center space-x-2">
+      <Link href="/credits">
+        <Coins className="h-4 w-4 text-amber-600" />
+        <span className="font-medium">{credits ?? 0}</span>
+      </Link>
+    </Button>
   )
 }

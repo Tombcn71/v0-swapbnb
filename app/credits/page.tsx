@@ -1,45 +1,42 @@
 import { getServerSession } from "next-auth/next"
-import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
-import { executeQuery } from "@/lib/db"
+import { redirect } from "next/navigation"
 import { CreditsPurchase } from "@/components/credits/credits-purchase"
 import { CreditsHistory } from "@/components/credits/credits-history"
+import { executeQuery } from "@/lib/db"
 
 export default async function CreditsPage() {
   const session = await getServerSession(authOptions)
 
-  if (!session?.user) {
+  if (!session || !session.user) {
     redirect("/login")
   }
 
-  // Get current credits
+  // Haal huidige credits op
   const userResult = await executeQuery("SELECT credits FROM users WHERE id = $1", [session.user.id])
   const currentCredits = userResult[0]?.credits || 0
 
-  // Get transaction history
-  const transactions = await executeQuery(
-    `SELECT id, amount, transaction_type, description, created_at, exchange_id
-     FROM credits_transactions 
-     WHERE user_id = $1 
-     ORDER BY created_at DESC 
-     LIMIT 20`,
-    [session.user.id],
-  )
-
   return (
-    <div className="container py-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Credits</h1>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Current Credits & Purchase */}
-          <div>
-            <CreditsPurchase currentCredits={currentCredits} userEmail={session.user.email!} />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Credits</h1>
+            <p className="text-gray-600 mt-2">
+              Beheer je credits voor home swaps. Elke bevestigde swap kost 1 credit per persoon.
+            </p>
           </div>
 
-          {/* Transaction History */}
-          <div>
-            <CreditsHistory transactions={transactions} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Credits Purchase */}
+            <div>
+              <CreditsPurchase currentCredits={currentCredits} userEmail={session.user.email!} />
+            </div>
+
+            {/* Credits History */}
+            <div>
+              <CreditsHistory />
+            </div>
           </div>
         </div>
       </div>
