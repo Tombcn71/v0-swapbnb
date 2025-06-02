@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
@@ -9,8 +8,19 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, Video, CreditCard, CheckCircle } from "lucide-react"
+import { Send, CheckCircle, X, Ban } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import type { Exchange, Message } from "@/lib/types"
 
 interface ExchangeChatProps {
@@ -57,6 +67,8 @@ export function ExchangeChat({
           title: "Bericht verzonden",
           description: "Je bericht is succesvol verzonden.",
         })
+      } else {
+        throw new Error("Failed to send message")
       }
     } catch (error) {
       toast({
@@ -71,15 +83,20 @@ export function ExchangeChat({
 
   const handleAccept = async () => {
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/accept`, {
-        method: "POST",
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "accepted" }),
       })
+
       if (response.ok) {
         toast({
           title: "Swap geaccepteerd!",
           description: "Je hebt de swap aanvraag geaccepteerd.",
         })
         onStatusUpdate()
+      } else {
+        throw new Error("Failed to accept")
       }
     } catch (error) {
       toast({
@@ -90,17 +107,22 @@ export function ExchangeChat({
     }
   }
 
-  const handleScheduleVideocall = async () => {
+  const handleReject = async () => {
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/videocall`, {
-        method: "POST",
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" }),
       })
+
       if (response.ok) {
         toast({
-          title: "Videocall gepland!",
-          description: "De videocall is automatisch gepland.",
+          title: "Swap afgewezen",
+          description: "Je hebt de swap aanvraag afgewezen.",
         })
         onStatusUpdate()
+      } else {
+        throw new Error("Failed to reject")
       }
     } catch (error) {
       toast({
@@ -111,62 +133,27 @@ export function ExchangeChat({
     }
   }
 
-  const handleCompleteVideocall = async () => {
+  const handleCancel = async () => {
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/videocall/complete`, {
-        method: "POST",
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
       })
+
       if (response.ok) {
         toast({
-          title: "Videocall voltooid!",
-          description: "De videocall is gemarkeerd als voltooid.",
+          title: "Swap geannuleerd",
+          description: "De swap is geannuleerd.",
         })
         onStatusUpdate()
+      } else {
+        throw new Error("Failed to cancel")
       }
     } catch (error) {
       toast({
         title: "Fout",
         description: "Er is een fout opgetreden.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleSkipVideocall = async () => {
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/skip-videocall`, {
-        method: "POST",
-      })
-      if (response.ok) {
-        toast({
-          title: "Videocall overgeslagen",
-          description: "Je kunt nu doorgaan naar de betaling.",
-        })
-        onStatusUpdate()
-      }
-    } catch (error) {
-      toast({
-        title: "Fout",
-        description: "Er is een fout opgetreden.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handlePayment = async () => {
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/payment`, {
-        method: "POST",
-      })
-      if (response.ok) {
-        const data = await response.json()
-        // Redirect naar Stripe Checkout
-        window.location.href = data.url
-      }
-    } catch (error) {
-      toast({
-        title: "Fout",
-        description: "Er is een fout opgetreden bij het starten van de betaling.",
         variant: "destructive",
       })
     }
@@ -174,13 +161,10 @@ export function ExchangeChat({
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: "⏳ In afwachting", variant: "secondary" as const },
+      pending: { label: "⏳ Nieuw/In behandeling", variant: "secondary" as const },
       accepted: { label: "✅ Geaccepteerd", variant: "default" as const },
-      videocall_scheduled: { label: "📹 Videocall gepland", variant: "default" as const },
-      videocall_completed: { label: "💰 Klaar voor betaling", variant: "default" as const },
-      payment_pending: { label: "💳 Betaling vereist", variant: "destructive" as const },
-      completed: { label: "🎉 Voltooid - Chat blijft beschikbaar", variant: "default" as const },
       rejected: { label: "❌ Afgewezen", variant: "destructive" as const },
+      confirmed: { label: "✅ Bevestigd", variant: "default" as const },
       cancelled: { label: "🚫 Geannuleerd", variant: "destructive" as const },
     }
 
@@ -241,53 +225,78 @@ export function ExchangeChat({
         {/* Action Buttons */}
         <div className="space-y-2 mb-4">
           {exchange.status === "pending" && isHost && (
-            <Button onClick={handleAccept} className="w-full bg-green-600 hover:bg-green-700">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Accepteer Swap
-            </Button>
-          )}
-
-          {exchange.status === "accepted" && (
             <div className="space-y-2">
-              <Button onClick={handleScheduleVideocall} className="w-full bg-purple-600 hover:bg-purple-700">
-                <Video className="w-4 h-4 mr-2" />
-                Plan Videocall (Aanbevolen)
+              <Button onClick={handleAccept} className="w-full bg-green-600 hover:bg-green-700">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Accepteer Swap
               </Button>
-              <Button
-                onClick={handleSkipVideocall}
-                variant="outline"
-                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                Videocall overslaan
-              </Button>
-              <p className="text-xs text-gray-500 text-center">
-                💡 Een videocall helpt om elkaar beter te leren kennen
-              </p>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="w-full border-red-600 text-red-600 hover:bg-red-50">
+                    <X className="w-4 h-4 mr-2" />
+                    Afwijzen
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Swap afwijzen</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Weet je zeker dat je deze swap-aanvraag wilt afwijzen?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReject} className="bg-red-600 hover:bg-red-700">
+                      Afwijzen
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
 
-          {exchange.status === "videocall_scheduled" && (
-            <Button onClick={handleCompleteVideocall} className="w-full bg-orange-600 hover:bg-orange-700">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Videocall Voltooid
-            </Button>
+          {exchange.status === "pending" && isRequester && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <Ban className="w-4 h-4 mr-2" />
+                  Annuleren
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Weet je zeker dat je deze swap-aanvraag wilt annuleren?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Terug</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                    Annuleren
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
 
-          {exchange.status === "videocall_completed" && (
-            <Button onClick={handlePayment} className="w-full bg-blue-600 hover:bg-blue-700">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Betaal €20 Swap Fee
-            </Button>
+          {exchange.status === "accepted" && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-green-800 text-sm">
+                ✓ Swap geaccepteerd! Jullie kunnen nu de details bespreken en credits betalen om de swap te bevestigen.
+              </p>
+            </div>
           )}
         </div>
 
-        {/* Bericht invoer - Altijd beschikbaar behalve bij rejected/cancelled */}
-        {exchange.status !== "rejected" && exchange.status !== "cancelled" && (
+        {/* Bericht invoer - Alleen bij pending en accepted */}
+        {(exchange.status === "pending" || exchange.status === "accepted") && (
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={exchange.status === "completed" ? "Chat over jullie swap ervaring..." : "Typ je bericht..."}
+              placeholder="Typ je bericht..."
               disabled={isSubmitting}
               className="flex-1"
             />
@@ -297,12 +306,16 @@ export function ExchangeChat({
           </form>
         )}
 
-        {/* Informatie bericht voor voltooide swaps */}
-        {exchange.status === "completed" && (
-          <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-sm text-green-700">
-              🎉 Jullie swap is voltooid! Je kunt hier nog steeds berichten uitwisselen om ervaringen te delen.
-            </p>
+        {/* Status berichten voor afgewezen/geannuleerd */}
+        {exchange.status === "rejected" && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-800 text-sm">❌ Deze swap is afgewezen.</p>
+          </div>
+        )}
+
+        {exchange.status === "cancelled" && (
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+            <p className="text-gray-800 text-sm">🚫 Deze swap is geannuleerd.</p>
           </div>
         )}
       </CardContent>
