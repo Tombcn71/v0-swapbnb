@@ -53,7 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Message content is required" }, { status: 400 })
     }
 
-    // Controleer toegang
+    // Haal exchange details op om receiver_id te bepalen
     const exchange = await executeQuery(
       "SELECT * FROM exchanges WHERE id = $1 AND (requester_id = $2 OR host_id = $2)",
       [exchangeId, session.user.id],
@@ -63,12 +63,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
     }
 
-    // Maak bericht aan (zonder updated_at kolom)
+    const exchangeData = exchange[0]
+
+    // Bepaal wie de ontvanger is (de andere persoon in de exchange)
+    const receiverId = exchangeData.requester_id === session.user.id ? exchangeData.host_id : exchangeData.requester_id
+
+    // Maak bericht aan met receiver_id
     const message = await executeQuery(
-      `INSERT INTO messages (exchange_id, sender_id, content, created_at)
-       VALUES ($1, $2, $3, NOW())
+      `INSERT INTO messages (exchange_id, sender_id, receiver_id, content, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
        RETURNING *`,
-      [exchangeId, session.user.id, content],
+      [exchangeId, session.user.id, receiverId, content],
     )
 
     return NextResponse.json(message[0], { status: 201 })
