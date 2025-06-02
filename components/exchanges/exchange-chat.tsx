@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, CheckCircle, X, Ban } from "lucide-react"
+import { Send, CheckCircle, X, Ban, CreditCard } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
@@ -46,28 +46,35 @@ export function ExchangeChat({
 }: ExchangeChatProps) {
   const [newMessage, setNewMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [localMessages, setLocalMessages] = useState(messages)
   const { toast } = useToast()
 
-  // Debug logging
+  // Update local messages when props change
   useEffect(() => {
-    console.log("Exchange Chat Props:", {
-      exchangeId: exchange.id,
-      status: exchange.status,
-      currentUserId,
-      isRequester,
-      isHost,
-      requesterId: exchange.requester_id,
-      hostId: exchange.host_id,
-    })
-  }, [exchange, currentUserId, isRequester, isHost])
+    setLocalMessages(messages)
+  }, [messages])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim()) return
 
     setIsSubmitting(true)
+
+    // Optimistically add message to UI
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      content: newMessage,
+      sender_id: currentUserId,
+      created_at: new Date().toISOString(),
+      exchange_id: exchange.id,
+      receiver_id: isRequester ? exchange.host_id : exchange.requester_id,
+      message_type: "text" as const,
+    }
+
+    setLocalMessages((prev) => [...prev, optimisticMessage])
+    setNewMessage("")
+
     try {
-      console.log("Sending message to:", `/api/exchanges/${exchange.id}/messages`)
       const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,17 +82,22 @@ export function ExchangeChat({
       })
 
       if (response.ok) {
-        setNewMessage("")
+        // Refresh messages from server to get real ID
         onMessageSent()
         toast({
           title: "Bericht verzonden",
           description: "Je bericht is succesvol verzonden.",
         })
       } else {
+        // Remove optimistic message on error
+        setLocalMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
         const errorData = await response.json()
         throw new Error(errorData.error || "Failed to send message")
       }
     } catch (error: any) {
+      // Remove optimistic message on error
+      setLocalMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
+      setNewMessage(newMessage) // Restore message text
       console.error("Error sending message:", error)
       toast({
         title: "Fout",
@@ -99,7 +111,6 @@ export function ExchangeChat({
 
   const handleAccept = async () => {
     try {
-      console.log("Accepting exchange:", exchange.id)
       const response = await fetch(`/api/exchanges/${exchange.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -128,7 +139,6 @@ export function ExchangeChat({
 
   const handleReject = async () => {
     try {
-      console.log("Rejecting exchange:", exchange.id)
       const response = await fetch(`/api/exchanges/${exchange.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -157,7 +167,6 @@ export function ExchangeChat({
 
   const handleCancel = async () => {
     try {
-      console.log("Cancelling exchange:", exchange.id)
       const response = await fetch(`/api/exchanges/${exchange.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -184,18 +193,49 @@ export function ExchangeChat({
     }
   }
 
+  const handlePayCredits = async () => {
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Credits betaald!",
+          description: "Je hebt 1 credit betaald voor deze swap.",
+        })
+        onStatusUpdate()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to pay credits")
+      }
+    } catch (error: any) {
+      console.error("Error paying credits:", error)
+      toast({
+        title: "Fout",
+        description: error.message || "Er is een fout opgetreden bij het betalen van credits.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { label: "⏳ Nieuw/In behandeling", variant: "secondary" as const },
       accepted: { label: "✅ Geaccepteerd", variant: "default" as const },
       rejected: { label: "❌ Afgewezen", variant: "destructive" as const },
-      confirmed: { label: "✅ Bevestigd", variant: "default" as const },
+      confirmed: { label: "🎉 Bevestigd", variant: "default" as const },
       cancelled: { label: "🚫 Geannuleerd", variant: "destructive" as const },
     }
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
+
+  // Check if both parties have paid credits
+  const bothPaidCredits = exchange.requester_credits_paid && exchange.host_credits_paid
+  const currentUserPaidCredits = isRequester ? exchange.requester_credits_paid : exchange.host_credits_paid
+  const otherUserPaidCredits = isRequester ? exchange.host_credits_paid : exchange.requester_credits_paid
 
   return (
     <Card className="h-[600px] flex flex-col">
@@ -226,10 +266,10 @@ export function ExchangeChat({
         <div className="flex-1 overflow-y-auto space-y-4 mb-4">
           {isLoading ? (
             <div className="text-center text-gray-500">Berichten laden...</div>
-          ) : messages.length === 0 ? (
+          ) : localMessages.length === 0 ? (
             <div className="text-center text-gray-500">Nog geen berichten</div>
           ) : (
-            messages.map((message) => (
+            localMessages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.sender_id === currentUserId ? "justify-end" : "justify-start"}`}
@@ -307,9 +347,57 @@ export function ExchangeChat({
           )}
 
           {exchange.status === "accepted" && (
+            <div className="space-y-3">
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-green-800 text-sm font-medium mb-2">
+                  ✓ Swap geaccepteerd! Nu moeten beide partijen 1 credit betalen om de swap te bevestigen.
+                </p>
+
+                <div className="space-y-1 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>Jouw betaling:</span>
+                    <span className={currentUserPaidCredits ? "text-green-600 font-medium" : "text-orange-600"}>
+                      {currentUserPaidCredits ? "✓ Betaald" : "⏳ Nog te betalen"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Andere partij:</span>
+                    <span className={otherUserPaidCredits ? "text-green-600 font-medium" : "text-orange-600"}>
+                      {otherUserPaidCredits ? "✓ Betaald" : "⏳ Nog te betalen"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {!currentUserPaidCredits && (
+                <Button onClick={handlePayCredits} className="w-full bg-blue-600 hover:bg-blue-700">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Betaal 1 Credit om Swap te Bevestigen
+                </Button>
+              )}
+
+              {currentUserPaidCredits && !otherUserPaidCredits && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-blue-800 text-sm">
+                    ✓ Je hebt betaald! Wacht tot de andere partij ook betaalt om de swap te bevestigen.
+                  </p>
+                </div>
+              )}
+
+              {bothPaidCredits && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-green-800 text-sm font-medium">
+                    🎉 Beide partijen hebben betaald! De swap wordt automatisch bevestigd.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {exchange.status === "confirmed" && (
             <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-green-800 text-sm">
-                ✓ Swap geaccepteerd! Jullie kunnen nu de details bespreken en credits betalen om de swap te bevestigen.
+              <p className="text-green-800 text-sm font-medium">
+                🎉 Swap bevestigd! Jullie kunnen nu de details uitwisselen en genieten van jullie huizenruil.
               </p>
             </div>
           )}
@@ -321,7 +409,7 @@ export function ExchangeChat({
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Typ je bericht..."
+              placeholder={exchange.status === "confirmed" ? "Chat over jullie swap..." : "Typ je bericht..."}
               disabled={isSubmitting}
               className="flex-1"
             />
