@@ -80,7 +80,10 @@ export async function POST(request: NextRequest) {
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
 
         for (const item of lineItems.data) {
-          if (item.price?.id === "price_1RVUXGBVKGepSVqC3Js4UMF1") {
+          if (
+            item.price?.id === process.env.STRIPE_PRICE_ID_CREDITS ||
+            item.price?.id === "price_1RVUXGBVKGepSVqC3Js4UMF1"
+          ) {
             // This is our credits price - determine credits based on quantity or metadata
             creditsToAdd = item.quantity || 1
             break
