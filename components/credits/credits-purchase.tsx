@@ -67,10 +67,13 @@ export function CreditsPurchase({ currentCredits, userEmail }: CreditsPurchasePr
         </div>
 
         {/* Stripe Pricing Table */}
-        <div className="border rounded-lg p-4 bg-white">
+        <div className="border rounded-lg bg-white">
           <stripe-pricing-table
-            pricing-table-id="prctbl_1234567890" // TODO: Replace with actual Stripe Pricing Table ID
-            publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+            pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID || "prctbl_1RVV7mBVKGepSVqCq57wgdx4"}
+            publishable-key={
+              process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+              "pk_live_51RVTwPBVKGepSVqCFdtmBQhIbOjvDvAhmWm0H3yc9Pq0KgA5FOA1Nj2FsDEZIMIFg0VYxe3OBJR3Lyot7Rz7NZdV00e39xcCnJ"
+            }
             customer-email={userEmail}
             client-reference-id={`credits-${userEmail}`}
           />

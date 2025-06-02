@@ -31,28 +31,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Webhook signature verification failed` }, { status: 400 })
     }
 
+    console.log(`📧 Received webhook event: ${event.type}`)
+
     // Handle checkout.session.completed voor credits aankopen
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session
 
-      // Check if this is a credits purchase (heeft client_reference_id met 'credits')
+      console.log(`💳 Processing checkout session: ${session.id}`)
+      console.log(`📧 Customer email: ${session.customer_email}`)
+      console.log(`🔗 Client reference ID: ${session.client_reference_id}`)
+
+      // Check if this is a credits purchase
       if (session.client_reference_id?.includes("credits")) {
         const customerEmail = session.customer_email || session.customer_details?.email
 
         if (!customerEmail) {
-          console.error("No customer email found in session")
+          console.error("❌ No customer email found in session")
           return NextResponse.json({ error: "No customer email" }, { status: 400 })
         }
 
         // Find user by email
-        const userResult = await executeQuery("SELECT id FROM users WHERE email = $1", [customerEmail])
+        const userResult = await executeQuery("SELECT id, credits FROM users WHERE email = $1", [customerEmail])
 
         if (userResult.length === 0) {
-          console.error(`User not found for email: ${customerEmail}`)
+          console.error(`❌ User not found for email: ${customerEmail}`)
           return NextResponse.json({ error: "User not found" }, { status: 404 })
         }
 
         const userId = userResult[0].id
+        const currentCredits = userResult[0].credits || 0
 
         // Check if transaction already exists (prevent duplicates)
         const existingTransaction = await executeQuery(
@@ -61,23 +68,36 @@ export async function POST(request: NextRequest) {
         )
 
         if (existingTransaction.length > 0) {
-          console.log(`Transaction already processed: ${session.id}`)
+          console.log(`⚠️ Transaction already processed: ${session.id}`)
           return NextResponse.json({ message: "Transaction already processed" })
         }
 
-        // Determine credits amount based on the amount paid
-        // Assuming: €5 = 1 credit, €20 = 5 credits, €45 = 12 credits, €80 = 25 credits
-        const amountPaid = session.amount_total! / 100 // Convert from cents to euros
+        // Determine credits amount based on line items
         let creditsToAdd = 0
+        const amountPaid = session.amount_total! / 100 // Convert from cents to euros
 
-        if (amountPaid >= 80) {
-          creditsToAdd = 25
-        } else if (amountPaid >= 45) {
-          creditsToAdd = 12
-        } else if (amountPaid >= 20) {
-          creditsToAdd = 5
-        } else if (amountPaid >= 5) {
-          creditsToAdd = 1
+        // Get line items to determine exact credits purchased
+        const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
+
+        for (const item of lineItems.data) {
+          if (item.price?.id === "price_1RVUXGBVKGepSVqC3Js4UMF1") {
+            // This is our credits price - determine credits based on quantity or metadata
+            creditsToAdd = item.quantity || 1
+            break
+          }
+        }
+
+        // Fallback: determine credits based on amount if line items don't work
+        if (creditsToAdd === 0) {
+          if (amountPaid >= 80) {
+            creditsToAdd = 25
+          } else if (amountPaid >= 45) {
+            creditsToAdd = 12
+          } else if (amountPaid >= 20) {
+            creditsToAdd = 5
+          } else if (amountPaid >= 5) {
+            creditsToAdd = 1
+          }
         }
 
         if (creditsToAdd > 0) {
@@ -88,17 +108,26 @@ export async function POST(request: NextRequest) {
           await executeQuery(
             `INSERT INTO credits_transactions (user_id, amount, transaction_type, stripe_session_id, description)
              VALUES ($1, $2, $3, $4, $5)`,
-            [userId, creditsToAdd, "purchase", session.id, `Purchased ${creditsToAdd} credits (€${amountPaid})`],
+            [
+              userId,
+              creditsToAdd,
+              "purchase",
+              session.id,
+              `Purchased ${creditsToAdd} credits (€${amountPaid}) via Stripe`,
+            ],
           )
 
-          console.log(`Added ${creditsToAdd} credits to user ${userId} for payment of €${amountPaid}`)
+          console.log(`✅ Added ${creditsToAdd} credits to user ${userId}`)
+          console.log(`📊 User credits: ${currentCredits} → ${currentCredits + creditsToAdd}`)
+        } else {
+          console.error(`❌ Could not determine credits amount for payment of €${amountPaid}`)
         }
       }
     }
 
     return NextResponse.json({ received: true })
   } catch (error: any) {
-    console.error(`Error handling credits webhook: ${error.message}`)
+    console.error(`💥 Error handling credits webhook: ${error.message}`)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
