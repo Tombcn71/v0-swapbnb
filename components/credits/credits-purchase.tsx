@@ -66,17 +66,15 @@ export function CreditsPurchase({ currentCredits, userEmail }: CreditsPurchasePr
           </ul>
         </div>
 
-        {/* Stripe Pricing Table */}
+        {/* Stripe Pricing Table - jouw exacte implementatie */}
         <div className="border rounded-lg bg-white">
+          <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
           <stripe-pricing-table
-            pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID || "prctbl_1RVV7mBVKGepSVqCq57wgdx4"}
-            publishable-key={
-              process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
-              "pk_live_51RVTwPBVKGepSVqCFdtmBQhIbOjvDvAhmWm0H3yc9Pq0KgA5FOA1Nj2FsDEZIMIFg0VYxe3OBJR3Lyot7Rz7NZdV00e39xcCnJ"
-            }
+            pricing-table-id="prctbl_1RVV7mBVKGepSVqCq57wgdx4"
+            publishable-key="pk_live_51RVTwPBVKGepSVqCFdtmBQhIbOjvDvAhmWm0H3yc9Pq0KgA5FOA1Nj2FsDEZIMIFg0VYxe3OBJR3Lyot7Rz7NZdV00e39xcCnJ"
             customer-email={userEmail}
             client-reference-id={`credits-${userEmail}`}
-          />
+          ></stripe-pricing-table>
         </div>
 
         <div className="mt-4 text-xs text-gray-500">

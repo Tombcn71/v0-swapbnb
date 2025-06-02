@@ -40,19 +40,13 @@ interface Exchange {
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "pending":
-      return <Badge className="bg-yellow-100 text-yellow-800">⏳ In afwachting</Badge>
+      return <Badge className="bg-yellow-100 text-yellow-800">⏳ Nieuw/In behandeling</Badge>
     case "accepted":
       return <Badge className="bg-blue-100 text-blue-800">✓ Geaccepteerd</Badge>
-    case "videocall_scheduled":
-      return <Badge className="bg-purple-100 text-purple-800">📹 Videocall gepland</Badge>
-    case "videocall_completed":
-      return <Badge className="bg-green-100 text-green-800">✓ Videocall voltooid</Badge>
-    case "payment_pending":
-      return <Badge className="bg-orange-100 text-orange-800">💳 Betaling in behandeling</Badge>
-    case "completed":
-      return <Badge className="bg-green-100 text-green-800">✓ Voltooid</Badge>
     case "rejected":
-      return <Badge className="bg-red-100 text-red-800">✗ Afgewezen</Badge>
+      return <Badge className="bg-red-100 text-red-800">✗ Geweigerd</Badge>
+    case "confirmed":
+      return <Badge className="bg-green-100 text-green-800">✓ Bevestigd</Badge>
     case "cancelled":
       return <Badge className="bg-gray-100 text-gray-800">✗ Geannuleerd</Badge>
     default:
