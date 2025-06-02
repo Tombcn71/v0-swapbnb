@@ -13,15 +13,16 @@ export async function GET() {
 
     const userId = session.user.id
 
-    // Haal alle huizen van de gebruiker op
+    // Haal alle huizen van de gebruiker op - gebruik city in plaats van location
     const homes = await executeQuery(
       `
       SELECT 
         id,
         title,
         description,
-        location,
-        price_per_night,
+        city,
+        address,
+        postal_code,
         bedrooms,
         bathrooms,
         max_guests,
