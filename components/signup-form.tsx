@@ -62,8 +62,8 @@ export function SignupForm() {
         throw new Error("Inloggen na registratie mislukt")
       }
 
-      // Redirect to dashboard after successful registration and login
-      router.push("/dashboard")
+      // Redirect to onboarding after successful registration and login
+      router.push("/onboarding")
       router.refresh()
     } catch (err: any) {
       setError(err.message || "Registratie mislukt. Probeer het opnieuw.")
