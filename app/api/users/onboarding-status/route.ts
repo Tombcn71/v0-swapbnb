@@ -11,19 +11,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get user data
+    // Get user's onboarding status
     const users = await executeQuery(
       `SELECT 
-        id, 
-        name, 
-        email, 
-        bio, 
-        profile_image, 
-        identity_verification_status, 
         onboarding_completed,
-        credits
-      FROM users 
-      WHERE id = $1`,
+        name IS NOT NULL AND bio IS NOT NULL AND profile_image IS NOT NULL AS profile_completed,
+        identity_verification_status = 'verified' AS verification_completed
+      FROM users WHERE id = $1`,
       [session.user.id],
     )
 
@@ -31,22 +25,55 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const user = users[0]
+    // Check if user has any homes
+    const homes = await executeQuery("SELECT COUNT(*) as home_count FROM homes WHERE owner_id = $1", [session.user.id])
+    const hasHome = homes[0].home_count > 0
 
-    // Check if user has any properties
-    const homes = await executeQuery("SELECT COUNT(*) as count FROM homes WHERE user_id = $1", [session.user.id])
-    const hasProperty = homes[0].count > 0
+    // Determine completed steps
+    const completedSteps = {
+      welcome: true, // Always start with welcome as available
+      profile: users[0].profile_completed,
+      verification: users[0].verification_completed,
+      property: hasHome,
+      complete: users[0].onboarding_completed,
+    }
 
     return NextResponse.json({
-      hasProfile: true, // User exists, so they have a basic profile
-      profileCompleted: !!(user.name && user.email && user.bio && user.profile_image),
-      isVerified: user.identity_verification_status === "verified",
-      hasProperty,
-      onboardingCompleted: user.onboarding_completed,
-      credits: user.credits,
+      onboardingCompleted: users[0].onboarding_completed,
+      completedSteps,
     })
   } catch (error) {
     console.error("Error fetching onboarding status:", error)
     return NextResponse.json({ error: "Failed to fetch onboarding status" }, { status: 500 })
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { step, completed } = await request.json()
+
+    // Update the specific step in the database
+    // This is just tracking progress, not marking onboarding as complete
+    await executeQuery(
+      `UPDATE users SET 
+        onboarding_progress = jsonb_set(
+          COALESCE(onboarding_progress, '{}'::jsonb), 
+          $1, 
+          $2
+        ) 
+      WHERE id = $3`,
+      [[step], JSON.stringify(completed), session.user.id],
+    )
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error updating onboarding status:", error)
+    return NextResponse.json({ error: "Failed to update onboarding status" }, { status: 500 })
   }
 }

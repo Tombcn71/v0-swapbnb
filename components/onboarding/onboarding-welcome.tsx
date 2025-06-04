@@ -3,12 +3,14 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useOnboarding } from "@/components/providers/onboarding-provider"
 import { useToast } from "@/hooks/use-toast"
 import { Coins, ArrowRight } from "lucide-react"
 
-export function OnboardingWelcome() {
-  const { completeStep } = useOnboarding()
+interface OnboardingWelcomeProps {
+  onComplete: () => void
+}
+
+export function OnboardingWelcome({ onComplete }: OnboardingWelcomeProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -16,7 +18,7 @@ export function OnboardingWelcome() {
     setIsLoading(true)
 
     try {
-      // Grant free credit if user doesn't have any
+      // Grant free credit
       const response = await fetch("/api/credits/grant-welcome", {
         method: "POST",
       })
@@ -30,7 +32,7 @@ export function OnboardingWelcome() {
         description: "Je hebt een gratis credit ontvangen om te starten met huizenruil.",
       })
 
-      completeStep("welcome")
+      onComplete()
     } catch (error) {
       console.error("Error during welcome step:", error)
       toast({
@@ -64,7 +66,7 @@ export function OnboardingWelcome() {
         </div>
 
         <div className="space-y-2">
-          <h3 className="font-medium">Wat je kunt verwachten:</h3>
+          <h3 className="font-medium">Hoe werkt SwapBnB?</h3>
           <ul className="space-y-2 text-sm text-gray-600">
             <li className="flex items-start gap-2">
               <span className="font-medium text-teal-600">1.</span>

@@ -18,13 +18,13 @@ export default async function OnboardingPage() {
     redirect("/login")
   }
 
-  // If onboarding is already completed, redirect to dashboard
+  // If onboarding is already completed, redirect to listings
   if (users[0].onboarding_completed) {
-    redirect("/dashboard")
+    redirect("/listings")
   }
 
   return (
-    <div className="container py-8">
+    <div className="container max-w-4xl py-8">
       <OnboardingFlow userId={session.user.id} />
     </div>
   )

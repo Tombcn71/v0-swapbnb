@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { useOnboarding } from "@/components/providers/onboarding-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProfileForm } from "@/components/profile/profile-form"
 import { useToast } from "@/hooks/use-toast"
 
-export function OnboardingProfile() {
+interface OnboardingProfileProps {
+  onComplete: () => void
+}
+
+export function OnboardingProfile({ onComplete }: OnboardingProfileProps) {
   const { data: session } = useSession()
-  const { completeStep } = useOnboarding()
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
@@ -39,10 +41,6 @@ export function OnboardingProfile() {
     }
   }, [session, toast])
 
-  const handleProfileComplete = () => {
-    completeStep("profile")
-  }
-
   if (isLoading) {
     return (
       <Card className="w-full">
@@ -66,9 +64,7 @@ export function OnboardingProfile() {
           kansen op succesvolle huizenruil.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        {user && <ProfileForm user={user} onComplete={handleProfileComplete} isOnboarding={true} />}
-      </CardContent>
+      <CardContent>{user && <ProfileForm user={user} onComplete={onComplete} isOnboarding={true} />}</CardContent>
     </Card>
   )
 }

@@ -1,28 +1,33 @@
 "use client"
 
 import { useState } from "react"
-import { useOnboarding } from "@/components/providers/onboarding-provider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AddHomeForm } from "@/components/homes/add-home-form"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
-export function OnboardingProperty() {
-  const { completeStep } = useOnboarding()
+interface OnboardingPropertyProps {
+  onComplete: () => void
+}
+
+export function OnboardingProperty({ onComplete }: OnboardingPropertyProps) {
   const [skipConfirmOpen, setSkipConfirmOpen] = useState(false)
-  const router = useRouter()
+  const { toast } = useToast()
 
   const handlePropertyAdded = () => {
-    completeStep("property")
-  }
-
-  const handleSkip = () => {
-    setSkipConfirmOpen(true)
+    toast({
+      title: "Woning toegevoegd!",
+      description: "Je woning is succesvol toegevoegd aan SwapBnB.",
+    })
+    onComplete()
   }
 
   const confirmSkip = () => {
-    completeStep("property")
-    router.push("/dashboard")
+    toast({
+      title: "Stap overgeslagen",
+      description: "Je kunt later een woning toevoegen via je dashboard.",
+    })
+    onComplete()
   }
 
   return (
@@ -34,11 +39,18 @@ export function OnboardingProperty() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="bg-amber-50 p-4 rounded-lg border border-amber-200 mb-6">
+          <p className="text-amber-800">
+            <strong>Belangrijk:</strong> Je moet een woning toevoegen voordat je ruilverzoeken kunt doen. Andere
+            gebruikers willen zien waar ze kunnen verblijven!
+          </p>
+        </div>
+
         <AddHomeForm onComplete={handlePropertyAdded} isOnboarding={true} />
 
         {!skipConfirmOpen ? (
           <div className="mt-6 text-center">
-            <Button variant="link" onClick={handleSkip}>
+            <Button variant="link" onClick={() => setSkipConfirmOpen(true)}>
               Ik wil dit later doen
             </Button>
           </div>
