@@ -7,13 +7,14 @@ import { Toaster } from "@/components/ui/toaster"
 import { NextAuthProvider } from "@/components/providers/session-provider"
 import { Navbar } from "@/components/navbar"
 import { BannerProvider } from "@/components/providers/banner-provider"
+import { OnboardingProvider } from "@/components/providers/onboarding-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "SwapBnB - Huizenruil in Nederland",
   description: "Wissel tijdelijk van huis met andere Nederlanders",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({
@@ -26,10 +27,12 @@ export default function RootLayout({
       <body className={inter.className}>
         <NextAuthProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            <BannerProvider />
-            <Navbar />
-            {children}
-            <Toaster />
+            <OnboardingProvider>
+              <BannerProvider />
+              <Navbar />
+              {children}
+              <Toaster />
+            </OnboardingProvider>
           </ThemeProvider>
         </NextAuthProvider>
       </body>

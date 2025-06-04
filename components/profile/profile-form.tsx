@@ -16,9 +16,11 @@ import type { User as UserType } from "@/lib/types"
 
 interface ProfileFormProps {
   user: UserType
+  onComplete?: () => void
+  isOnboarding?: boolean
 }
 
-export function ProfileForm({ user }: ProfileFormProps) {
+export function ProfileForm({ user, onComplete, isOnboarding = false }: ProfileFormProps) {
   const [name, setName] = useState(user.name || "")
   const [email, setEmail] = useState(user.email || "")
   const [bio, setBio] = useState(user.bio || "")
@@ -113,7 +115,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
         description: "Je profiel is succesvol bijgewerkt.",
       })
 
-      router.refresh()
+      if (onComplete && isOnboarding) {
+        onComplete()
+      } else {
+        router.refresh()
+      }
     } catch (error) {
       console.error("Error updating profile:", error)
       toast({
@@ -126,11 +132,15 @@ export function ProfileForm({ user }: ProfileFormProps) {
     }
   }
 
+  const isProfileComplete = name && email && bio && image
+
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Bewerk je profiel</CardTitle>
-      </CardHeader>
+    <Card className={isOnboarding ? "border-0 shadow-none" : "max-w-2xl mx-auto"}>
+      {!isOnboarding && (
+        <CardHeader>
+          <CardTitle>Bewerk je profiel</CardTitle>
+        </CardHeader>
+      )}
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
@@ -189,7 +199,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </CardContent>
         <CardFooter>
           <Button type="submit" className="w-full" disabled={isSubmitting || isUploading}>
-            {isSubmitting || isUploading ? "Bezig met opslaan..." : "Profiel opslaan"}
+            {isSubmitting || isUploading
+              ? "Bezig met opslaan..."
+              : isOnboarding
+                ? "Profiel voltooien"
+                : "Profiel opslaan"}
           </Button>
         </CardFooter>
       </form>

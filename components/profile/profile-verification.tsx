@@ -10,9 +10,16 @@ import { Shield, CheckCircle, AlertCircle, Star } from "lucide-react"
 interface ProfileVerificationProps {
   isVerified: boolean
   verificationStatus: string
+  onComplete?: () => void
+  isOnboarding?: boolean
 }
 
-export function ProfileVerification({ isVerified, verificationStatus }: ProfileVerificationProps) {
+export function ProfileVerification({
+  isVerified,
+  verificationStatus,
+  onComplete,
+  isOnboarding = false,
+}: ProfileVerificationProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -57,13 +64,15 @@ export function ProfileVerification({ isVerified, verificationStatus }: ProfileV
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          Identiteitsverificatie
-        </CardTitle>
-      </CardHeader>
+    <Card className={isOnboarding ? "border-0 shadow-none" : ""}>
+      {!isOnboarding && (
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Identiteitsverificatie
+          </CardTitle>
+        </CardHeader>
+      )}
       <CardContent className="space-y-4">
         {isVerified ? (
           <div className="space-y-4">
@@ -94,6 +103,12 @@ export function ProfileVerification({ isVerified, verificationStatus }: ProfileV
                 <li>• Je kunt ruilen met andere geverifieerde leden</li>
               </ul>
             </div>
+
+            {isOnboarding && onComplete && (
+              <Button onClick={onComplete} className="w-full mt-4">
+                Doorgaan naar volgende stap
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
