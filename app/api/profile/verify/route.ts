@@ -31,6 +31,18 @@ export async function POST(request: NextRequest) {
       apiVersion: "2023-10-16",
     })
 
+    // Zorg voor een geldige return URL met expliciete scheme
+    let returnUrl = process.env.NEXTAUTH_URL || ""
+    if (!returnUrl.startsWith("http")) {
+      // Als er geen scheme is, voeg https:// toe
+      returnUrl = `https://${returnUrl}`
+    }
+
+    // Voeg het pad toe aan de basis URL
+    returnUrl = `${returnUrl}/onboarding?step=verification&verification_complete=true`
+
+    console.log("Using return URL:", returnUrl)
+
     // Maak een VerificationSession aan voor profiel verificatie
     const verificationSession = await stripe.identity.verificationSessions.create({
       type: "document",
@@ -45,14 +57,14 @@ export async function POST(request: NextRequest) {
         user_id: session.user.id,
         verification_type: "profile",
       },
-      return_url: `${process.env.NEXTAUTH_URL}/onboarding?step=verification&verification_complete=true`,
+      return_url: returnUrl,
     })
 
     // Sla de verificatie sessie ID op
-    await executeQuery("UPDATE users SET identity_session_id = $1 WHERE id = $2", [
-      verificationSession.id,
-      session.user.id,
-    ])
+    await executeQuery(
+      "UPDATE users SET identity_verification_status = $1, stripe_verification_session_id = $2 WHERE id = $3",
+      ["pending", verificationSession.id, session.user.id],
+    )
 
     return NextResponse.json({
       url: verificationSession.url,
