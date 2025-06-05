@@ -12,13 +12,12 @@ export default function Home() {
           {/* Tekst links */}
           <div className="flex flex-col space-y-6">
             <h1 className="text-4xl md:text-6xl  text-gray-900">
-              Swap je woning, eropuit in Nederland
+           Swap van woning, zorgeloos
             </h1>
 
             <p className="text-lg md:text-lg text-gray-600">
-              ✅ Eenvoudig korte breaks plannen door heel Nederland <br />✅ Betaal per swap, zonder vaste
-              verplichtingen
-              <br />✅ Veilige uitwisseling dankzij ID-verificatie
+              Jouw korte break, simpel geregeld. 
+
             </p>
 
             <div className="flex gap-4 pt-4">
