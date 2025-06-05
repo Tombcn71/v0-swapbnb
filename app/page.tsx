@@ -12,11 +12,10 @@ export default function Home() {
           {/* Tekst links */}
           <div className="flex flex-col space-y-6">
             <h1 className="text-4xl md:text-6xl  text-gray-900">
-           Swap van woning, zorgeloos
-            </h1>
+Korte woningruil regelen           </h1>
 
             <p className="text-lg md:text-lg text-gray-600">
-              Jouw korte break, simpel geregeld. 
+              Jullie korte break, simpel geregeld. 
 
             </p>
 
