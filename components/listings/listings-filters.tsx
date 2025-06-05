@@ -5,14 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon, Search, X } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
 
 export function ListingsFilters() {
   const router = useRouter()
@@ -20,7 +18,6 @@ export function ListingsFilters() {
 
   const [location, setLocation] = useState(searchParams.get("location") || "")
   const [guests, setGuests] = useState(searchParams.get("guests") || "2")
-  const [bedrooms, setBedrooms] = useState([1, 5])
   const [date, setDate] = useState<{
     from: Date | undefined
     to: Date | undefined
@@ -28,19 +25,13 @@ export function ListingsFilters() {
     from: undefined,
     to: undefined,
   })
-  const [amenities, setAmenities] = useState<string[]>([])
 
   const handleSearch = () => {
     const params = new URLSearchParams()
     if (location) params.set("location", location)
     if (guests) params.set("guests", guests)
-    if (bedrooms[0] !== 1 || bedrooms[1] !== 5) {
-      params.set("minBedrooms", bedrooms[0].toString())
-      params.set("maxBedrooms", bedrooms[1].toString())
-    }
     if (date.from) params.set("from", format(date.from, "yyyy-MM-dd"))
     if (date.to) params.set("to", format(date.to, "yyyy-MM-dd"))
-    if (amenities.length > 0) params.set("amenities", amenities.join(","))
 
     router.push(`/listings?${params.toString()}`)
   }
@@ -48,19 +39,13 @@ export function ListingsFilters() {
   const handleReset = () => {
     setLocation("")
     setGuests("2")
-    setBedrooms([1, 5])
     setDate({ from: undefined, to: undefined })
-    setAmenities([])
     router.push("/listings")
-  }
-
-  const toggleAmenity = (amenity: string) => {
-    setAmenities((prev) => (prev.includes(amenity) ? prev.filter((a) => a !== amenity) : [...prev, amenity]))
   }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
           <Label htmlFor="location">Locatie</Label>
           <div className="relative mt-1">
@@ -123,71 +108,6 @@ export function ListingsFilters() {
               <SelectItem value="6">6+ gasten</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <div>
-          <Label>Aantal slaapkamers</Label>
-          <div className="mt-6 px-2">
-            <Slider defaultValue={[1, 5]} max={5} min={1} step={1} value={bedrooms} onValueChange={setBedrooms} />
-            <div className="flex justify-between mt-2 text-sm text-gray-500">
-              <span>
-                {bedrooms[0]} slaapkamer{bedrooms[0] !== 1 && "s"}
-              </span>
-              <span>
-                {bedrooms[1]} slaapkamer{bedrooms[1] !== 1 && "s"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 border-t pt-6">
-        <Label className="mb-3 block">Voorzieningen</Label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="flex items-center space-x-2">
-            <Checkbox id="wifi" checked={amenities.includes("wifi")} onCheckedChange={() => toggleAmenity("wifi")} />
-            <label
-              htmlFor="wifi"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              WiFi
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="parking"
-              checked={amenities.includes("parking")}
-              onCheckedChange={() => toggleAmenity("parking")}
-            />
-            <label
-              htmlFor="parking"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Parkeerplaats
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="garden"
-              checked={amenities.includes("garden")}
-              onCheckedChange={() => toggleAmenity("garden")}
-            />
-            <label
-              htmlFor="garden"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Tuin
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox id="pets" checked={amenities.includes("pets")} onCheckedChange={() => toggleAmenity("pets")} />
-            <label
-              htmlFor="pets"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Huisdieren toegestaan
-            </label>
-          </div>
         </div>
       </div>
 
