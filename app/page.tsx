@@ -12,7 +12,7 @@ export default function Home() {
           {/* Tekst links */}
           <div className="flex flex-col space-y-6">
             <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900">
-Regel simpel een korte woningruil            </h1>
+Simpel een korte woningruil regelen           </h1>
 
             <p className="text-lg md:text-lg text-gray-600">
               Jullie korte break, simpel geregeld. <br/>Tientje per swap, veilig door ID-verificatie.
