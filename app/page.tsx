@@ -39,7 +39,7 @@ export default function Home() {
           </div>
 
           {/* Nieuwe Hero Foto rechts */}
-          <div className="relative w-full h-[600px] md:h-[700px] rounded-3xl overflow-hidden shadow-xl">
+          <div className="relative w-full h-[500px] md:h-[600px] rounded-3xl overflow-hidden shadow-xl">
             <Image
               src="/hero3.png"
               alt="Moderne interieurs - woonkamer en keuken"
