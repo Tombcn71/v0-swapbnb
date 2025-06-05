@@ -6,7 +6,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { NextAuthProvider } from "@/components/providers/session-provider"
 import { Navbar } from "@/components/navbar"
-import { BannerProvider } from "@/components/providers/banner-provider"
 import { OnboardingProvider } from "@/components/providers/onboarding-provider"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -28,7 +27,7 @@ export default function RootLayout({
         <NextAuthProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <OnboardingProvider>
-              <BannerProvider />
+            
               <Navbar />
               {children}
               <Toaster />

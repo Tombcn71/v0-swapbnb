@@ -11,8 +11,8 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Tekst links */}
           <div className="flex flex-col space-y-6">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
-              Swap je woning, eropuit in <span className="italic">Nederland</span>
+            <h1 className="text-4xl md:text-5xl  text-gray-900">
+              Swap je woning, eropuit in Nederland
             </h1>
 
             <p className="text-lg md:text-xl text-gray-600">
