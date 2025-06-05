@@ -16,7 +16,8 @@ export async function GET() {
       `SELECT 
         onboarding_completed,
         name IS NOT NULL AND bio IS NOT NULL AND profile_image IS NOT NULL AS profile_completed,
-        identity_verification_status = 'verified' AS verification_completed
+        identity_verification_status = 'verified' AS verification_completed,
+        identity_verification_status
       FROM users WHERE id = $1`,
       [session.user.id],
     )
@@ -25,8 +26,8 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check if user has any homes
-    const homes = await executeQuery("SELECT COUNT(*) as home_count FROM homes WHERE owner_id = $1", [session.user.id])
+    // Check if user has any homes - FIX: use user_id instead of owner_id
+    const homes = await executeQuery("SELECT COUNT(*) as home_count FROM homes WHERE user_id = $1", [session.user.id])
     const hasHome = homes[0].home_count > 0
 
     // Determine completed steps
@@ -41,6 +42,7 @@ export async function GET() {
     return NextResponse.json({
       onboardingCompleted: users[0].onboarding_completed,
       completedSteps,
+      verificationStatus: users[0].identity_verification_status,
     })
   } catch (error) {
     console.error("Error fetching onboarding status:", error)
