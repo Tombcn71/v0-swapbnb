@@ -1,4 +1,4 @@
-import { Home } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 
 interface LogoProps {
@@ -21,16 +21,14 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
 
   return (
     <Link href="/" className="flex items-center space-x-2">
-      <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white p-1 rounded-md shadow-lg">
-        <Home className={sizeClasses[size]} />
-      </div>
-      {showText && (
-        <span
-          className={`font-bold bg-gradient-to-r from-teal-500 to-teal-700 bg-clip-text text-transparent ${textSizeClasses[size]}`}
-        >
-          SwapBnB
-        </span>
-      )}
+      <Image
+        src="/swapbnb-logo.png"
+        alt="SwapBnB Logo"
+        width={size === "sm" ? 20 : size === "md" ? 24 : 32}
+        height={size === "sm" ? 20 : size === "md" ? 24 : 32}
+        className={sizeClasses[size]}
+      />
+      {showText && <span className={` text-black ${textSizeClasses[size]}`}>SwapBnB</span>}
     </Link>
   )
 }
