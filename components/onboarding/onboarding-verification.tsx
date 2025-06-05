@@ -21,15 +21,16 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
     const checkVerificationStatus = async () => {
       try {
         const response = await fetch("/api/profile/verification-status")
-        const data = await response.json()
+        if (response.ok) {
+          const data = await response.json()
+          setVerificationStatus(data.status || "not_started")
 
-        setVerificationStatus(data.status)
-
-        // If verified, complete this step
-        if (data.status === "verified") {
-          setTimeout(() => {
-            onComplete()
-          }, 2000)
+          // If verified, complete this step
+          if (data.status === "verified") {
+            setTimeout(() => {
+              onComplete()
+            }, 2000)
+          }
         }
       } catch (error) {
         console.error("Error checking verification status:", error)
@@ -83,53 +84,6 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
     }
   }
 
-  const getStatusDisplay = () => {
-    switch (verificationStatus) {
-      case "verified":
-        return (
-          <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-            <div className="flex items-center gap-3 mb-3">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div>
-                <h3 className="font-semibold text-green-800 text-lg">Verificatie voltooid!</h3>
-                <p className="text-green-700">Je identiteit is succesvol geverifieerd.</p>
-              </div>
-            </div>
-            <p className="text-green-600 text-sm">Je wordt automatisch doorgestuurd naar de volgende stap...</p>
-          </div>
-        )
-      case "pending":
-        return (
-          <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-            <div className="flex items-center gap-3">
-              <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
-              <div>
-                <h3 className="font-medium text-blue-800">Verificatie wordt verwerkt...</h3>
-                <p className="text-blue-700 text-sm">Dit kan enkele minuten duren.</p>
-              </div>
-            </div>
-          </div>
-        )
-      case "failed":
-        return (
-          <div className="bg-red-50 p-6 rounded-lg border border-red-200">
-            <div className="flex items-center gap-3 mb-3">
-              <AlertCircle className="h-6 w-6 text-red-600" />
-              <div>
-                <h3 className="font-medium text-red-800">Verificatie mislukt</h3>
-                <p className="text-red-700 text-sm">Probeer het opnieuw met een geldig ID-document.</p>
-              </div>
-            </div>
-            <Button onClick={startVerification} disabled={isLoading} className="mt-3">
-              Opnieuw proberen
-            </Button>
-          </div>
-        )
-      default:
-        return null
-    }
-  }
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -142,9 +96,49 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {getStatusDisplay()}
+        {/* Status Display */}
+        {verificationStatus === "verified" && (
+          <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+            <div className="flex items-center gap-3 mb-3">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div>
+                <h3 className="font-semibold text-green-800 text-lg">Verificatie voltooid!</h3>
+                <p className="text-green-700">Je identiteit is succesvol geverifieerd.</p>
+              </div>
+            </div>
+            <p className="text-green-600 text-sm">Je wordt automatisch doorgestuurd naar de volgende stap...</p>
+          </div>
+        )}
 
-        {verificationStatus === "not_started" && (
+        {verificationStatus === "pending" && (
+          <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+              <div>
+                <h3 className="font-medium text-blue-800">Verificatie wordt verwerkt...</h3>
+                <p className="text-blue-700 text-sm">Dit kan enkele minuten duren.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {verificationStatus === "failed" && (
+          <div className="bg-red-50 p-6 rounded-lg border border-red-200">
+            <div className="flex items-center gap-3 mb-3">
+              <AlertCircle className="h-6 w-6 text-red-600" />
+              <div>
+                <h3 className="font-medium text-red-800">Verificatie mislukt</h3>
+                <p className="text-red-700 text-sm">Probeer het opnieuw met een geldig ID-document.</p>
+              </div>
+            </div>
+            <Button onClick={startVerification} disabled={isLoading} className="mt-3">
+              Opnieuw proberen
+            </Button>
+          </div>
+        )}
+
+        {/* Main Content - Only show if not verified */}
+        {verificationStatus !== "verified" && verificationStatus !== "pending" && (
           <>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <div className="flex items-start gap-3">
@@ -208,6 +202,7 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
               </div>
             </div>
 
+            {/* Start Verification Button - This should always be visible when not verified */}
             <Button onClick={startVerification} disabled={isLoading} className="w-full" size="lg">
               {isLoading ? (
                 <>

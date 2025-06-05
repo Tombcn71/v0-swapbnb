@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/db"
 import Stripe from "stripe"
 
-// Webhook handler voor Stripe credits aankopen
+// Webhook handler voor Stripe credits aankopen EN identity verificatie
 export async function POST(request: NextRequest) {
   try {
     console.log("🔔 Webhook received")
@@ -148,13 +148,61 @@ export async function POST(request: NextRequest) {
       } else {
         console.error(`❌ Could not determine credits amount for payment of €${amountPaid}`)
       }
+    }
+
+    // Handle Identity Verification Events
+    else if (event.type === "identity.verification_session.verified") {
+      const session = event.data.object as Stripe.Identity.VerificationSession
+      const userId = session.metadata?.user_id
+
+      if (!userId) {
+        console.error("❌ No user_id in verification session metadata")
+        return NextResponse.json({ error: "No user_id in metadata" }, { status: 400 })
+      }
+
+      console.log(`✅ Identity verification completed for user: ${userId}`)
+
+      // Update user verification status
+      await executeQuery("UPDATE users SET identity_verification_status = $1 WHERE id = $2", ["verified", userId])
+
+      console.log(`✅ User ${userId} identity verification status updated to verified`)
+    } else if (event.type === "identity.verification_session.requires_input") {
+      const session = event.data.object as Stripe.Identity.VerificationSession
+      const userId = session.metadata?.user_id
+
+      if (!userId) {
+        console.error("❌ No user_id in verification session metadata")
+        return NextResponse.json({ error: "No user_id in metadata" }, { status: 400 })
+      }
+
+      console.log(`⚠️ Identity verification requires input for user: ${userId}`)
+
+      // Update user verification status to failed
+      await executeQuery("UPDATE users SET identity_verification_status = $1 WHERE id = $2", ["failed", userId])
+
+      console.log(`⚠️ User ${userId} identity verification status updated to failed`)
+    } else if (event.type === "identity.verification_session.processing") {
+      const session = event.data.object as Stripe.Identity.VerificationSession
+      const userId = session.metadata?.user_id
+
+      if (!userId) {
+        console.error("❌ No user_id in verification session metadata")
+        return NextResponse.json({ error: "No user_id in metadata" }, { status: 400 })
+      }
+
+      console.log(`🔄 Identity verification processing for user: ${userId}`)
+
+      // Update user verification status to pending
+      await executeQuery("UPDATE users SET identity_verification_status = $1 WHERE id = $2", ["pending", userId])
+
+      console.log(`🔄 User ${userId} identity verification status updated to pending`)
     } else {
       console.log(`ℹ️ Ignoring event type: ${event.type}`)
     }
 
     return NextResponse.json({ received: true })
   } catch (error: any) {
-    console.error(`💥 Error handling credits webhook: ${error.message}`)
+    console.error(`💥 Error handling webhook: ${error.message}`)
     console.error("Stack trace:", error.stack)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
