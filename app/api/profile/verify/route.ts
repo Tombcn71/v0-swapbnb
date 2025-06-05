@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         user_id: session.user.id,
         verification_type: "profile",
       },
-      return_url: `${process.env.NEXTAUTH_URL}/profile?verification_complete=true`,
+      return_url: `${process.env.NEXTAUTH_URL}/onboarding?step=verification&verification_complete=true`,
     })
 
     // Sla de verificatie sessie ID op
