@@ -7,7 +7,7 @@ import { ListingsSkeleton } from "@/components/listings/listings-skeleton"
 export default function ListingsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-     
+      <ListingsHeader />
       <ListingsFilters />
       <Suspense fallback={<ListingsSkeleton />}>
         <ListingsGrid />

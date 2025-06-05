@@ -8,9 +8,7 @@ export function ListingsHeader() {
         <h1 className="text-3xl font-bold mb-2">Woningen in Nederland</h1>
         <p className="text-gray-600 mb-4 md:mb-0">Ontdek beschikbare woningen voor huizenruil in heel Nederland</p>
       </div>
-      <Button asChild>
-        <Link href="/homes/new">Voeg je woning toe</Link>
-      </Button>
+     
     </div>
   )
 }
