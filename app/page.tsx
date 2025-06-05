@@ -15,7 +15,7 @@ export default function Home() {
 Regel simpel een korte woningruil            </h1>
 
             <p className="text-lg md:text-lg text-gray-600">
-              Jullie korte break, simpel geregeld. Tientje per swap, veilig door ID-verificatie.
+              Jullie korte break, simpel geregeld. <br/>Tientje per swap, veilig door ID-verificatie.
 
             </p>
 
