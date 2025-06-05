@@ -11,13 +11,14 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Tekst links */}
           <div className="flex flex-col space-y-6">
-            <h1 className="text-4xl md:text-5xl font- text-gray-900">Swap je woning, eropuit in <span className="italic">Nederland</span></h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
+              Swap je woning, eropuit in <span className="italic">Nederland</span>
+            </h1>
 
             <p className="text-lg md:text-xl text-gray-600">
-✅ Eenvoudig korte breaks plannen door heel Nederland <br/>
-✅ Betaal per swap, zonder vaste verplichtingen<br/>
-✅ Veilige uitwisseling dankzij ID-verificatie
-
+              ✅ Eenvoudig korte breaks plannen door heel Nederland <br />✅ Betaal per swap, zonder vaste
+              verplichtingen
+              <br />✅ Veilige uitwisseling dankzij ID-verificatie
             </p>
 
             <div className="flex gap-4 pt-4">
@@ -37,11 +38,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Foto rechts */}
+          {/* Nieuwe Hero Foto rechts */}
           <div className="relative w-full h-[400px] md:h-[500px] rounded-3xl overflow-hidden shadow-xl">
             <Image
-              src="https://images.pexels.com/photos/6338457/pexels-photo-6338457.jpeg?auto=compress&cs=tinysrgb&w=1600"
-              alt="Gelukkig gezin"
+              src="/hero3.png"
+              alt="Moderne interieurs - woonkamer en keuken"
               fill
               priority
               style={{ objectFit: "cover" }}
@@ -54,14 +55,14 @@ export default function Home() {
       {/* Hoe werkt het Section */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="container mx-auto">
-          <h2 className="text-3xl  text-center mb-12">Hoe werkt het?</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Hoe werkt het?</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg">
                 <UserPlus className="h-8 w-8" />
               </div>
-              <h3 className="text-xl  mb-2">Maak een profiel aan</h3>
+              <h3 className="text-xl font-semibold mb-2">Maak een profiel aan</h3>
               <p className="text-gray-600">
                 Registreer je en maak een aantrekkelijk profiel voor je woning met foto's en beschrijvingen.
               </p>
@@ -71,7 +72,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg">
                 <Search className="h-8 w-8" />
               </div>
-              <h3 className="text-xl  mb-2">Vind je match</h3>
+              <h3 className="text-xl font-semibold mb-2">Vind je match</h3>
               <p className="text-gray-600">
                 Zoek naar woningen op je gewenste bestemming en neem contact op met de eigenaren.
               </p>
@@ -81,7 +82,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-teal-400 to-teal-600 text-white w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg">
                 <RefreshCw className="h-8 w-8" />
               </div>
-              <h3 className="text-xl mb-2">Swap en geniet</h3>
+              <h3 className="text-xl font-semibold mb-2">Swap en geniet</h3>
               <p className="text-gray-600">
                 Maak afspraken over de swap, wissel sleutels uit en geniet van je verblijf!
               </p>
@@ -98,23 +99,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Prijsvergelijking Section - NIEUW */}
+      {/* Prijsvergelijking Section */}
       <section className="py-16 px-4 bg-white">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="flex flex-col space-y-6">
-              <h2 className="text-4xl  text-gray-900">Swap & verblijf voor een fractie van de kosten</h2>
+              <h2 className="text-4xl font-bold text-gray-900">Swap & verblijf voor een fractie van de kosten</h2>
 
               <p className="text-lg text-gray-600">2 nachten vergelijking</p>
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="border p-6 rounded-lg">
                   <p className="text-lg font-medium mb-2">Swap met SwapBnB</p>
-                  <p className="text-4xl ">€10</p>
+                  <p className="text-4xl font-bold">€10</p>
                 </div>
                 <div className="bg-gray-50 p-6 rounded-lg">
                   <p className="text-lg font-medium mb-2">Hotel of huurwoning</p>
-                  <p className="text-4xl ">€220+</p>
+                  <p className="text-4xl font-bold">€220+</p>
                 </div>
               </div>
 
@@ -147,11 +148,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ Section - NIEUW */}
+      {/* FAQ Section */}
       <section className="py-16 px-4 bg-gray-50">
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl  text-gray-900 mb-4">Veelgestelde vragen</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Veelgestelde vragen</h2>
             <p className="text-lg text-gray-600">Alles wat je wilt weten over huizenswap met SwapBnB</p>
           </div>
 
