@@ -11,11 +11,11 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Tekst links */}
           <div className="flex flex-col space-y-6">
-            <h1 className="text-4xl md:text-6xl  text-gray-900">
-Simpel korte woningruil regelen           </h1>
+            <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900">
+Regel simpel een korte woningruil            </h1>
 
             <p className="text-lg md:text-lg text-gray-600">
-              Jullie korte break, simpel geregeld. Betaal per ruil en geniet van een zorgeloze, veilige ruil door ID-verificatie.
+              Jullie korte break, simpel geregeld. Tientje per ruil en veilig door ID-verificatie.
 
             </p>
 
