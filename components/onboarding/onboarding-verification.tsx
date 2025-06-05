@@ -11,12 +11,12 @@ interface OnboardingVerificationProps {
 }
 
 export function OnboardingVerification({ onComplete }: OnboardingVerificationProps) {
-  const [verificationUrl, setVerificationUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [verificationStatus, setVerificationStatus] = useState<string>("not_started")
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true)
   const { toast } = useToast()
 
-  // Check verification status periodically
+  // Check verification status on mount and periodically
   useEffect(() => {
     const checkVerificationStatus = async () => {
       try {
@@ -34,22 +34,25 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
         }
       } catch (error) {
         console.error("Error checking verification status:", error)
+      } finally {
+        setIsCheckingStatus(false)
       }
     }
 
     // Check immediately
     checkVerificationStatus()
 
-    // Then check every 5 seconds if not verified
-    const interval = setInterval(() => {
-      if (verificationStatus !== "verified") {
+    // Only poll if status is pending (user returned from Stripe)
+    let interval: NodeJS.Timeout | null = null
+    if (verificationStatus === "pending") {
+      interval = setInterval(() => {
         checkVerificationStatus()
-      } else {
-        clearInterval(interval)
-      }
-    }, 5000)
+      }, 5000)
+    }
 
-    return () => clearInterval(interval)
+    return () => {
+      if (interval) clearInterval(interval)
+    }
   }, [verificationStatus, onComplete])
 
   const startVerification = async () => {
@@ -66,11 +69,12 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
       }
 
       const data = await response.json()
-      setVerificationUrl(data.url)
 
-      // Open verification in same window
+      // Immediately redirect to Stripe
       if (data.url) {
         window.location.href = data.url
+      } else {
+        throw new Error("No verification URL received")
       }
     } catch (error: any) {
       console.error("Error starting verification:", error)
@@ -79,9 +83,23 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
         description: error.message || "Er is een fout opgetreden bij het starten van de verificatie.",
         variant: "destructive",
       })
-    } finally {
       setIsLoading(false)
     }
+    // Don't set loading to false here - user should be redirected
+  }
+
+  // Show loading while checking initial status
+  if (isCheckingStatus) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex items-center justify-center p-8">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Verificatiestatus controleren...</span>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -96,7 +114,7 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Status Display */}
+        {/* Verified Status */}
         {verificationStatus === "verified" && (
           <div className="bg-green-50 p-6 rounded-lg border border-green-200">
             <div className="flex items-center gap-3 mb-3">
@@ -110,18 +128,22 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
           </div>
         )}
 
+        {/* Pending Status - User returned from Stripe */}
         {verificationStatus === "pending" && (
           <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
             <div className="flex items-center gap-3">
               <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
               <div>
                 <h3 className="font-medium text-blue-800">Verificatie wordt verwerkt...</h3>
-                <p className="text-blue-700 text-sm">Dit kan enkele minuten duren.</p>
+                <p className="text-blue-700 text-sm">
+                  Je verificatie is ontvangen en wordt nu verwerkt door Stripe. Dit kan enkele minuten duren.
+                </p>
               </div>
             </div>
           </div>
         )}
 
+        {/* Failed Status */}
         {verificationStatus === "failed" && (
           <div className="bg-red-50 p-6 rounded-lg border border-red-200">
             <div className="flex items-center gap-3 mb-3">
@@ -132,13 +154,19 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
               </div>
             </div>
             <Button onClick={startVerification} disabled={isLoading} className="mt-3">
-              Opnieuw proberen
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Doorsturen naar Stripe...
+                </>
+              ) : (
+                "Opnieuw proberen"
+              )}
             </Button>
           </div>
         )}
 
-        {/* Main Content - Only show if not verified */}
-        {verificationStatus !== "verified" && verificationStatus !== "pending" && (
+        {/* Not Started - Show verification info and start button */}
+        {verificationStatus === "not_started" && (
           <>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <div className="flex items-start gap-3">
@@ -202,11 +230,10 @@ export function OnboardingVerification({ onComplete }: OnboardingVerificationPro
               </div>
             </div>
 
-            {/* Start Verification Button - This should always be visible when not verified */}
             <Button onClick={startVerification} disabled={isLoading} className="w-full" size="lg">
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verificatie starten...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Doorsturen naar Stripe...
                 </>
               ) : (
                 <>
