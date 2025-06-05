@@ -44,27 +44,29 @@ export function ListingsFilters() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <Label htmlFor="location">Locatie</Label>
+    <div className="bg-white rounded-lg shadow-md p-4 mb-8">
+      <div className="flex flex-col lg:flex-row gap-4 items-end">
+        <div className="flex-1 min-w-0">
+          <Label htmlFor="location" className="text-sm">
+            Locatie
+          </Label>
           <div className="relative mt-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <Input
               id="location"
               placeholder="Stad of regio"
-              className="pl-10"
+              className="pl-9 h-10"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
           </div>
         </div>
 
-        <div>
-          <Label htmlFor="dates">Periode</Label>
+        <div className="flex-1 min-w-0">
+          <Label className="text-sm">Periode</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full justify-start text-left font-normal mt-1">
+              <Button variant="outline" className="w-full justify-start text-left font-normal mt-1 h-10">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {date.from ? (
                   date.to ? (
@@ -72,10 +74,10 @@ export function ListingsFilters() {
                       {format(date.from, "d MMM", { locale: nl })} - {format(date.to, "d MMM", { locale: nl })}
                     </>
                   ) : (
-                    format(date.from, "d MMMM yyyy", { locale: nl })
+                    format(date.from, "d MMM", { locale: nl })
                   )
                 ) : (
-                  <span>Selecteer data</span>
+                  <span className="text-gray-500">Selecteer data</span>
                 )}
               </Button>
             </PopoverTrigger>
@@ -93,11 +95,13 @@ export function ListingsFilters() {
           </Popover>
         </div>
 
-        <div>
-          <Label htmlFor="guests">Aantal gasten</Label>
+        <div className="w-full lg:w-40">
+          <Label htmlFor="guests" className="text-sm">
+            Gasten
+          </Label>
           <Select value={guests} onValueChange={setGuests}>
-            <SelectTrigger id="guests" className="mt-1">
-              <SelectValue placeholder="Aantal gasten" />
+            <SelectTrigger id="guests" className="mt-1 h-10">
+              <SelectValue placeholder="Gasten" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="1">1 gast</SelectItem>
@@ -109,17 +113,16 @@ export function ListingsFilters() {
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
-        <Button variant="outline" onClick={handleReset}>
-          <X className="mr-2 h-4 w-4" />
-          Reset filters
-        </Button>
-        <Button onClick={handleSearch} className="bg-teal-600 hover:bg-teal-700">
-          <Search className="mr-2 h-4 w-4" />
-          Zoek woningen
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleReset} size="sm" className="h-10">
+            <X className="h-4 w-4" />
+          </Button>
+          <Button onClick={handleSearch} className="bg-teal-600 hover:bg-teal-700 h-10 px-6">
+            <Search className="mr-2 h-4 w-4" />
+            Zoek woningen
+          </Button>
+        </div>
       </div>
     </div>
   )

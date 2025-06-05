@@ -31,7 +31,7 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
         />
       </div>
       {showText && (
-        <span className={`font-bold ${textSizeClasses[size]}`}>
+        <span className={` ${textSizeClasses[size]}`}>
           <span className="text-black">Swap</span>
           <span className="text-teal-500">BnB</span>
         </span>
