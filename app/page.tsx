@@ -46,7 +46,6 @@ export default function Home() {
               fill
               priority
               style={{ objectFit: "cover" }}
-              className="rounded-3xl"
             />
           </div>
         </div>
