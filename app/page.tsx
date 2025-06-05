@@ -12,10 +12,10 @@ export default function Home() {
           {/* Tekst links */}
           <div className="flex flex-col space-y-6">
             <h1 className="text-4xl md:text-6xl  text-gray-900">
-Korte woningruil regelen           </h1>
+Simpel korte woningruil regelen           </h1>
 
             <p className="text-lg md:text-lg text-gray-600">
-              Jullie korte break, simpel geregeld. 
+              Jullie korte break, simpel geregeld. Betaal per ruil en geniet van een zorgeloze, veilige ruil door ID-verificatie.
 
             </p>
 
