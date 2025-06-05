@@ -20,15 +20,22 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
   }
 
   return (
-    <Link href="/" className="flex items-center space-x-2">
-      <Image
-        src="/swapbnb-logo.png"
-        alt="SwapBnB Logo"
-        width={size === "sm" ? 20 : size === "md" ? 24 : 32}
-        height={size === "sm" ? 20 : size === "md" ? 24 : 32}
-        className={sizeClasses[size]}
-      />
-      {showText && <span className={` text-black ${textSizeClasses[size]}`}>SwapBnB</span>}
+    <Link href="/" className="flex items-center space-x-1">
+      <div className="flex items-end pb-2">
+        <Image
+          src="/swapbnb-logo.png"
+          alt="SwapBnB Logo"
+          width={size === "sm" ? 20 : size === "md" ? 24 : 32}
+          height={size === "sm" ? 20 : size === "md" ? 24 : 32}
+          className={sizeClasses[size]}
+        />
+      </div>
+      {showText && (
+        <span className={`font-bold ${textSizeClasses[size]}`}>
+          <span className="text-black">Swap</span>
+          <span className="text-teal-500">BnB</span>
+        </span>
+      )}
     </Link>
   )
 }
