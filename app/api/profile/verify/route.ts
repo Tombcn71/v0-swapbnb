@@ -31,15 +31,15 @@ export async function POST(request: NextRequest) {
       apiVersion: "2023-10-16",
     })
 
-    // Zorg voor een geldige return URL met expliciete scheme
-    let returnUrl = process.env.NEXTAUTH_URL || ""
-    if (!returnUrl.startsWith("http")) {
-      // Als er geen scheme is, voeg https:// toe
-      returnUrl = `https://${returnUrl}`
+    // Bouw een geldige return URL op basis van de request
+    const protocol = request.headers.get("x-forwarded-proto") || "https"
+    const host = request.headers.get("host")
+
+    if (!host) {
+      throw new Error("Unable to determine host for return URL")
     }
 
-    // Voeg het pad toe aan de basis URL
-    returnUrl = `${returnUrl}/onboarding?step=verification&verification_complete=true`
+    const returnUrl = `${protocol}://${host}/onboarding?step=verification&verification_complete=true`
 
     console.log("Using return URL:", returnUrl)
 
