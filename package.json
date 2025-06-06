@@ -80,6 +80,7 @@
     "pg": "latest",
     "postgres": "latest",
     "react": "^19",
+    "react-confetti": "latest",
     "react-day-picker": "latest",
     "react-dom": "^19",
     "react-hook-form": "^7.54.1",
