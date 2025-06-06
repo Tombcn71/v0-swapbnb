@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Send, CheckCircle, XCircle } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeMessagingProps {
@@ -22,16 +23,75 @@ interface ExchangeMessagingProps {
 
 export function ExchangeMessaging({
   exchange,
-  messages,
+  messages: initialMessages,
   currentUserId,
   isRequester,
   isHost,
   onMessageSent,
   onStatusUpdate,
-  isLoading,
+  isLoading: initialLoading,
 }: ExchangeMessagingProps) {
   const [newMessage, setNewMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
+  const [messages, setMessages] = useState(initialMessages)
+  const [isLoading, setIsLoading] = useState(initialLoading)
+  const [hasReplied, setHasReplied] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+
+  // Initialize messages from props
+  useEffect(() => {
+    setMessages(initialMessages)
+    setIsLoading(initialLoading)
+
+    // Check if user has already replied
+    if (initialMessages.length > 0 && isHost) {
+      const hostMessages = initialMessages.filter((msg: any) => msg.sender_id === currentUserId)
+      setHasReplied(hostMessages.length > 0)
+    }
+  }, [initialMessages, initialLoading, isHost, currentUserId])
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  // Poll for new messages
+  useEffect(() => {
+    if (!exchange.id) return
+
+    const fetchMessages = async () => {
+      try {
+        const response = await fetch(`/api/exchanges/${exchange.id}/messages`)
+        if (response.ok) {
+          const newMessages = await response.json()
+          setMessages(newMessages)
+
+          // Mark messages as read
+          const unreadMessages = newMessages.filter((msg: any) => msg.sender_id !== currentUserId && !msg.read)
+
+          if (unreadMessages.length > 0) {
+            try {
+              await fetch(`/api/exchanges/${exchange.id}/messages/read`, {
+                method: "POST",
+              })
+            } catch (error) {
+              console.error("Error marking messages as read:", error)
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching messages:", error)
+      }
+    }
+
+    // Initial fetch
+    fetchMessages()
+
+    // Poll for new messages every 5 seconds
+    const interval = setInterval(fetchMessages, 5000)
+    return () => clearInterval(interval)
+  }, [exchange.id, currentUserId])
 
   const getInitials = (name: string) => {
     return name
@@ -55,11 +115,19 @@ export function ExchangeMessaging({
       })
 
       if (response.ok) {
+        const newMsg = await response.json()
+        setMessages((prev) => [...prev, newMsg])
         if (!content) setNewMessage("") // Only clear if it's from the input field
+        if (isHost && !hasReplied) setHasReplied(true)
         onMessageSent()
       }
     } catch (error) {
       console.error("Error sending message:", error)
+      toast({
+        title: "Fout",
+        description: "Er is een fout opgetreden bij het verzenden van je bericht.",
+        variant: "destructive",
+      })
     } finally {
       setIsSending(false)
     }
@@ -115,8 +183,8 @@ export function ExchangeMessaging({
         </div>
       )}
 
-      {/* Quick Reply Options for Pending Requests */}
-      {exchange.status === "pending" && isHost && (
+      {/* Quick Reply Options for Pending Requests - Only show if host hasn't replied yet */}
+      {exchange.status === "pending" && isHost && !hasReplied && (
         <div className="p-4 bg-blue-50 border-b border-blue-200">
           <h3 className="font-medium text-sm text-blue-900 mb-3">Snelle reacties:</h3>
           <div className="space-y-2">
@@ -182,6 +250,7 @@ export function ExchangeMessaging({
             )
           })
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input - Always available for communication */}

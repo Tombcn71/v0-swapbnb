@@ -25,10 +25,20 @@ export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId
 
   const fetchMessages = async () => {
     try {
+      setIsLoading(true)
       const response = await fetch(`/api/exchanges/${exchange.id}/messages`)
       if (response.ok) {
         const data = await response.json()
         setMessages(data)
+
+        // Mark messages as read
+        try {
+          await fetch(`/api/exchanges/${exchange.id}/messages/read`, {
+            method: "POST",
+          })
+        } catch (error) {
+          console.error("Error marking messages as read:", error)
+        }
       }
     } catch (error) {
       console.error("Error fetching messages:", error)
@@ -42,6 +52,7 @@ export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId
   }
 
   const handleStatusUpdate = () => {
+    // Reload the page to reflect status changes
     window.location.reload()
   }
 
@@ -69,7 +80,12 @@ export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId
 
         {/* Right Sidebar - Exchange Details */}
         <div className="w-80 border-l border-gray-200 bg-gray-50">
-          <ExchangeDetailsSidebar exchange={exchange} isRequester={isRequester} isHost={isHost} />
+          <ExchangeDetailsSidebar
+            exchange={exchange}
+            isRequester={isRequester}
+            isHost={isHost}
+            onStatusUpdate={handleStatusUpdate}
+          />
         </div>
       </div>
     </div>

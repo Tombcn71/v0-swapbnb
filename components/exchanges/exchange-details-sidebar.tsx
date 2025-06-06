@@ -41,19 +41,31 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
   const handleAcceptExchange = async () => {
     setIsUpdatingStatus(true)
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+      // First update status to accepted
+      const statusResponse = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "accepted" }),
+      })
+
+      if (!statusResponse.ok) {
+        throw new Error("Failed to update exchange status")
+      }
+
+      // Then pay with credits
+      const paymentResponse = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
         method: "POST",
       })
 
-      if (response.ok) {
+      if (paymentResponse.ok) {
         toast({
           title: "Swap geaccepteerd!",
           description: "Je hebt de swap geaccepteerd en 1 credit is afgerekend.",
         })
         onStatusUpdate()
       } else {
-        // Redirect to credits page if insufficient credits
-        window.location.href = "/credits"
+        // If payment fails, redirect to credits page
+        window.location.href = `/credits?redirect=/exchanges/${exchange.id}`
       }
     } catch (error) {
       console.error("Error accepting exchange:", error)
@@ -70,19 +82,29 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
   const handleConfirmExchange = async () => {
     setIsUpdatingStatus(true)
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+      // First update status to confirmed
+      const statusResponse = await fetch(`/api/exchanges/${exchange.id}/confirm`, {
         method: "POST",
       })
 
-      if (response.ok) {
+      if (!statusResponse.ok) {
+        throw new Error("Failed to confirm exchange")
+      }
+
+      // Then pay with credits
+      const paymentResponse = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+        method: "POST",
+      })
+
+      if (paymentResponse.ok) {
         toast({
           title: "Swap bevestigd!",
           description: "Je hebt de swap bevestigd en 1 credit is afgerekend.",
         })
         onStatusUpdate()
       } else {
-        // Redirect to credits page if insufficient credits
-        window.location.href = "/credits"
+        // If payment fails, redirect to credits page
+        window.location.href = `/credits?redirect=/exchanges/${exchange.id}`
       }
     } catch (error) {
       console.error("Error confirming exchange:", error)
