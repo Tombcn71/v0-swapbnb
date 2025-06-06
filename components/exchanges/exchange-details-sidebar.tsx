@@ -1,19 +1,26 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import { format, differenceInDays } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin, Users, Bed, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { MapPin, Users, Bed, Calendar, CheckCircle, XCircle } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeDetailsSidebarProps {
   exchange: Exchange
   isRequester: boolean
   isHost: boolean
+  onStatusUpdate: () => void
 }
 
-export function ExchangeDetailsSidebar({ exchange, isRequester, isHost }: ExchangeDetailsSidebarProps) {
+export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatusUpdate }: ExchangeDetailsSidebarProps) {
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const { toast } = useToast()
+
   const displayHome = isRequester
     ? {
         title: exchange.host_home_title,
@@ -30,6 +37,92 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost }: Exchan
 
   const nights = differenceInDays(new Date(exchange.end_date), new Date(exchange.start_date))
   const images = typeof displayHome.images === "string" ? JSON.parse(displayHome.images) : displayHome.images || []
+
+  const handleAcceptExchange = async () => {
+    setIsUpdatingStatus(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Swap geaccepteerd!",
+          description: "Je hebt de swap geaccepteerd en 1 credit is afgerekend.",
+        })
+        onStatusUpdate()
+      } else {
+        // Redirect to credits page if insufficient credits
+        window.location.href = "/credits"
+      }
+    } catch (error) {
+      console.error("Error accepting exchange:", error)
+      toast({
+        title: "Fout",
+        description: "Er is een fout opgetreden bij het accepteren van de swap.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const handleConfirmExchange = async () => {
+    setIsUpdatingStatus(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Swap bevestigd!",
+          description: "Je hebt de swap bevestigd en 1 credit is afgerekend.",
+        })
+        onStatusUpdate()
+      } else {
+        // Redirect to credits page if insufficient credits
+        window.location.href = "/credits"
+      }
+    } catch (error) {
+      console.error("Error confirming exchange:", error)
+      toast({
+        title: "Fout",
+        description: "Er is een fout opgetreden bij het bevestigen van de swap.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const handleRejectExchange = async () => {
+    setIsUpdatingStatus(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "Swap afgewezen",
+          description: "Je hebt de swap afgewezen.",
+        })
+        onStatusUpdate()
+      }
+    } catch (error) {
+      console.error("Error rejecting exchange:", error)
+      toast({
+        title: "Fout",
+        description: "Er is een fout opgetreden.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
 
   return (
     <div className="h-full overflow-y-auto p-4 space-y-4">
@@ -103,10 +196,37 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost }: Exchan
           <div className="pt-4 border-t">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-600">Swap Fee</span>
-              <span className="font-semibold">€20</span>
+              <span className="font-semibold">1 credit</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Eenmalige vergoeding per persoon</p>
+            <p className="text-xs text-gray-500 mt-1">Per persoon voor deze swap</p>
           </div>
+
+          {/* Action Buttons */}
+          {exchange.status === "pending" && isHost && (
+            <div className="pt-4 space-y-2">
+              <Button onClick={handleAcceptExchange} className="w-full" disabled={isUpdatingStatus}>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {isUpdatingStatus ? "Bezig..." : "Goedkeuren (1 credit)"}
+              </Button>
+              <Button onClick={handleRejectExchange} variant="outline" className="w-full" disabled={isUpdatingStatus}>
+                <XCircle className="w-4 h-4 mr-2" />
+                Afwijzen
+              </Button>
+            </div>
+          )}
+
+          {exchange.status === "accepted" && isRequester && (
+            <div className="pt-4 space-y-2">
+              <Button onClick={handleConfirmExchange} className="w-full" disabled={isUpdatingStatus}>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {isUpdatingStatus ? "Bezig..." : "Bevestigen (1 credit)"}
+              </Button>
+              <Button onClick={handleRejectExchange} variant="outline" className="w-full" disabled={isUpdatingStatus}>
+                <XCircle className="w-4 h-4 mr-2" />
+                Annuleren
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

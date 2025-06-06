@@ -6,7 +6,7 @@ import { nl } from "date-fns/locale"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Send, CheckCircle, XCircle, MessageCircle } from "lucide-react"
+import { Send, CheckCircle, XCircle } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface ExchangeMessagingProps {
@@ -32,7 +32,6 @@ export function ExchangeMessaging({
 }: ExchangeMessagingProps) {
   const [newMessage, setNewMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
   const getInitials = (name: string) => {
     return name
@@ -43,98 +42,26 @@ export function ExchangeMessaging({
       .substring(0, 2)
   }
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || isSending) return
+  const handleSendMessage = async (content?: string) => {
+    const messageContent = content || newMessage.trim()
+    if (!messageContent || isSending) return
 
     setIsSending(true)
     try {
       const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: newMessage.trim() }),
+        body: JSON.stringify({ content: messageContent }),
       })
 
       if (response.ok) {
-        setNewMessage("")
+        if (!content) setNewMessage("") // Only clear if it's from the input field
         onMessageSent()
       }
     } catch (error) {
       console.error("Error sending message:", error)
     } finally {
       setIsSending(false)
-    }
-  }
-
-  const handleQuickReply = async (message: string) => {
-    setIsSending(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      })
-
-      if (response.ok) {
-        onMessageSent()
-      }
-    } catch (error) {
-      console.error("Error sending quick reply:", error)
-    } finally {
-      setIsSending(false)
-    }
-  }
-
-  const handleAcceptExchange = async () => {
-    setIsUpdatingStatus(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/accept`, {
-        method: "POST",
-      })
-
-      if (response.ok) {
-        onStatusUpdate()
-      }
-    } catch (error) {
-      console.error("Error accepting exchange:", error)
-    } finally {
-      setIsUpdatingStatus(false)
-    }
-  }
-
-  const handleConfirmExchange = async () => {
-    setIsUpdatingStatus(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
-        method: "POST",
-      })
-
-      if (response.ok) {
-        onStatusUpdate()
-      } else {
-        // Redirect to credits page if insufficient credits
-        window.location.href = "/credits"
-      }
-    } catch (error) {
-      console.error("Error confirming exchange:", error)
-    } finally {
-      setIsUpdatingStatus(false)
-    }
-  }
-
-  const handleRejectExchange = async () => {
-    setIsUpdatingStatus(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/reject`, {
-        method: "POST",
-      })
-
-      if (response.ok) {
-        onStatusUpdate()
-      }
-    } catch (error) {
-      console.error("Error rejecting exchange:", error)
-    } finally {
-      setIsUpdatingStatus(false)
     }
   }
 
@@ -194,7 +121,7 @@ export function ExchangeMessaging({
           <h3 className="font-medium text-sm text-blue-900 mb-3">Snelle reacties:</h3>
           <div className="space-y-2">
             <Button
-              onClick={() => handleQuickReply("Ja, laten we de details bespreken!")}
+              onClick={() => handleSendMessage("Ja, laten we de details bespreken!")}
               variant="outline"
               size="sm"
               className="w-full justify-start text-left h-auto py-2 px-3"
@@ -204,17 +131,7 @@ export function ExchangeMessaging({
               Ja, laten we de details bespreken
             </Button>
             <Button
-              onClick={() => handleQuickReply("Laten we kijken of we een ruil kunnen regelen.")}
-              variant="outline"
-              size="sm"
-              className="w-full justify-start text-left h-auto py-2 px-3"
-              disabled={isSending}
-            >
-              <MessageCircle className="h-4 w-4 mr-2 text-blue-600" />
-              Laten we kijken of we een ruil kunnen regelen
-            </Button>
-            <Button
-              onClick={() => handleQuickReply("Nee, onze plannen komen helaas niet overeen.")}
+              onClick={() => handleSendMessage("Nee, onze plannen komen helaas niet overeen.")}
               variant="outline"
               size="sm"
               className="w-full justify-start text-left h-auto py-2 px-3"
@@ -267,34 +184,7 @@ export function ExchangeMessaging({
         )}
       </div>
 
-      {/* Action Buttons */}
-      {exchange.status === "pending" && isHost && (
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex gap-2">
-            <Button onClick={handleAcceptExchange} className="flex-1" disabled={isUpdatingStatus}>
-              {isUpdatingStatus ? "Bezig..." : "Goedkeuren (1 credit)"}
-            </Button>
-            <Button onClick={handleRejectExchange} variant="outline" className="flex-1" disabled={isUpdatingStatus}>
-              Afwijzen
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {exchange.status === "accepted" && isRequester && (
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex gap-2">
-            <Button onClick={handleConfirmExchange} className="flex-1" disabled={isUpdatingStatus}>
-              {isUpdatingStatus ? "Bezig..." : "Bevestigen (1 credit)"}
-            </Button>
-            <Button onClick={handleRejectExchange} variant="outline" className="flex-1" disabled={isUpdatingStatus}>
-              Annuleren
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Message Input */}
+      {/* Message Input - Always available for communication */}
       {(exchange.status === "pending" || exchange.status === "accepted" || exchange.status === "confirmed") && (
         <div className="p-4 border-t border-gray-200 bg-white">
           <div className="flex gap-2">
@@ -310,7 +200,7 @@ export function ExchangeMessaging({
                 }
               }}
             />
-            <Button onClick={handleSendMessage} disabled={!newMessage.trim() || isSending} size="icon">
+            <Button onClick={() => handleSendMessage()} disabled={!newMessage.trim() || isSending} size="icon">
               <Send className="h-4 w-4" />
             </Button>
           </div>
