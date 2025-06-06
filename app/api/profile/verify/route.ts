@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Unable to determine host for return URL")
     }
 
+    // Gebruik een absolute URL voor de return URL
     const returnUrl = `${protocol}://${host}/onboarding?step=verification&verification_complete=true`
 
     console.log("Using return URL:", returnUrl)
