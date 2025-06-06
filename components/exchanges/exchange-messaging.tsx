@@ -1,18 +1,17 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+
+import { useState } from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Send, CheckCircle, X } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import type { Exchange, Message } from "@/lib/types"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Send, CheckCircle, XCircle, MessageCircle } from "lucide-react"
+import type { Exchange } from "@/lib/types"
 
 interface ExchangeMessagingProps {
   exchange: Exchange
-  messages: Message[]
+  messages: any[]
   currentUserId: string
   isRequester: boolean
   isHost: boolean
@@ -32,120 +31,8 @@ export function ExchangeMessaging({
   isLoading,
 }: ExchangeMessagingProps) {
   const [newMessage, setNewMessage] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [localMessages, setLocalMessages] = useState(messages)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
-
-  useEffect(() => {
-    setLocalMessages(messages)
-  }, [messages])
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [localMessages])
-
-  const handleSendMessage = async (content: string) => {
-    if (!content.trim()) return
-
-    setIsSubmitting(true)
-
-    const currentUserProfileImage = messages.find((msg) => msg.sender_id === currentUserId)?.sender_profile_image || ""
-
-    const optimisticMessage = {
-      id: `temp-${Date.now()}`,
-      content: content,
-      sender_id: currentUserId,
-      created_at: new Date().toISOString(),
-      exchange_id: exchange.id,
-      receiver_id: isRequester ? exchange.host_id : exchange.requester_id,
-      message_type: "text" as const,
-      sender_name: isRequester ? exchange.requester_name : exchange.host_name,
-      sender_profile_image: currentUserProfileImage,
-    }
-
-    setLocalMessages((prev) => [...prev, optimisticMessage])
-    setNewMessage("")
-
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      })
-
-      if (response.ok) {
-        const newMessage = await response.json()
-        setLocalMessages((prev) => prev.map((msg) => (msg.id === optimisticMessage.id ? newMessage : msg)))
-        onMessageSent()
-      } else {
-        setLocalMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
-        throw new Error("Failed to send message")
-      }
-    } catch (error: any) {
-      setLocalMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
-      setNewMessage(content)
-      toast({
-        title: "Fout",
-        description: "Er is een fout opgetreden bij het verzenden van je bericht.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleQuickReply = (message: string) => {
-    handleSendMessage(message)
-  }
-
-  const handleAccept = async () => {
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "accepted" }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Swap geaccepteerd!",
-          description: "Je hebt de swap aanvraag geaccepteerd.",
-        })
-        onStatusUpdate()
-      }
-    } catch (error: any) {
-      toast({
-        title: "Fout",
-        description: "Er is een fout opgetreden.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleReject = async () => {
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "rejected" }),
-      })
-
-      if (response.ok) {
-        toast({
-          title: "Swap afgewezen",
-          description: "Je hebt de swap aanvraag afgewezen.",
-        })
-        onStatusUpdate()
-      }
-    } catch (error: any) {
-      toast({
-        title: "Fout",
-        description: "Er is een fout opgetreden.",
-        variant: "destructive",
-      })
-    }
-  }
+  const [isSending, setIsSending] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
   const getInitials = (name: string) => {
     return name
@@ -156,96 +43,185 @@ export function ExchangeMessaging({
       .substring(0, 2)
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { label: "⏳ Nieuw verzoek", variant: "secondary" as const },
-      accepted: { label: "✅ Geaccepteerd", variant: "default" as const },
-      rejected: { label: "❌ Afgewezen", variant: "destructive" as const },
-      confirmed: { label: "🎉 Bevestigd", variant: "default" as const },
-      cancelled: { label: "🚫 Geannuleerd", variant: "destructive" as const },
-    }
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || isSending) return
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    setIsSending(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: newMessage.trim() }),
+      })
+
+      if (response.ok) {
+        setNewMessage("")
+        onMessageSent()
+      }
+    } catch (error) {
+      console.error("Error sending message:", error)
+    } finally {
+      setIsSending(false)
+    }
   }
 
-  const otherUserName = isRequester ? exchange.host_name : exchange.requester_name
+  const handleQuickReply = async (message: string) => {
+    setIsSending(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      })
+
+      if (response.ok) {
+        onMessageSent()
+      }
+    } catch (error) {
+      console.error("Error sending quick reply:", error)
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleAcceptExchange = async () => {
+    setIsUpdatingStatus(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/accept`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        onStatusUpdate()
+      }
+    } catch (error) {
+      console.error("Error accepting exchange:", error)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const handleConfirmExchange = async () => {
+    setIsUpdatingStatus(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        onStatusUpdate()
+      } else {
+        // Redirect to credits page if insufficient credits
+        window.location.href = "/credits"
+      }
+    } catch (error) {
+      console.error("Error confirming exchange:", error)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const handleRejectExchange = async () => {
+    setIsUpdatingStatus(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/reject`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        onStatusUpdate()
+      }
+    } catch (error) {
+      console.error("Error rejecting exchange:", error)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const otherUser = isRequester
+    ? { name: exchange.host_name, image: exchange.host_profile_image }
+    : { name: exchange.requester_name, image: exchange.requester_profile_image }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage
-                src={
-                  isRequester
-                    ? exchange.host_profile_image
-                    : exchange.requester_profile_image || "/placeholder.svg?height=40&width=40&query=user"
-                }
-                alt={otherUserName}
-              />
-              <AvatarFallback>{getInitials(otherUserName || "")}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="font-semibold text-gray-900">{otherUserName}</h1>
-              <p className="text-sm text-gray-600">
-                {isRequester ? exchange.host_home_city : exchange.requester_home_city}
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage
+              src={otherUser.image || "/placeholder.svg?height=40&width=40&query=user"}
+              alt={otherUser.name}
+            />
+            <AvatarFallback>{getInitials(otherUser.name || "")}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="font-semibold text-gray-900">{otherUser.name}</h2>
+            <p className="text-sm text-gray-600">
+              {exchange.status === "pending" && "Wacht op reactie"}
+              {exchange.status === "accepted" && "Geaccepteerd"}
+              {exchange.status === "confirmed" && "Bevestigd"}
+              {exchange.status === "rejected" && "Afgewezen"}
+            </p>
           </div>
-          {getStatusBadge(exchange.status)}
         </div>
       </div>
 
-      {/* Original Swap Request */}
-      <div className="p-4 bg-blue-50 border-b border-gray-200">
-        <div className="flex items-center gap-2 mb-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage
-              src={exchange.requester_profile_image || "/placeholder.svg?height=40&width=40&query=user"}
-              alt={exchange.requester_name}
-            />
-            <AvatarFallback>{getInitials(exchange.requester_name || "")}</AvatarFallback>
-          </Avatar>
-          <span className="font-medium text-blue-900">{exchange.requester_name}</span>
-          <span className="text-sm text-blue-600">
-            {format(new Date(exchange.created_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
-          </span>
+      {/* Original Request */}
+      {exchange.message && (
+        <div className="p-4 bg-amber-50 border-b border-amber-200">
+          <div className="flex items-start gap-3">
+            <Avatar className="h-8 w-8">
+              <AvatarImage
+                src={exchange.requester_profile_image || "/placeholder.svg?height=32&width=32&query=user"}
+                alt={exchange.requester_name}
+              />
+              <AvatarFallback className="text-xs">{getInitials(exchange.requester_name || "")}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-medium text-sm">{exchange.requester_name}</span>
+                <span className="text-xs text-gray-500">Oorspronkelijk verzoek</span>
+              </div>
+              <p className="text-sm text-gray-700">{exchange.message}</p>
+            </div>
+          </div>
         </div>
-        <p className="text-blue-800 mb-2">{exchange.message}</p>
-        <div className="text-sm text-blue-600">
-          📅 {format(new Date(exchange.start_date), "d MMM", { locale: nl })} -{" "}
-          {format(new Date(exchange.end_date), "d MMM yyyy", { locale: nl })} • 👥 {exchange.guests} gasten
-        </div>
-      </div>
+      )}
 
       {/* Quick Reply Options for Pending Requests */}
       {exchange.status === "pending" && isHost && (
-        <div className="p-4 bg-gray-50 border-b border-gray-200">
-          <p className="text-sm text-gray-600 mb-3">Snelle reacties:</p>
+        <div className="p-4 bg-blue-50 border-b border-blue-200">
+          <h3 className="font-medium text-sm text-blue-900 mb-3">Snelle reacties:</h3>
           <div className="space-y-2">
             <Button
               onClick={() => handleQuickReply("Ja, laten we de details bespreken!")}
-              className="w-full justify-start bg-green-600 hover:bg-green-700 text-white"
+              variant="outline"
               size="sm"
+              className="w-full justify-start text-left h-auto py-2 px-3"
+              disabled={isSending}
             >
-              ✅ Ja, laten we de details bespreken
+              <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+              Ja, laten we de details bespreken
             </Button>
             <Button
               onClick={() => handleQuickReply("Laten we kijken of we een ruil kunnen regelen.")}
-              className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white"
+              variant="outline"
               size="sm"
+              className="w-full justify-start text-left h-auto py-2 px-3"
+              disabled={isSending}
             >
-              🤝 Laten we kijken of we een ruil kunnen regelen
+              <MessageCircle className="h-4 w-4 mr-2 text-blue-600" />
+              Laten we kijken of we een ruil kunnen regelen
             </Button>
             <Button
-              onClick={() => handleQuickReply("Nee, helaas komen onze plannen niet overeen.")}
-              className="w-full justify-start bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => handleQuickReply("Nee, onze plannen komen helaas niet overeen.")}
+              variant="outline"
               size="sm"
+              className="w-full justify-start text-left h-auto py-2 px-3"
+              disabled={isSending}
             >
-              ❌ Nee, onze plannen komen niet overeen
+              <XCircle className="h-4 w-4 mr-2 text-red-600" />
+              Nee, onze plannen komen niet overeen
             </Button>
           </div>
         </div>
@@ -254,81 +230,90 @@ export function ExchangeMessaging({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {isLoading ? (
-          <div className="text-center text-gray-500">Berichten laden...</div>
-        ) : localMessages.length === 0 ? (
-          <div className="text-center text-gray-500">Nog geen berichten</div>
+          <div className="text-center text-gray-500 py-8">
+            <p>Berichten laden...</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            <p>Nog geen berichten</p>
+          </div>
         ) : (
-          localMessages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender_id === currentUserId ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`flex gap-2 max-w-xs lg:max-w-md ${message.sender_id === currentUserId ? "flex-row-reverse" : "flex-row"}`}
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src={message.sender_profile_image || "/placeholder.svg?height=40&width=40&query=user"}
-                    alt={message.sender_name || ""}
-                  />
-                  <AvatarFallback>{getInitials(message.sender_name || "")}</AvatarFallback>
-                </Avatar>
-                <div
-                  className={`px-4 py-2 rounded-lg ${
-                    message.sender_id === currentUserId ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-900"
-                  }`}
-                >
-                  <p>{message.content}</p>
-                  <p className="text-xs mt-1 opacity-75">{format(new Date(message.created_at), "HH:mm")}</p>
+          messages.map((message: any) => {
+            const isOwnMessage = message.sender_id === currentUserId
+            return (
+              <div key={message.id} className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}>
+                <div className={`flex gap-2 max-w-xs lg:max-w-md ${isOwnMessage ? "flex-row-reverse" : ""}`}>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={message.sender_profile_image || "/placeholder.svg?height=32&width=32&query=user"}
+                      alt={message.sender_name}
+                    />
+                    <AvatarFallback className="text-xs">{getInitials(message.sender_name || "")}</AvatarFallback>
+                  </Avatar>
+                  <div
+                    className={`rounded-lg px-3 py-2 ${
+                      isOwnMessage ? "bg-teal-600 text-white" : "bg-gray-100 text-gray-900"
+                    }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <p className={`text-xs mt-1 ${isOwnMessage ? "text-teal-100" : "text-gray-500"}`}>
+                      {format(new Date(message.created_at), "HH:mm", { locale: nl })}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            )
+          })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Action Buttons */}
       {exchange.status === "pending" && isHost && (
         <div className="p-4 border-t border-gray-200 bg-gray-50">
           <div className="flex gap-2">
-            <Button onClick={handleAccept} className="flex-1 bg-green-600 hover:bg-green-700">
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Accepteren
+            <Button onClick={handleAcceptExchange} className="flex-1" disabled={isUpdatingStatus}>
+              {isUpdatingStatus ? "Bezig..." : "Goedkeuren (1 credit)"}
             </Button>
-            <Button
-              onClick={handleReject}
-              variant="outline"
-              className="flex-1 border-red-600 text-red-600 hover:bg-red-50"
-            >
-              <X className="w-4 h-4 mr-2" />
+            <Button onClick={handleRejectExchange} variant="outline" className="flex-1" disabled={isUpdatingStatus}>
               Afwijzen
             </Button>
           </div>
         </div>
       )}
 
+      {exchange.status === "accepted" && isRequester && (
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex gap-2">
+            <Button onClick={handleConfirmExchange} className="flex-1" disabled={isUpdatingStatus}>
+              {isUpdatingStatus ? "Bezig..." : "Bevestigen (1 credit)"}
+            </Button>
+            <Button onClick={handleRejectExchange} variant="outline" className="flex-1" disabled={isUpdatingStatus}>
+              Annuleren
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Message Input */}
-      {exchange.status !== "rejected" && exchange.status !== "cancelled" && (
+      {(exchange.status === "pending" || exchange.status === "accepted" || exchange.status === "confirmed") && (
         <div className="p-4 border-t border-gray-200 bg-white">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSendMessage(newMessage)
-            }}
-            className="flex gap-2"
-          >
-            <Input
+          <div className="flex gap-2">
+            <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Typ je bericht..."
-              disabled={isSubmitting}
-              className="flex-1"
+              className="flex-1 min-h-[40px] max-h-[120px]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSendMessage()
+                }
+              }}
             />
-            <Button type="submit" disabled={isSubmitting || !newMessage.trim()}>
-              <Send className="w-4 h-4" />
+            <Button onClick={handleSendMessage} disabled={!newMessage.trim() || isSending} size="icon">
+              <Send className="h-4 w-4" />
             </Button>
-          </form>
+          </div>
         </div>
       )}
     </div>
