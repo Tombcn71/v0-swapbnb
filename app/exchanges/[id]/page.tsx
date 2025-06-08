@@ -1,217 +1,79 @@
-"use client"
+import { notFound } from "next/navigation"
+import { executeQuery } from "@/lib/db"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import { SimplifiedExchangeDetail } from "@/components/exchanges/simplified-exchange-detail"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
-import { ExchangeChat } from "@/components/exchanges/exchange-chat"
-
-interface Exchange {
-  id: string
-  title: string
-  description: string
-  status: "pending" | "accepted" | "rejected" | "completed"
-  requesterId: string
-  hostId: string
-  createdAt: Date
-  updatedAt: Date
-  items: { id: string; name: string }[]
+interface ExchangePageProps {
+  params: {
+    id: string
+  }
 }
 
-interface Message {
-  id: string
-  content: string
-  senderId: string
-  exchangeId: string
-  createdAt: Date
-}
+export default async function ExchangePage({ params }: ExchangePageProps) {
+  const session = await getServerSession(authOptions)
 
-export default function ExchangePage({ params }: { params: { id: string } }) {
-  const { id } = params
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
-  const [exchange, setExchange] = useState<Exchange | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRequester, setIsRequester] = useState(false)
-  const [isHost, setIsHost] = useState(false)
-
-  useEffect(() => {
-    if (status === "loading") {
-      return
-    }
-
-    if (!session?.user) {
-      router.push("/login")
-      return
-    }
-
-    const fetchExchange = async () => {
-      setIsLoading(true)
-      try {
-        const response = await fetch(`/api/exchanges/${id}`)
-        if (!response.ok) {
-          throw new Error("Failed to fetch exchange")
-        }
-        const data = await response.json()
-        setExchange(data.exchange)
-        setMessages(data.messages)
-        setIsRequester(data.exchange.requesterId === session.user.id)
-        setIsHost(data.exchange.hostId === session.user.id)
-      } catch (error: any) {
-        toast.error(error.message)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchExchange()
-  }, [id, session?.user, router, status])
-
-  const handleAccept = async () => {
-    try {
-      const response = await fetch(`/api/exchanges/${id}/accept`, {
-        method: "PUT",
-      })
-      if (!response.ok) {
-        throw new Error("Failed to accept exchange")
-      }
-      toast.success("Exchange accepted!")
-      handleRefresh()
-    } catch (error: any) {
-      toast.error(error.message)
-    }
+  if (!session || !session.user) {
+    return notFound()
   }
 
-  const handleReject = async () => {
-    try {
-      const response = await fetch(`/api/exchanges/${id}/reject`, {
-        method: "PUT",
-      })
-      if (!response.ok) {
-        throw new Error("Failed to reject exchange")
-      }
-      toast.success("Exchange rejected")
-      handleRefresh()
-    } catch (error: any) {
-      toast.error(error.message)
-    }
-  }
+  try {
+    // Get the exchange with all details
+    const exchanges = await executeQuery(
+      `SELECT e.*, 
+             rh.title as requester_home_title, rh.city as requester_home_city, 
+             rh.images as requester_home_images, rh.address as requester_home_address,
+             hh.title as host_home_title, hh.city as host_home_city, 
+             hh.images as host_home_images, hh.address as host_home_address,
+             ru.name as requester_name, ru.email as requester_email, ru.profile_image as requester_profile_image,
+             hu.name as host_name, hu.email as host_email, hu.profile_image as host_profile_image
+      FROM exchanges e
+      JOIN homes rh ON e.requester_home_id = rh.id
+      JOIN homes hh ON e.host_home_id = hh.id
+      JOIN users ru ON e.requester_id = ru.id
+      JOIN users hu ON e.host_id = hu.id
+      WHERE e.id = $1 AND (e.requester_id = $2 OR e.host_id = $2)`,
+      [params.id, session.user.id],
+    )
 
-  const handleComplete = async () => {
-    try {
-      const response = await fetch(`/api/exchanges/${id}/complete`, {
-        method: "PUT",
-      })
-      if (!response.ok) {
-        throw new Error("Failed to complete exchange")
-      }
-      toast.success("Exchange completed!")
-      handleRefresh()
-    } catch (error: any) {
-      toast.error(error.message)
+    if (exchanges.length === 0) {
+      return notFound()
     }
-  }
 
-  const handleRefresh = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${id}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch exchange")
-      }
-      const data = await response.json()
-      setExchange(data.exchange)
-      setMessages(data.messages)
-    } catch (error: any) {
-      toast.error(error.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+    const exchange = exchanges[0]
 
-  if (isLoading) {
+    // Get all user's exchanges for the sidebar
+    const allExchanges = await executeQuery(
+      `SELECT e.id, e.status, e.created_at,
+             CASE 
+               WHEN e.requester_id = $1 THEN hu.name
+               ELSE ru.name
+             END as other_user_name,
+             CASE 
+               WHEN e.requester_id = $1 THEN hu.profile_image
+               ELSE ru.profile_image
+             END as other_user_image,
+             CASE 
+               WHEN e.requester_id = $1 THEN hh.city
+               ELSE rh.city
+             END as other_user_city
+      FROM exchanges e
+      JOIN homes rh ON e.requester_home_id = rh.id
+      JOIN homes hh ON e.host_home_id = hh.id
+      JOIN users ru ON e.requester_id = ru.id
+      JOIN users hu ON e.host_id = hu.id
+      WHERE e.requester_id = $1 OR e.host_id = $1
+      ORDER BY e.updated_at DESC`,
+      [session.user.id],
+    )
+
     return (
-      <div className="container py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <Skeleton className="h-6 w-64" />
-            </CardTitle>
-            <CardDescription>
-              <Skeleton className="h-4 w-96" />
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-4 w-[90%]" />
-            <Skeleton className="h-4 w-[80%]" />
-            <Skeleton className="h-4 w-[60%]" />
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <Skeleton className="h-8 w-24" />
-          </CardFooter>
-        </Card>
+      <div className="min-h-screen bg-gray-50">
+        <SimplifiedExchangeDetail exchange={exchange} allExchanges={allExchanges} currentUserId={session.user.id} />
       </div>
     )
+  } catch (error) {
+    console.error("Error fetching exchange:", error)
+    return notFound()
   }
-
-  if (!exchange) {
-    return (
-      <div className="container py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Exchange not found</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-    )
-  }
-
-  return (
-    <div className="container py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>{exchange.title}</CardTitle>
-          <CardDescription>{exchange.description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">Status: {exchange.status}</p>
-          <p className="text-sm text-muted-foreground">Created at: {exchange.createdAt.toString()}</p>
-          <p className="text-sm text-muted-foreground">Items:</p>
-          <ul>
-            {exchange.items.map((item) => (
-              <li key={item.id}>{item.name}</li>
-            ))}
-          </ul>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          {isHost && exchange.status === "pending" && (
-            <>
-              <Button variant="destructive" onClick={handleReject}>
-                Reject
-              </Button>
-              <Button onClick={handleAccept}>Accept</Button>
-            </>
-          )}
-          {(isHost || isRequester) && exchange.status === "accepted" && (
-            <Button onClick={handleComplete}>Complete</Button>
-          )}
-        </CardFooter>
-      </Card>
-      <ExchangeChat
-        exchange={exchange}
-        messages={messages}
-        currentUserId={session.user.id}
-        isRequester={isRequester}
-        isHost={isHost}
-        onMessageSent={handleRefresh}
-        onStatusUpdate={handleRefresh}
-        isLoading={isLoading}
-      />
-    </div>
-  )
 }
