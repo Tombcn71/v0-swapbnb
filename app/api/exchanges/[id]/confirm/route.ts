@@ -61,8 +61,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     // Check if user has free swap available
-    const userResult = await executeQuery("SELECT first_swap_free FROM users WHERE id = $1", [userId])
-    const hasFreeSWap = userResult[0]?.first_swap_free || false
+    let hasFreeSWap = false
+    try {
+      const userResult = await executeQuery("SELECT first_swap_free FROM users WHERE id = $1", [userId])
+      hasFreeSWap = userResult[0]?.first_swap_free || false
+    } catch (error) {
+      // Kolom bestaat nog niet, behandel als eerste swap (gratis)
+      console.log("first_swap_free column doesn't exist yet, treating as free swap")
+      hasFreeSWap = true
+    }
 
     if (hasFreeSWap) {
       // Vervang de dynamic query met een expliciete if/else
