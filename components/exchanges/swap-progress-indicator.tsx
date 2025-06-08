@@ -1,7 +1,7 @@
 "use client"
 
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle, MessageCircle, UserCheck, Heart } from "lucide-react"
+import { CheckCircle, MessageCircle, UserCheck } from "lucide-react"
 import type { Exchange } from "@/lib/types"
 
 interface SwapProgressIndicatorProps {
@@ -33,13 +33,13 @@ export function SwapProgressIndicator({ exchange, currentUserId, isRequester, is
       <div className="grid grid-cols-3 gap-4 text-xs">
         {/* Stap 1: Details */}
         <div
-          className={`flex flex-col items-center ${exchange.status === "accepted" || exchange.status === "confirmed" ? "text-green-600" : "text-gray-400"}`}
+          className={`flex flex-col items-center ${exchange.status === "accepted" || exchange.status === "confirmed" ? "text-teal-600" : "text-gray-400"}`}
         >
           <div
-            className={`h-8 w-8 rounded-full ${exchange.status === "accepted" || exchange.status === "confirmed" ? "bg-green-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
+            className={`h-8 w-8 rounded-full ${exchange.status === "accepted" || exchange.status === "confirmed" ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
           >
             {exchange.status === "accepted" || exchange.status === "confirmed" ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4" />
             ) : (
               <MessageCircle className="h-4 w-4" />
             )}
@@ -49,13 +49,13 @@ export function SwapProgressIndicator({ exchange, currentUserId, isRequester, is
 
         {/* Stap 2: Goedkeuren */}
         <div
-          className={`flex flex-col items-center ${exchange.requester_confirmed || exchange.host_confirmed ? "text-blue-600" : "text-gray-400"}`}
+          className={`flex flex-col items-center ${exchange.requester_confirmed || exchange.host_confirmed ? "text-teal-600" : "text-gray-400"}`}
         >
           <div
-            className={`h-8 w-8 rounded-full ${exchange.requester_confirmed || exchange.host_confirmed ? "bg-blue-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
+            className={`h-8 w-8 rounded-full ${exchange.requester_confirmed || exchange.host_confirmed ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
           >
             {exchange.requester_confirmed || exchange.host_confirmed ? (
-              <CheckCircle className="h-4 w-4 text-blue-600" />
+              <CheckCircle className="h-4 w-4" />
             ) : (
               <UserCheck className="h-4 w-4" />
             )}
@@ -65,16 +65,12 @@ export function SwapProgressIndicator({ exchange, currentUserId, isRequester, is
 
         {/* Stap 3: Bevestigen */}
         <div
-          className={`flex flex-col items-center ${exchange.status === "confirmed" ? "text-purple-600" : "text-gray-400"}`}
+          className={`flex flex-col items-center ${exchange.status === "confirmed" ? "text-teal-600" : "text-gray-400"}`}
         >
           <div
-            className={`h-8 w-8 rounded-full ${exchange.status === "confirmed" ? "bg-purple-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
+            className={`h-8 w-8 rounded-full ${exchange.status === "confirmed" ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
           >
-            {exchange.status === "confirmed" ? (
-              <CheckCircle className="h-4 w-4 text-purple-600" />
-            ) : (
-              <Heart className="h-4 w-4" />
-            )}
+            {exchange.status === "confirmed" ? <CheckCircle className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
           </div>
           <span className="font-medium">Bevestigen</span>
         </div>
