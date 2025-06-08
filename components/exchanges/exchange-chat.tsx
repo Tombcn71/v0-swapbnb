@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, CheckCircle, X, Ban, Heart, Loader2 } from "lucide-react"
+import { Send, CheckCircle, X, Ban, Loader2, UserCheck } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -161,7 +161,7 @@ export function ExchangeChat({
       if (response.ok) {
         toast({
           title: "🎉 Swap geaccepteerd!",
-          description: "Je hebt de swap aanvraag geaccepteerd. Nu kunnen beide partijen bevestigen.",
+          description: "Je hebt de swap aanvraag geaccepteerd. Nu kunnen beide partijen goedkeuren.",
         })
         onStatusUpdate()
       } else {
@@ -254,7 +254,7 @@ export function ExchangeChat({
 
         if (data.free_swap) {
           toast({
-            title: data.both_confirmed ? "🎉 Swap Bevestigd!" : "✅ Bevestiging Geregistreerd",
+            title: data.both_confirmed ? "🎉 Swap Bevestigd!" : "✅ Goedkeuring Geregistreerd",
             description: data.message,
           })
           onStatusUpdate()
@@ -275,7 +275,7 @@ export function ExchangeChat({
       console.error("Error confirming exchange:", error)
       toast({
         title: "❌ Fout",
-        description: error.message || "Er is een fout opgetreden bij het bevestigen van de swap.",
+        description: error.message || "Er is een fout opgetreden bij het goedkeuren van de swap.",
         variant: "destructive",
       })
     } finally {
@@ -300,6 +300,22 @@ export function ExchangeChat({
   const currentUserConfirmed = isRequester ? exchange.requester_confirmed : exchange.host_confirmed
   const otherUserConfirmed = isRequester ? exchange.host_confirmed : exchange.requester_confirmed
   const bothConfirmed = currentUserConfirmed && otherUserConfirmed
+
+  // Determine current stage and button text
+  const getCurrentStage = () => {
+    if (exchange.status === "accepted" && !currentUserConfirmed && !otherUserConfirmed) {
+      return "approve" // Both need to approve
+    }
+    if (exchange.status === "accepted" && (currentUserConfirmed || otherUserConfirmed) && !bothConfirmed) {
+      return "approve" // Still in approve stage
+    }
+    if (bothConfirmed) {
+      return "confirmed" // Both approved, now confirmed
+    }
+    return "pending"
+  }
+
+  const currentStage = getCurrentStage()
 
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
@@ -346,7 +362,7 @@ export function ExchangeChat({
 
         <CardContent className="flex-1 flex flex-col">
           {/* Origineel swap bericht */}
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+          <div className="mb-4 p-4 bg-teal-50 rounded-lg border-l-4 border-teal-500">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
@@ -356,14 +372,14 @@ export function ExchangeChat({
                   />
                   <AvatarFallback>{getInitials(exchange.requester_name || "")}</AvatarFallback>
                 </Avatar>
-                <span className="font-semibold text-blue-900">{exchange.requester_name}</span>
+                <span className="font-semibold text-teal-900">{exchange.requester_name}</span>
               </div>
-              <span className="text-sm text-blue-600">
+              <span className="text-sm text-teal-600">
                 {format(new Date(exchange.created_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
               </span>
             </div>
-            <p className="text-blue-800">{exchange.message}</p>
-            <div className="mt-2 text-sm text-blue-600">
+            <p className="text-teal-800">{exchange.message}</p>
+            <div className="mt-2 text-sm text-teal-600">
               📅 {format(new Date(exchange.start_date), "d MMM", { locale: nl })} -{" "}
               {format(new Date(exchange.end_date), "d MMM yyyy", { locale: nl })} • 👥 {exchange.guests} gasten
             </div>
@@ -380,7 +396,7 @@ export function ExchangeChat({
                 Je betaling is succesvol verwerkt.{" "}
                 {otherUserConfirmed
                   ? "De swap is nu bevestigd!"
-                  : "We wachten nu op bevestiging van de andere gebruiker."}
+                  : "We wachten nu op goedkeuring van de andere gebruiker."}
               </p>
             </div>
           )}
@@ -412,7 +428,7 @@ export function ExchangeChat({
                     </Avatar>
                     <div
                       className={`px-4 py-2 rounded-lg ${
-                        message.sender_id === currentUserId ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
+                        message.sender_id === currentUserId ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-900"
                       }`}
                     >
                       <p>{message.content}</p>
@@ -504,7 +520,8 @@ export function ExchangeChat({
               </AlertDialog>
             )}
 
-            {exchange.status === "accepted" && !currentUserConfirmed && (
+            {/* Approve stage - when swap is accepted but not yet confirmed by both */}
+            {exchange.status === "accepted" && currentStage === "approve" && !currentUserConfirmed && (
               <Button
                 onClick={handleConfirm}
                 className="w-full bg-teal-600 hover:bg-teal-700"
@@ -513,24 +530,26 @@ export function ExchangeChat({
                 {actionLoading === "confirm" ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <Heart className="w-4 h-4 mr-2" />
+                  <UserCheck className="w-4 h-4 mr-2" />
                 )}
-                Bevestig Swap (Eerste swap gratis!)
+                Keur Swap Goed (Eerste swap gratis!)
               </Button>
             )}
 
+            {/* Waiting for other party to approve */}
             {exchange.status === "accepted" && currentUserConfirmed && !otherUserConfirmed && (
               <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle className="h-5 w-5 text-teal-600" />
-                  <span className="font-medium text-teal-800">Je hebt bevestigd! ✓</span>
+                  <span className="font-medium text-teal-800">Je hebt goedgekeurd! ✓</span>
                 </div>
                 <p className="text-teal-700 text-sm">
-                  Wacht tot de andere partij ook bevestigt om de swap definitief te maken.
+                  Wacht tot de andere partij ook goedkeurt om de swap te bevestigen.
                 </p>
               </div>
             )}
 
+            {/* Both confirmed */}
             {bothConfirmed && (
               <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
                 <div className="flex items-center gap-2 mb-2">
@@ -538,7 +557,7 @@ export function ExchangeChat({
                   <span className="font-medium text-teal-800">🎉 Swap bevestigd!</span>
                 </div>
                 <p className="text-teal-700 text-sm">
-                  Beide partijen hebben bevestigd! Jullie swap is nu definitief. Geniet ervan!
+                  Beide partijen hebben goedgekeurd! Jullie swap is nu definitief. Geniet ervan!
                 </p>
               </div>
             )}
