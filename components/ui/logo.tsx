@@ -21,7 +21,7 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
 
   return (
     <Link href="/" className="flex items-center space-x-1">
-      <div className="flex items-end pb-2">
+      <div className="flex items-end ">
         <Image
           src="/swapbnb-logo.png"
           alt="SwapBnB Logo"
