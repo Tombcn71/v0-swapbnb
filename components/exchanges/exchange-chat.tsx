@@ -431,7 +431,7 @@ export function ExchangeChat({
               <div className="space-y-2">
                 <Button
                   onClick={handleAccept}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-teal-600 hover:bg-teal-700"
                   disabled={actionLoading === "accept"}
                 >
                   {actionLoading === "accept" ? (
@@ -507,37 +507,37 @@ export function ExchangeChat({
             {exchange.status === "accepted" && !currentUserConfirmed && (
               <Button
                 onClick={handleConfirm}
-                className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                className="w-full bg-teal-600 hover:bg-teal-700"
                 disabled={actionLoading === "confirm"}
               >
                 {actionLoading === "confirm" ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <Heart className="w-4 h-4 mr-2 text-pink-200" />
+                  <Heart className="w-4 h-4 mr-2" />
                 )}
                 Bevestig Swap (Eerste swap gratis!)
               </Button>
             )}
 
             {exchange.status === "accepted" && currentUserConfirmed && !otherUserConfirmed && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-blue-800">Je hebt bevestigd! ✓</span>
+                  <CheckCircle className="h-5 w-5 text-teal-600" />
+                  <span className="font-medium text-teal-800">Je hebt bevestigd! ✓</span>
                 </div>
-                <p className="text-blue-700 text-sm">
+                <p className="text-teal-700 text-sm">
                   Wacht tot de andere partij ook bevestigt om de swap definitief te maken.
                 </p>
               </div>
             )}
 
             {bothConfirmed && (
-              <div className="p-4 bg-gradient-to-r from-green-50 to-purple-50 border border-purple-200 rounded-md">
+              <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-purple-800">🎉 Swap bevestigd!</span>
+                  <CheckCircle className="h-5 w-5 text-teal-600" />
+                  <span className="font-medium text-teal-800">🎉 Swap bevestigd!</span>
                 </div>
-                <p className="text-purple-700 text-sm">
+                <p className="text-teal-700 text-sm">
                   Beide partijen hebben bevestigd! Jullie swap is nu definitief. Geniet ervan!
                 </p>
               </div>
