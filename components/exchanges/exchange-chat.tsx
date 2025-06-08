@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, CheckCircle, X, Ban, CreditCard } from "lucide-react"
+import { Send, CheckCircle, X, Ban } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useSearchParams } from "next/navigation"
 import type { Exchange, Message } from "@/lib/types"
 
 interface ExchangeChatProps {
@@ -48,8 +49,22 @@ export function ExchangeChat({
   const [newMessage, setNewMessage] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [localMessages, setLocalMessages] = useState(messages)
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const searchParams = useSearchParams()
+
+  // Check for payment success in URL
+  useEffect(() => {
+    const payment = searchParams.get("payment")
+    if (payment === "success") {
+      setShowPaymentSuccess(true)
+      toast({
+        title: "Betaling geslaagd!",
+        description: "Je betaling is verwerkt. De swap wordt bevestigd zodra beide partijen hebben betaald.",
+      })
+    }
+  }, [searchParams, toast])
 
   // Update local messages when props change
   useEffect(() => {
@@ -208,27 +223,37 @@ export function ExchangeChat({
     }
   }
 
-  const handlePayCredits = async () => {
+  const handleConfirm = async () => {
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+      const response = await fetch(`/api/exchanges/${exchange.id}/confirm`, {
         method: "POST",
       })
 
       if (response.ok) {
-        toast({
-          title: "Credits betaald!",
-          description: "Je hebt 1 credit betaald voor deze swap.",
-        })
-        onStatusUpdate()
+        const data = await response.json()
+
+        if (data.free_swap) {
+          // Free swap confirmed
+          toast({
+            title: data.both_confirmed ? "🎉 Swap Bevestigd!" : "✅ Bevestiging Geregistreerd",
+            description: data.message,
+          })
+          onStatusUpdate()
+        } else {
+          // Redirect to Stripe
+          if (data.checkout_url) {
+            window.location.href = data.checkout_url
+          }
+        }
       } else {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to pay credits")
+        throw new Error(errorData.error || "Failed to confirm exchange")
       }
     } catch (error: any) {
-      console.error("Error paying credits:", error)
+      console.error("Error confirming exchange:", error)
       toast({
         title: "Fout",
-        description: error.message || "Er is een fout opgetreden bij het betalen van credits.",
+        description: error.message || "Er is een fout opgetreden bij het bevestigen van de swap.",
         variant: "destructive",
       })
     }
@@ -247,10 +272,10 @@ export function ExchangeChat({
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
-  // Check if both parties have paid credits
-  const bothPaidCredits = exchange.requester_credits_paid && exchange.host_credits_paid
-  const currentUserPaidCredits = isRequester ? exchange.requester_credits_paid : exchange.host_credits_paid
-  const otherUserPaidCredits = isRequester ? exchange.host_credits_paid : exchange.requester_credits_paid
+  // Check confirmation status
+  const currentUserConfirmed = isRequester ? exchange.requester_confirmed : exchange.host_confirmed
+  const otherUserConfirmed = isRequester ? exchange.host_confirmed : exchange.requester_confirmed
+  const bothConfirmed = currentUserConfirmed && otherUserConfirmed
 
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
@@ -295,6 +320,22 @@ export function ExchangeChat({
             {format(new Date(exchange.end_date), "d MMM yyyy", { locale: nl })} • 👥 {exchange.guests} gasten
           </div>
         </div>
+
+        {/* Betaling succes melding */}
+        {showPaymentSuccess && (
+          <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <span className="font-medium text-green-800">Betaling geslaagd!</span>
+            </div>
+            <p className="text-green-700 text-sm">
+              Je betaling is succesvol verwerkt.{" "}
+              {otherUserConfirmed
+                ? "De swap is nu bevestigd!"
+                : "We wachten nu op bevestiging van de andere gebruiker."}
+            </p>
+          </div>
+        )}
 
         {/* Chat berichten */}
         <div className="flex-1 overflow-y-auto space-y-4 mb-4">
@@ -396,44 +437,44 @@ export function ExchangeChat({
             <div className="space-y-3">
               <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-green-800 text-sm font-medium mb-2">
-                  ✓ Swap geaccepteerd! Nu moeten beide partijen 1 credit betalen om de swap te bevestigen.
+                  ✓ Swap geaccepteerd! Nu moeten beide partijen de swap bevestigen.
                 </p>
 
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center justify-between">
-                    <span>Jouw betaling:</span>
-                    <span className={currentUserPaidCredits ? "text-green-600 font-medium" : "text-orange-600"}>
-                      {currentUserPaidCredits ? "✓ Betaald" : "⏳ Nog te betalen"}
+                    <span>Jouw bevestiging:</span>
+                    <span className={currentUserConfirmed ? "text-green-600 font-medium" : "text-orange-600"}>
+                      {currentUserConfirmed ? "✓ Bevestigd" : "⏳ Nog te bevestigen"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Andere partij:</span>
-                    <span className={otherUserPaidCredits ? "text-green-600 font-medium" : "text-orange-600"}>
-                      {otherUserPaidCredits ? "✓ Betaald" : "⏳ Nog te betalen"}
+                    <span className={otherUserConfirmed ? "text-green-600 font-medium" : "text-orange-600"}>
+                      {otherUserConfirmed ? "✓ Bevestigd" : "⏳ Nog te bevestigen"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {!currentUserPaidCredits && (
-                <Button onClick={handlePayCredits} className="w-full bg-blue-600 hover:bg-blue-700">
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Betaal 1 Credit om Swap te Bevestigen
+              {!currentUserConfirmed && (
+                <Button onClick={handleConfirm} className="w-full bg-green-600 hover:bg-green-700">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Bevestig Swap
                 </Button>
               )}
 
-              {currentUserPaidCredits && !otherUserPaidCredits && (
+              {currentUserConfirmed && !otherUserConfirmed && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p className="text-blue-800 text-sm">
-                    ✓ Je hebt betaald! Wacht tot de andere partij ook betaalt om de swap te bevestigen.
+                    ✓ Je hebt de swap bevestigd! Wacht tot de andere partij ook bevestigt.
                   </p>
                 </div>
               )}
 
-              {bothPaidCredits && (
+              {bothConfirmed && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-green-800 text-sm font-medium">
-                    🎉 Beide partijen hebben betaald! De swap wordt automatisch bevestigd.
+                    🎉 Beide partijen hebben bevestigd! De swap is nu definitief.
                   </p>
                 </div>
               )}
