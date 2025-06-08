@@ -249,6 +249,18 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
               </Button>
             </div>
           )}
+          {exchange.status === "accepted" && (
+            <div className="pt-4 space-y-2">
+              <Button onClick={handleConfirmExchange} className="w-full" disabled={isUpdatingStatus}>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {isUpdatingStatus ? "Bezig..." : "Bevestigen (1 credit)"}
+              </Button>
+              <Button onClick={handleRejectExchange} variant="outline" className="w-full" disabled={isUpdatingStatus}>
+                <XCircle className="w-4 h-4 mr-2" />
+                Annuleren
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
