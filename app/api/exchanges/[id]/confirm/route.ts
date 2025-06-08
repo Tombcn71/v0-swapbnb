@@ -39,12 +39,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const isRequester = exchange.requester_id === userId
     const confirmationField = isRequester ? "requester_confirmed" : "host_confirmed"
 
-    // Voeg confirmation fields toe als ze niet bestaan
-    const addConfirmationFields = await executeQuery(`
-      ALTER TABLE exchanges 
-      ADD COLUMN IF NOT EXISTS requester_confirmed BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS host_confirmed BOOLEAN DEFAULT false
-    `)
+    // Voeg confirmation fields toe als ze niet bestaan - vervang de bestaande query
+    try {
+      await executeQuery(`
+        ALTER TABLE exchanges 
+        ADD COLUMN IF NOT EXISTS requester_confirmed BOOLEAN DEFAULT false
+      `)
+      await executeQuery(`
+        ALTER TABLE exchanges 
+        ADD COLUMN IF NOT EXISTS host_confirmed BOOLEAN DEFAULT false
+      `)
+    } catch (error) {
+      // Kolommen bestaan al, dat is oké
+      console.log("Confirmation columns already exist")
+    }
 
     // Check if already confirmed
     const currentExchange = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
@@ -57,8 +65,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const hasFreeSWap = userResult[0]?.first_swap_free || false
 
     if (hasFreeSWap) {
-      // Free swap - direct confirmation
-      await executeQuery(`UPDATE exchanges SET ${confirmationField} = true WHERE id = $1`, [exchangeId])
+      // Vervang de dynamic query met een expliciete if/else
+      if (isRequester) {
+        await executeQuery("UPDATE exchanges SET requester_confirmed = true WHERE id = $1", [exchangeId])
+      } else {
+        await executeQuery("UPDATE exchanges SET host_confirmed = true WHERE id = $1", [exchangeId])
+      }
       await executeQuery("UPDATE users SET first_swap_free = false WHERE id = $1", [userId])
 
       // Check if both parties confirmed

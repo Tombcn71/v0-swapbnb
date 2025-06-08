@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, CheckCircle, X, Ban } from "lucide-react"
+import { Send, CheckCircle, X, Ban, Heart } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -438,6 +438,7 @@ export function ExchangeChat({
               <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-green-800 text-sm font-medium mb-2">
                   ✓ Swap geaccepteerd! Nu moeten beide partijen de swap bevestigen.
+                  <br />💝 Eerste swap is gratis voor nieuwe gebruikers!
                 </p>
 
                 <div className="space-y-1 text-sm">
@@ -458,8 +459,8 @@ export function ExchangeChat({
 
               {!currentUserConfirmed && (
                 <Button onClick={handleConfirm} className="w-full bg-green-600 hover:bg-green-700">
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Bevestig Swap
+                  <Heart className="w-4 h-4 mr-2 text-pink-200" />
+                  Bevestig Swap (Eerste swap gratis!)
                 </Button>
               )}
 
