@@ -303,14 +303,14 @@ export function ExchangeChat({
 
   // Determine current stage and button text
   const getCurrentStage = () => {
-    if (exchange.status === "accepted" && !currentUserConfirmed && !otherUserConfirmed) {
-      return "approve" // Both need to approve
+    if (exchange.status === "pending") {
+      return "pending" // Wachten op host acceptatie
     }
-    if (exchange.status === "accepted" && (currentUserConfirmed || otherUserConfirmed) && !bothConfirmed) {
-      return "approve" // Still in approve stage
+    if (exchange.status === "accepted") {
+      return "confirm" // Host heeft geaccepteerd, nu kunnen beide partijen bevestigen
     }
     if (bothConfirmed) {
-      return "confirmed" // Both approved, now confirmed
+      return "confirmed" // Beide hebben bevestigd
     }
     return "pending"
   }
@@ -520,8 +520,8 @@ export function ExchangeChat({
               </AlertDialog>
             )}
 
-            {/* Approve stage - when swap is accepted but not yet confirmed by both */}
-            {exchange.status === "accepted" && currentStage === "approve" && !currentUserConfirmed && (
+            {/* Confirm stage - when swap is accepted, both parties can confirm */}
+            {exchange.status === "accepted" && !currentUserConfirmed && (
               <Button
                 onClick={handleConfirm}
                 className="w-full bg-teal-600 hover:bg-teal-700"
@@ -532,19 +532,19 @@ export function ExchangeChat({
                 ) : (
                   <UserCheck className="w-4 h-4 mr-2" />
                 )}
-                Keur Swap Goed (Eerste swap gratis!)
+                Bevestig Swap (Eerste swap gratis!)
               </Button>
             )}
 
-            {/* Waiting for other party to approve */}
+            {/* Waiting for other party to confirm */}
             {exchange.status === "accepted" && currentUserConfirmed && !otherUserConfirmed && (
               <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle className="h-5 w-5 text-teal-600" />
-                  <span className="font-medium text-teal-800">Je hebt goedgekeurd! ✓</span>
+                  <span className="font-medium text-teal-800">Je hebt bevestigd! ✓</span>
                 </div>
                 <p className="text-teal-700 text-sm">
-                  Wacht tot de andere partij ook goedkeurt om de swap te bevestigen.
+                  Wacht tot de andere partij ook bevestigt om de swap definitief te maken.
                 </p>
               </div>
             )}

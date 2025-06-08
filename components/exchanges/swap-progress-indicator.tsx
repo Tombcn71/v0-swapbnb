@@ -12,8 +12,9 @@ interface SwapProgressIndicatorProps {
 export function SwapProgressIndicator({ exchange, currentUserId, isRequester, isHost }: SwapProgressIndicatorProps) {
   // Calculate progress based on status
   const getProgressPercentage = () => {
-    if (exchange.status === "accepted") return 33
-    if (exchange.requester_confirmed || exchange.host_confirmed) return 66
+    if (exchange.status === "pending") return 0
+    if (exchange.status === "accepted") return 50
+    if (exchange.requester_confirmed || exchange.host_confirmed) return 75
     if (exchange.status === "confirmed") return 100
     return 0
   }
@@ -30,7 +31,23 @@ export function SwapProgressIndicator({ exchange, currentUserId, isRequester, is
       </div>
 
       <div className="grid grid-cols-3 gap-4 text-xs">
-        {/* Stap 1: Details */}
+        {/* Stap 1: Aanvraag */}
+        <div className="flex flex-col items-center">
+          <div
+            className={`h-8 w-8 rounded-full ${exchange.status !== "pending" ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
+          >
+            {exchange.status !== "pending" ? (
+              <CheckCircle className="h-4 w-4 text-teal-600" />
+            ) : (
+              <MessageCircle className="h-4 w-4 text-gray-400" />
+            )}
+          </div>
+          <span className={`font-medium ${exchange.status !== "pending" ? "text-teal-600" : "text-gray-400"}`}>
+            Aanvraag
+          </span>
+        </div>
+
+        {/* Stap 2: Goedkeuren (alleen host) */}
         <div className="flex flex-col items-center">
           <div
             className={`h-8 w-8 rounded-full ${exchange.status === "accepted" || exchange.status === "confirmed" ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
@@ -38,29 +55,11 @@ export function SwapProgressIndicator({ exchange, currentUserId, isRequester, is
             {exchange.status === "accepted" || exchange.status === "confirmed" ? (
               <CheckCircle className="h-4 w-4 text-teal-600" />
             ) : (
-              <MessageCircle className="h-4 w-4 text-gray-400" />
-            )}
-          </div>
-          <span
-            className={`font-medium ${exchange.status === "accepted" || exchange.status === "confirmed" ? "text-teal-600" : "text-gray-400"}`}
-          >
-            Details
-          </span>
-        </div>
-
-        {/* Stap 2: Goedkeuren */}
-        <div className="flex flex-col items-center">
-          <div
-            className={`h-8 w-8 rounded-full ${exchange.requester_confirmed || exchange.host_confirmed ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
-          >
-            {exchange.requester_confirmed || exchange.host_confirmed ? (
-              <CheckCircle className="h-4 w-4 text-teal-600" />
-            ) : (
               <UserCheck className="h-4 w-4 text-gray-400" />
             )}
           </div>
           <span
-            className={`font-medium ${exchange.requester_confirmed || exchange.host_confirmed ? "text-teal-600" : "text-gray-400"}`}
+            className={`font-medium ${exchange.status === "accepted" || exchange.status === "confirmed" ? "text-teal-600" : "text-gray-400"}`}
           >
             Goedkeuren
           </span>
@@ -85,15 +84,15 @@ export function SwapProgressIndicator({ exchange, currentUserId, isRequester, is
 
       {/* Status text */}
       <div className="mt-4 text-center text-sm text-gray-600">
-        {exchange.status === "pending" && "Wachten op acceptatie..."}
+        {exchange.status === "pending" && "Wachten op goedkeuring van de host..."}
         {exchange.status === "accepted" &&
           !exchange.requester_confirmed &&
           !exchange.host_confirmed &&
-          "Beide partijen moeten goedkeuren"}
+          "Host heeft goedgekeurd! Nu kunnen beide partijen bevestigen"}
         {exchange.status === "accepted" &&
           (exchange.requester_confirmed || exchange.host_confirmed) &&
           !(exchange.requester_confirmed && exchange.host_confirmed) &&
-          "Wachten op andere partij..."}
+          "Wachten op bevestiging van andere partij..."}
         {exchange.status === "confirmed" && "🎉 Swap bevestigd!"}
       </div>
     </div>
