@@ -3,12 +3,20 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useRouter } from "next/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, Heart, Sparkles, ArrowRight } from "lucide-react"
-import Confetti from "react-confetti"
-import { useWindowSize } from "@/hooks/use-window-size"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { CalendarDays, Home } from "lucide-react"
+import dynamic from "next/dynamic"
+
+// Dynamically import Confetti to avoid SSR issues
+const Confetti = dynamic(() => import("react-confetti"), { ssr: false })
 
 interface EnhancedSwapConfirmationModalProps {
   userName: string
@@ -34,44 +42,27 @@ export function EnhancedSwapConfirmationModal({
   onClose,
 }: EnhancedSwapConfirmationModalProps) {
   const [open, setOpen] = useState(true)
-  const [showConfetti, setShowConfetti] = useState(true)
-  const [currentStep, setCurrentStep] = useState(0)
-  const router = useRouter()
-  const { width, height } = useWindowSize()
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
 
-  // Animation steps
-  const steps = [
-    { icon: <Heart className="h-12 w-12 text-pink-500" />, text: "Swap bevestigd!" },
-    { icon: <CheckCircle className="h-12 w-12 text-green-500" />, text: "Alles geregeld!" },
-    { icon: <Sparkles className="h-12 w-12 text-purple-500" />, text: "Geniet van jullie ruil!" },
-  ]
-
-  // Stop confetti after 5 seconds
+  // Set window dimensions for confetti
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowConfetti(false)
-    }, 5000)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  // Animate through steps
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => (prev + 1) % steps.length)
-    }, 1500)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  // Store that this confirmation has been shown
-  useEffect(() => {
-    if (exchangeId) {
-      const shownConfirmations = JSON.parse(localStorage.getItem("shownSwapConfirmations") || "[]")
-      if (!shownConfirmations.includes(exchangeId)) {
-        localStorage.setItem("shownSwapConfirmations", JSON.stringify([...shownConfirmations, exchangeId]))
-      }
+    const updateDimensions = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      })
     }
+
+    updateDimensions()
+    window.addEventListener("resize", updateDimensions)
+
+    // Store that we've shown this confirmation
+    const shownConfirmations = JSON.parse(localStorage.getItem("shownSwapConfirmations") || "[]")
+    if (!shownConfirmations.includes(exchangeId)) {
+      localStorage.setItem("shownSwapConfirmations", JSON.stringify([...shownConfirmations, exchangeId]))
+    }
+
+    return () => window.removeEventListener("resize", updateDimensions)
   }, [exchangeId])
 
   const handleClose = () => {
@@ -79,74 +70,60 @@ export function EnhancedSwapConfirmationModal({
     onClose()
   }
 
-  const handleGoToSwaps = () => {
-    setOpen(false)
-    router.push("/exchanges")
-  }
-
-  const formattedStartDate = format(new Date(startDate), "d MMMM yyyy", { locale: nl })
-  const formattedEndDate = format(new Date(endDate), "d MMMM yyyy", { locale: nl })
-
   return (
     <>
-      {showConfetti && <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />}
+      {open && <Confetti width={dimensions.width} height={dimensions.height} recycle={false} numberOfPieces={200} />}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <div className="flex justify-center mb-6">
-              <div className="bg-gradient-to-r from-pink-100 to-purple-100 p-4 rounded-full transition-all duration-500">
-                {steps[currentStep].icon}
-              </div>
-            </div>
-            <DialogTitle className="text-center text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-              {steps[currentStep].text}
-            </DialogTitle>
+            <DialogTitle className="text-center text-2xl">🎉 Gefeliciteerd!</DialogTitle>
+            <DialogDescription className="text-center pt-2">Je swap is succesvol bevestigd!</DialogDescription>
           </DialogHeader>
 
-          <div className="text-center space-y-6">
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-purple-200">
-              <h3 className="font-semibold text-lg mb-2">🏠 Jullie Swap Details</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="font-medium">{requesterName}</span>
-                  <span className="text-gray-500">({requesterHomeCity})</span>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
-                  <span className="font-medium">{hostName}</span>
-                  <span className="text-gray-500">({hostHomeCity})</span>
-                </div>
-                <div className="text-lg font-semibold text-purple-700">
-                  📅 {formattedStartDate} t/m {formattedEndDate}
-                </div>
-              </div>
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-purple-100 my-4">
+            <div className="text-center mb-4">
+              <span className="text-lg font-medium text-purple-800">
+                {requesterName} ↔️ {hostName}
+              </span>
             </div>
 
             <div className="space-y-3">
-              <p className="text-lg font-medium">Gefeliciteerd {userName}! 🎉</p>
-              <p className="text-gray-600">
-                Jullie swap is officieel bevestigd. Tijd om te genieten van jullie huizenruil!
-              </p>
-            </div>
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <CalendarDays className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Periode</p>
+                  <p className="text-sm text-gray-600">
+                    {format(new Date(startDate), "d MMM", { locale: nl })} -{" "}
+                    {format(new Date(endDate), "d MMM yyyy", { locale: nl })}
+                  </p>
+                </div>
+              </div>
 
-            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-sm text-green-700">
-                💡 <strong>Volgende stappen:</strong> Wissel contactgegevens uit en regel de sleuteloverdracht. Vind
-                alle details terug onder 'Mijn Swaps'.
-              </p>
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-full">
+                  <Home className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Locaties</p>
+                  <p className="text-sm text-gray-600">
+                    {requesterHomeCity} ↔️ {hostHomeCity}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 mt-6">
-            <Button
-              onClick={handleGoToSwaps}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Ga naar Mijn Swaps
+          <p className="text-center text-sm text-gray-600">
+            Je kunt nu alle details uitwisselen via de chat. Veel plezier met je huizenruil!
+          </p>
+
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={handleClose} className="bg-purple-600 hover:bg-purple-700">
+              Geweldig!
             </Button>
-            <Button variant="outline" onClick={handleClose} className="w-full">
-              Verder chatten
-            </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
