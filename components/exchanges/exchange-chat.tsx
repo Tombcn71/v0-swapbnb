@@ -1,251 +1,582 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import type { Exchange, Message, User } from "@/lib/types"
-import { useSession } from "next-auth/react"
-import { formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { toast } from "sonner"
-import { Send } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Send, CheckCircle, X, Ban, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useSearchParams } from "next/navigation"
+import { SwapProgressIndicator } from "./swap-progress-indicator"
+import { EnhancedSwapConfirmationModal } from "./enhanced-swap-confirmation-modal"
+import type { Exchange, Message } from "@/lib/types"
 
 interface ExchangeChatProps {
   exchange: Exchange
-  initialMessages: Message[]
-  otherUser: User
+  messages: Message[]
+  currentUserId: string
+  isRequester: boolean
+  isHost: boolean
+  onMessageSent: () => void
+  onStatusUpdate: () => void
+  isLoading: boolean
 }
 
-export default function ExchangeChat({ exchange, initialMessages, otherUser }: ExchangeChatProps) {
-  const { data: session } = useSession()
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+export function ExchangeChat({
+  exchange,
+  messages,
+  currentUserId,
+  isRequester,
+  isHost,
+  onMessageSent,
+  onStatusUpdate,
+  isLoading,
+}: ExchangeChatProps) {
   const [newMessage, setNewMessage] = useState("")
-  const [isSending, setIsSending] = useState(false)
-  const [showQuickReplies, setShowQuickReplies] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [localMessages, setLocalMessages] = useState(messages)
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false)
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [isApproving, setIsApproving] = useState(false)
+  const { toast } = useToast()
+  const searchParams = useSearchParams()
 
-  const isHost = session?.user?.id === exchange.hostId
-  const isGuest = session?.user?.id === exchange.guestId
+  // Check for payment success in URL
+  useEffect(() => {
+    const payment = searchParams.get("payment")
+    if (payment === "success") {
+      setShowPaymentSuccess(true)
+      toast({
+        title: "Betaling geslaagd! 💳",
+        description: "Je betaling is verwerkt. De swap wordt bevestigd zodra beide partijen hebben betaald.",
+      })
+    }
+  }, [searchParams, toast])
+
+  // Check if swap is newly confirmed and show modal
+  useEffect(() => {
+    const bothConfirmed = exchange.requester_confirmed && exchange.host_confirmed
+    const shownConfirmations = JSON.parse(localStorage.getItem("shownSwapConfirmations") || "[]")
+
+    if (bothConfirmed && !shownConfirmations.includes(exchange.id)) {
+      setShowConfirmationModal(true)
+    }
+  }, [exchange])
+
+  // Update local messages when props change
+  useEffect(() => {
+    setLocalMessages(messages)
+  }, [messages])
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [localMessages])
 
-  // Mark messages as read when component mounts
-  useEffect(() => {
-    const markMessagesAsRead = async () => {
-      if (!session?.user?.id) return
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newMessage.trim()) return
 
-      try {
-        await fetch(`/api/exchanges/${exchange.id}/messages/read`, {
-          method: "POST",
-        })
-      } catch (error) {
-        console.error("Error marking messages as read:", error)
-      }
+    setIsSubmitting(true)
+
+    // Get current user profile image
+    const currentUserProfileImage = messages.find((msg) => msg.sender_id === currentUserId)?.sender_profile_image || ""
+
+    // Optimistically add message to UI
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      content: newMessage,
+      sender_id: currentUserId,
+      created_at: new Date().toISOString(),
+      exchange_id: exchange.id,
+      receiver_id: isRequester ? exchange.host_id : exchange.requester_id,
+      message_type: "text" as const,
+      sender_name: isRequester ? exchange.requester_name : exchange.host_name,
+      sender_profile_image: currentUserProfileImage,
     }
 
-    markMessagesAsRead()
-  }, [exchange.id, session?.user?.id])
+    setLocalMessages((prev) => [...prev, optimisticMessage])
+    setNewMessage("")
 
-  // Poll for new messages
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      if (!session?.user?.id) return
-
-      try {
-        const response = await fetch(`/api/exchanges/${exchange.id}/messages`)
-        if (response.ok) {
-          const data = await response.json()
-          setMessages(data)
-        }
-      } catch (error) {
-        console.error("Error fetching messages:", error)
-      }
-    }, 5000) // Poll every 5 seconds
-
-    return () => clearInterval(interval)
-  }, [exchange.id, session?.user?.id])
-
-  const handleSendMessage = async (content: string = newMessage) => {
-    if (!content.trim() || !session?.user?.id) return
-
-    setIsSending(true)
     try {
       const response = await fetch(`/api/exchanges/${exchange.id}/messages`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          senderId: session.user.id,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newMessage }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to send message")
-      }
+      if (response.ok) {
+        const newMessage = await response.json()
+        setLocalMessages((prev) => prev.map((msg) => (msg.id === optimisticMessage.id ? newMessage : msg)))
 
-      const newMessageData = await response.json()
-      setMessages([...messages, newMessageData])
-      setNewMessage("")
-    } catch (error) {
+        toast({
+          title: "✅ Bericht verzonden",
+          description: "Je bericht is succesvol verzonden.",
+        })
+      } else {
+        setLocalMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to send message")
+      }
+    } catch (error: any) {
+      setLocalMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id))
+      setNewMessage(newMessage)
       console.error("Error sending message:", error)
-      toast.error("Failed to send message")
+      toast({
+        title: "❌ Fout",
+        description: error.message || "Er is een fout opgetreden bij het verzenden van je bericht.",
+        variant: "destructive",
+      })
     } finally {
-      setIsSending(false)
+      setIsSubmitting(false)
     }
   }
 
-  const handleApproveExchange = async () => {
-    if (!session?.user?.id) return
-
-    setIsApproving(true)
+  const handleAccept = async () => {
+    setActionLoading("accept")
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/accept`, {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "accepted" }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "🎉 Swap geaccepteerd!",
+          description: "Je hebt de swap aanvraag geaccepteerd. Nu kunnen beide partijen goedkeuren.",
+        })
+        onStatusUpdate()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to accept exchange")
+      }
+    } catch (error: any) {
+      console.error("Error accepting exchange:", error)
+      toast({
+        title: "❌ Fout",
+        description: error.message || "Er is een fout opgetreden.",
+        variant: "destructive",
+      })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleReject = async () => {
+    setActionLoading("reject")
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "❌ Swap afgewezen",
+          description: "Je hebt de swap aanvraag afgewezen.",
+        })
+        onStatusUpdate()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to reject exchange")
+      }
+    } catch (error: any) {
+      console.error("Error rejecting exchange:", error)
+      toast({
+        title: "❌ Fout",
+        description: error.message || "Er is een fout opgetreden.",
+        variant: "destructive",
+      })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleCancel = async () => {
+    setActionLoading("cancel")
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: "🚫 Swap geannuleerd",
+          description: "De swap is geannuleerd.",
+        })
+        onStatusUpdate()
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to cancel exchange")
+      }
+    } catch (error: any) {
+      console.error("Error cancelling exchange:", error)
+      toast({
+        title: "❌ Fout",
+        description: error.message || "Er is een fout opgetreden.",
+        variant: "destructive",
+      })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleConfirm = async () => {
+    setActionLoading("confirm")
+    try {
+      const response = await fetch(`/api/exchanges/${exchange.id}/confirm`, {
         method: "POST",
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Error approving exchange")
+      if (response.ok) {
+        const data = await response.json()
+
+        if (data.free_swap) {
+          toast({
+            title: data.both_confirmed ? "🎉 Swap Bevestigd!" : "✅ Goedkeuring Geregistreerd",
+            description: data.message,
+          })
+          onStatusUpdate()
+        } else {
+          if (data.checkout_url) {
+            toast({
+              title: "💳 Doorverwijzen naar betaling...",
+              description: "Je wordt doorgestuurd naar de betaalpagina.",
+            })
+            window.location.href = data.checkout_url
+          }
+        }
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to confirm exchange")
       }
-
-      // Send a system message
-      await handleSendMessage(
-        "Je hebt goedgekeurd! ✓\nWacht tot de andere partij ook goedkeurt om de swap te bevestigen.",
-      )
-
-      // Refresh the page to update the exchange status
-      window.location.reload()
     } catch (error: any) {
-      console.error("Error approving exchange:", error)
-      toast.error(`Error: ${error.message}`)
+      console.error("Error confirming exchange:", error)
+      toast({
+        title: "❌ Fout",
+        description: error.message || "Er is een fout opgetreden bij het goedkeuren van de swap.",
+        variant: "destructive",
+      })
     } finally {
-      setIsApproving(false)
+      setActionLoading(null)
     }
   }
 
-  const handleQuickReply = async (message: string) => {
-    await handleSendMessage(message)
-    setShowQuickReplies(false)
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { label: "⏳ In behandeling", variant: "secondary" as const },
+      accepted: { label: "✅ Geaccepteerd", variant: "default" as const },
+      rejected: { label: "❌ Afgewezen", variant: "destructive" as const },
+      confirmed: { label: "🎉 Bevestigd", variant: "default" as const },
+      cancelled: { label: "🚫 Geannuleerd", variant: "destructive" as const },
+    }
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
+    return <Badge variant={config.variant}>{config.label}</Badge>
+  }
+
+  // Check confirmation status
+  const currentUserConfirmed = isRequester ? exchange.requester_confirmed : exchange.host_confirmed
+  const otherUserConfirmed = isRequester ? exchange.host_confirmed : exchange.requester_confirmed
+  const bothConfirmed = currentUserConfirmed && otherUserConfirmed
+
+  // Determine current stage and button text
+  const getCurrentStage = () => {
+    if (exchange.status === "accepted" && !currentUserConfirmed && !otherUserConfirmed) {
+      return "approve" // Both need to approve
+    }
+    if (exchange.status === "accepted" && (currentUserConfirmed || otherUserConfirmed) && !bothConfirmed) {
+      return "approve" // Still in approve stage
+    }
+    if (bothConfirmed) {
+      return "confirmed" // Both approved, now confirmed
+    }
+    return "pending"
+  }
+
+  const currentStage = getCurrentStage()
+
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => {
-          const isCurrentUser = message.senderId === session?.user?.id
-          const isSystem = message.isSystemMessage
+    <div className="space-y-4">
+      {/* Progress Indicator */}
+      <SwapProgressIndicator
+        exchange={exchange}
+        currentUserId={currentUserId}
+        isRequester={isRequester}
+        isHost={isHost}
+      />
 
-          return (
-            <div key={message.id} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  isSystem
-                    ? "bg-gray-100 text-gray-700 text-center w-full"
-                    : isCurrentUser
-                      ? "bg-teal-600 text-white"
-                      : "bg-gray-200 text-gray-800"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{message.content}</p>
-                <p className={`text-xs mt-1 ${isCurrentUser ? "text-teal-100" : "text-gray-500"}`}>
-                  {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true, locale: nl })}
+      {/* Confirmation Modal */}
+      {showConfirmationModal && (
+        <EnhancedSwapConfirmationModal
+          userName={isRequester ? exchange.requester_name || "" : exchange.host_name || ""}
+          startDate={exchange.start_date}
+          endDate={exchange.end_date}
+          exchangeId={exchange.id}
+          requesterName={exchange.requester_name || ""}
+          hostName={exchange.host_name || ""}
+          requesterHomeCity={exchange.requester_home_city || ""}
+          hostHomeCity={exchange.host_home_city || ""}
+          onClose={() => setShowConfirmationModal(false)}
+        />
+      )}
+
+      <Card className="h-[600px] flex flex-col">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Swap Conversatie</CardTitle>
+            {getStatusBadge(exchange.status)}
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex-1 flex flex-col">
+          {/* Origineel swap bericht */}
+          <div className="mb-4 p-4 bg-teal-50 rounded-lg border-l-4 border-teal-500">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage
+                    src={exchange.requester_profile_image || "/placeholder.svg?height=40&width=40&query=user"}
+                    alt={exchange.requester_name}
+                  />
+                  <AvatarFallback>{getInitials(exchange.requester_name || "")}</AvatarFallback>
+                </Avatar>
+                <span className="font-semibold text-teal-900">{exchange.requester_name}</span>
+              </div>
+              <span className="text-sm text-teal-600">
+                {format(new Date(exchange.created_at), "d MMM yyyy 'om' HH:mm", { locale: nl })}
+              </span>
+            </div>
+            <p className="text-teal-800">{exchange.message}</p>
+            <div className="mt-2 text-sm text-teal-600">
+              📅 {format(new Date(exchange.start_date), "d MMM", { locale: nl })} -{" "}
+              {format(new Date(exchange.end_date), "d MMM yyyy", { locale: nl })} • 👥 {exchange.guests} gasten
+            </div>
+          </div>
+
+          {/* Betaling succes melding */}
+          {showPaymentSuccess && (
+            <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200 animate-pulse">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="font-medium text-green-800">Betaling geslaagd! 💳</span>
+              </div>
+              <p className="text-green-700 text-sm">
+                Je betaling is succesvol verwerkt.{" "}
+                {otherUserConfirmed
+                  ? "De swap is nu bevestigd!"
+                  : "We wachten nu op goedkeuring van de andere gebruiker."}
+              </p>
+            </div>
+          )}
+
+          {/* Chat berichten */}
+          <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+            {isLoading ? (
+              <div className="text-center text-gray-500 flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Berichten laden...
+              </div>
+            ) : localMessages.length === 0 ? (
+              <div className="text-center text-gray-500">Nog geen berichten</div>
+            ) : (
+              localMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender_id === currentUserId ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`flex gap-2 max-w-xs lg:max-w-md ${message.sender_id === currentUserId ? "flex-row-reverse" : "flex-row"}`}
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={message.sender_profile_image || "/placeholder.svg?height=40&width=40&query=user"}
+                        alt={message.sender_name || ""}
+                      />
+                      <AvatarFallback>{getInitials(message.sender_name || "")}</AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={`px-4 py-2 rounded-lg ${
+                        message.sender_id === currentUserId ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-900"
+                      }`}
+                    >
+                      <p>{message.content}</p>
+                      <p className="text-xs mt-1 opacity-75">{format(new Date(message.created_at), "HH:mm")}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-2 mb-4">
+            {exchange.status === "pending" && isHost && (
+              <div className="space-y-2">
+                <Button
+                  onClick={handleAccept}
+                  className="w-full bg-teal-600 hover:bg-teal-700"
+                  disabled={actionLoading === "accept"}
+                >
+                  {actionLoading === "accept" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
+                  Accepteer Swap
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                      disabled={actionLoading === "reject"}
+                    >
+                      {actionLoading === "reject" ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4 mr-2" />
+                      )}
+                      Afwijzen
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Swap afwijzen</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Weet je zeker dat je deze swap-aanvraag wilt afwijzen?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReject} className="bg-red-600 hover:bg-red-700">
+                        Afwijzen
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
+
+            {exchange.status === "pending" && isRequester && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="w-full" disabled={actionLoading === "cancel"}>
+                    {actionLoading === "cancel" ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Ban className="w-4 h-4 mr-2" />
+                    )}
+                    Annuleren
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Swap annuleren</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Weet je zeker dat je deze swap-aanvraag wilt annuleren?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Terug</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                      Annuleren
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
+            {/* Waiting for other party to approve */}
+            {exchange.status === "accepted" && currentUserConfirmed && !otherUserConfirmed && (
+              <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="h-5 w-5 text-teal-600" />
+                  <span className="font-medium text-teal-800">Je hebt goedgekeurd! ✓</span>
+                </div>
+                <p className="text-teal-700 text-sm">
+                  Wacht tot de andere partij ook goedkeurt om de swap te bevestigen.
                 </p>
               </div>
-            </div>
-          )
-        })}
-        <div ref={messagesEndRef} />
-      </div>
+            )}
 
-      {/* Quick replies for guest when exchange is pending */}
-      {isGuest && exchange.status === "pending" && showQuickReplies && (
-        <div className="p-4 bg-gray-50 space-y-2">
-          <p className="text-sm font-medium text-gray-700">Snelle reacties:</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                handleQuickReply(
-                  "Hallo! Ik ben geïnteresseerd in een ruil met jouw woning. Laten we de details bespreken.",
-                )
-              }
-              className="text-xs"
-            >
-              Interesse tonen
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                handleQuickReply("Kun je me meer vertellen over de buurt en voorzieningen in de omgeving?")
-              }
-              className="text-xs"
-            >
-              Vraag over buurt
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickReply("Zijn de voorgestelde data flexibel of staan deze vast?")}
-              className="text-xs"
-            >
-              Vraag over data
-            </Button>
+            {/* Both confirmed */}
+            {bothConfirmed && (
+              <div className="p-4 bg-teal-50 border border-teal-200 rounded-md">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="h-5 w-5 text-teal-600" />
+                  <span className="font-medium text-teal-800">🎉 Swap bevestigd!</span>
+                </div>
+                <p className="text-teal-700 text-sm">
+                  Beide partijen hebben goedgekeurd! Jullie swap is nu definitief. Geniet ervan!
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      )}
 
-      {/* Host approval button when exchange is pending */}
-      {isHost && exchange.status === "pending" && (
-        <div className="p-4 bg-gray-50">
-          <Button
-            onClick={handleApproveExchange}
-            className="w-full bg-teal-600 hover:bg-teal-700"
-            disabled={isApproving}
-          >
-            {isApproving ? "Bezig met goedkeuren..." : "Goedkeuren"}
-          </Button>
-        </div>
-      )}
+          {/* Bericht invoer - Altijd beschikbaar behalve bij rejected/cancelled */}
+          {exchange.status !== "rejected" && exchange.status !== "cancelled" && (
+            <form onSubmit={handleSendMessage} className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder={exchange.status === "confirmed" ? "Chat over jullie swap..." : "Typ je bericht..."}
+                disabled={isSubmitting}
+                className="flex-1"
+              />
+              <Button type="submit" disabled={isSubmitting || !newMessage.trim()}>
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
+            </form>
+          )}
 
-      {/* Message input */}
-      <div className="p-4 border-t">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleSendMessage()
-          }}
-          className="flex items-center space-x-2"
-        >
-          <Textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type een bericht..."
-            className="flex-1 min-h-[60px] max-h-[120px]"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage()
-              }
-            }}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="bg-teal-600 hover:bg-teal-700"
-            disabled={isSending || !newMessage.trim()}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </div>
+          {/* Status berichten voor afgewezen/geannuleerd */}
+          {exchange.status === "rejected" && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-800 text-sm">❌ Deze swap is afgewezen.</p>
+            </div>
+          )}
+
+          {exchange.status === "cancelled" && (
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <p className="text-gray-800 text-sm">🚫 Deze swap is geannuleerd.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

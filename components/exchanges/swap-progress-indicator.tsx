@@ -1,5 +1,5 @@
-"use client"
-import { CheckCircle, MessageCircle, UserCheck } from "lucide-react"
+import { CheckCircle, Circle } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
 import type { Exchange } from "@/lib/types"
 
 interface SwapProgressIndicatorProps {
@@ -10,90 +10,61 @@ interface SwapProgressIndicatorProps {
 }
 
 export function SwapProgressIndicator({ exchange, currentUserId, isRequester, isHost }: SwapProgressIndicatorProps) {
-  // Calculate progress based on status
-  const getProgressPercentage = () => {
+  // Determine the current stage
+  const getStage = () => {
     if (exchange.status === "pending") return 0
-    if (exchange.status === "accepted") return 50
-    if (exchange.requester_confirmed || exchange.host_confirmed) return 75
-    if (exchange.status === "confirmed") return 100
+    if (exchange.status === "accepted") return 1
+    if (exchange.status === "confirmed") return 2
     return 0
   }
 
+  const currentStage = getStage()
+  const progressPercentage = (currentStage / 2) * 100
+
+  // Check if the current user has confirmed
+  const userConfirmed = isRequester ? exchange.requester_confirmed : exchange.host_confirmed
+  const otherUserConfirmed = isRequester ? exchange.host_confirmed : exchange.requester_confirmed
+
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border">
-      <div className="mb-4">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div
-            className="bg-teal-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${getProgressPercentage()}%` }}
-          ></div>
-        </div>
+    <div className="mb-6">
+      <div className="relative mb-2">
+        <Progress value={progressPercentage} className="h-2 bg-gray-200" />
       </div>
-
-      <div className="grid grid-cols-3 gap-4 text-xs">
-        {/* Stap 1: Aanvraag */}
+      <div className="flex justify-between text-sm">
         <div className="flex flex-col items-center">
           <div
-            className={`h-8 w-8 rounded-full ${exchange.status !== "pending" ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
+            className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
+              currentStage >= 0 ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-500"
+            }`}
           >
-            {exchange.status !== "pending" ? (
-              <CheckCircle className="h-4 w-4 text-teal-600" />
-            ) : (
-              <MessageCircle className="h-4 w-4 text-gray-400" />
-            )}
+            {currentStage > 0 ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
           </div>
-          <span className={`font-medium ${exchange.status !== "pending" ? "text-teal-600" : "text-gray-400"}`}>
-            Aanvraag
+          <span className={currentStage >= 0 ? "text-teal-700 font-medium" : "text-gray-500"}>Details</span>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <div
+            className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
+              currentStage >= 1 ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-500"
+            }`}
+          >
+            {currentStage > 1 ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
+          </div>
+          <span className={currentStage >= 1 ? "text-teal-700 font-medium" : "text-gray-500"}>
+            {isHost ? "Goedkeuren" : "Host Goedkeuring"}
           </span>
         </div>
 
-        {/* Stap 2: Goedkeuren (alleen host) */}
         <div className="flex flex-col items-center">
           <div
-            className={`h-8 w-8 rounded-full ${exchange.status === "accepted" || exchange.status === "confirmed" ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
+            className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
+              currentStage >= 2 ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-500"
+            }`}
           >
-            {exchange.status === "accepted" || exchange.status === "confirmed" ? (
-              <CheckCircle className="h-4 w-4 text-teal-600" />
-            ) : (
-              <UserCheck className="h-4 w-4 text-gray-400" />
-            )}
+            {currentStage > 2 ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
           </div>
-          <span
-            className={`font-medium ${exchange.status === "accepted" || exchange.status === "confirmed" ? "text-teal-600" : "text-gray-400"}`}
-          >
-            Goedkeuren
-          </span>
+          <span className={currentStage >= 2 ? "text-teal-700 font-medium" : "text-gray-500"}>Bevestigen</span>
         </div>
-
-        {/* Stap 3: Bevestigen */}
-        <div className="flex flex-col items-center">
-          <div
-            className={`h-8 w-8 rounded-full ${exchange.status === "confirmed" ? "bg-teal-100" : "bg-gray-100"} flex items-center justify-center mb-2`}
-          >
-            {exchange.status === "confirmed" ? (
-              <CheckCircle className="h-4 w-4 text-teal-600" />
-            ) : (
-              <UserCheck className="h-4 w-4 text-gray-400" />
-            )}
-          </div>
-          <span className={`font-medium ${exchange.status === "confirmed" ? "text-teal-600" : "text-gray-400"}`}>
-            Bevestigen
-          </span>
-        </div>
-      </div>
-
-      {/* Status text */}
-      <div className="mt-4 text-center text-sm text-gray-600">
-        {exchange.status === "pending" && "Wachten op goedkeuring van de host..."}
-        {exchange.status === "accepted" &&
-          !exchange.requester_confirmed &&
-          !exchange.host_confirmed &&
-          "Host heeft goedgekeurd! Nu kunnen beide partijen bevestigen"}
-        {exchange.status === "accepted" &&
-          (exchange.requester_confirmed || exchange.host_confirmed) &&
-          !(exchange.requester_confirmed && exchange.host_confirmed) &&
-          "Wachten op bevestiging van andere partij..."}
-        {exchange.status === "confirmed" && "🎉 Swap bevestigd!"}
       </div>
     </div>
   )
