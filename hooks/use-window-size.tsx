@@ -2,25 +2,38 @@
 
 import { useState, useEffect } from "react"
 
-export function useWindowSize() {
-  const [windowSize, setWindowSize] = useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 0,
-    height: typeof window !== "undefined" ? window.innerHeight : 0,
+interface WindowSize {
+  width: number | undefined
+  height: number | undefined
+  isMobile: boolean
+}
+
+export function useWindowSize(): WindowSize {
+  const [windowSize, setWindowSize] = useState<WindowSize>({
+    width: undefined,
+    height: undefined,
+    isMobile: false,
   })
 
   useEffect(() => {
     function handleResize() {
+      const width = window.innerWidth
       setWindowSize({
-        width: window.innerWidth,
+        width,
         height: window.innerHeight,
+        isMobile: width < 768, // Consider mobile if width is less than 768px (md breakpoint in Tailwind)
       })
     }
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("resize", handleResize)
-      return () => window.removeEventListener("resize", handleResize)
-    }
-  }, [])
+    // Add event listener
+    window.addEventListener("resize", handleResize)
+
+    // Call handler right away so state gets updated with initial window size
+    handleResize()
+
+    // Remove event listener on cleanup
+    return () => window.removeEventListener("resize", handleResize)
+  }, []) // Empty array ensures that effect is only run on mount and unmount
 
   return windowSize
 }

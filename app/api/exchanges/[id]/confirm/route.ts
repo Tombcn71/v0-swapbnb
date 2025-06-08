@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
-import { executeQuery } from "@/lib/db"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { db } from "@/lib/db"
 import Stripe from "stripe"
+import { headers } from "next/headers"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2023-10-16",
 })
 
@@ -15,39 +16,64 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const { userId, role } = await request.json()
+    if (session.user.id !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const exchangeId = params.id
 
-    // Controleer toegang
-    const exchanges = await executeQuery(
-      "SELECT * FROM exchanges WHERE id = $1 AND (requester_id = $2 OR host_id = $2)",
-      [exchangeId, session.user.id],
-    )
+    // Get the exchange
+    const exchange = await db.exchange.findUnique({
+      where: { id: exchangeId },
+      include: {
+        guest: true,
+        host: true,
+      },
+    })
 
-    if (exchanges.length === 0) {
+    if (!exchange) {
       return NextResponse.json({ error: "Exchange not found" }, { status: 404 })
     }
 
-    const exchange = exchanges[0]
-
-    if (exchange.status !== "accepted") {
-      return NextResponse.json({ error: "Exchange must be accepted first" }, { status: 400 })
+    // Check if the user is part of this exchange
+    if (exchange.guestId !== userId && exchange.hostId !== userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Bepaal welke gebruiker bevestigt
-    const isRequester = exchange.requester_id === session.user.id
-    const confirmationField = isRequester ? "requester_confirmed" : "host_confirmed"
-
-    // Controleer of deze gebruiker al heeft bevestigd
-    if (exchange[confirmationField]) {
-      return NextResponse.json({ error: "Already confirmed" }, { status: 400 })
+    // Check if the exchange is in the right status
+    if (exchange.status !== "approved") {
+      return NextResponse.json({ error: "Exchange is not in approved status" }, { status: 400 })
     }
 
-    // Controleer credits
-    const userCredits = await executeQuery("SELECT credits FROM users WHERE id = $1", [session.user.id])
-    if (userCredits.length === 0 || userCredits[0].credits < 1) {
-      // Maak Stripe checkout sessie voor credits
-      const baseUrl = process.env.NEXTAUTH_URL || `https://${request.headers.get("host")}`
+    const isHost = role === "host"
+    const isGuest = role === "guest"
 
+    // Check if the user has already confirmed
+    if ((isHost && exchange.hostConfirmed) || (isGuest && exchange.guestConfirmed)) {
+      return NextResponse.json({ error: "You have already confirmed this exchange" }, { status: 400 })
+    }
+
+    // Check if the user has enough credits or needs to pay
+    const userCredits = await db.credit.findMany({
+      where: {
+        userId: userId,
+        status: "active",
+      },
+    })
+
+    const availableCredits = userCredits.length
+    const needsCredits = true // Always require 1 credit per swap
+
+    // If the user needs credits but doesn't have any, create a checkout session
+    if (needsCredits && availableCredits < 1) {
+      // Get the host URL from the request
+      const headersList = headers()
+      const host = headersList.get("host") || ""
+      const protocol = process.env.NODE_ENV === "production" ? "https" : "http"
+      const baseUrl = `${protocol}://${host}`
+
+      // Create a checkout session
       const checkoutSession = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         line_items: [
@@ -57,32 +83,67 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           },
         ],
         mode: "payment",
-        success_url: `${baseUrl}/exchanges/${exchangeId}?payment_success=true`,
-        cancel_url: `${baseUrl}/exchanges/${exchangeId}?payment_cancelled=true`,
+        success_url: `${baseUrl}/exchanges/${exchangeId}?payment=success`,
+        cancel_url: `${baseUrl}/exchanges/${exchangeId}?payment=canceled`,
         metadata: {
-          type: "credits_purchase",
-          user_id: session.user.id,
-          exchange_id: exchangeId,
-          action: "confirm",
+          exchangeId,
+          userId,
+          role,
+          type: "swap_payment",
         },
       })
 
-      return NextResponse.json({ url: checkoutSession.url })
+      return NextResponse.json({ checkoutUrl: checkoutSession.url })
     }
 
-    // Deduct credit en bevestig
-    await executeQuery("UPDATE users SET credits = credits - 1 WHERE id = $1", [session.user.id])
-    await executeQuery(`UPDATE exchanges SET ${confirmationField} = true WHERE id = $1`, [exchangeId])
-
-    // Controleer of beide partijen hebben bevestigd
-    const updatedExchange = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
-    if (updatedExchange[0].requester_confirmed && updatedExchange[0].host_confirmed) {
-      await executeQuery("UPDATE exchanges SET status = 'videocall_scheduled' WHERE id = $1", [exchangeId])
+    // If the user has enough credits, use one
+    if (needsCredits && availableCredits >= 1) {
+      // Use one credit
+      const creditToUse = userCredits[0]
+      await db.credit.update({
+        where: { id: creditToUse.id },
+        data: {
+          status: "used",
+          usedAt: new Date(),
+          usedForExchangeId: exchangeId,
+        },
+      })
     }
+
+    // Update the exchange
+    const updateData: any = {}
+    if (isHost) {
+      updateData.hostConfirmed = true
+      updateData.hostConfirmedAt = new Date()
+    } else if (isGuest) {
+      updateData.guestConfirmed = true
+      updateData.guestConfirmedAt = new Date()
+    }
+
+    // If both parties have confirmed, update the status to completed
+    if ((isHost && exchange.guestConfirmed) || (isGuest && exchange.hostConfirmed)) {
+      updateData.status = "completed"
+      updateData.completedAt = new Date()
+    }
+
+    await db.exchange.update({
+      where: { id: exchangeId },
+      data: updateData,
+    })
+
+    // Add a system message about the confirmation
+    await db.message.create({
+      data: {
+        exchangeId,
+        senderId: userId,
+        content: `${isHost ? "Host" : "Guest"} heeft de swap bevestigd.`,
+        isSystemMessage: true,
+      },
+    })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error confirming exchange:", error)
-    return NextResponse.json({ error: "Failed to confirm exchange" }, { status: 500 })
+    return NextResponse.json({ error: `Error confirming exchange: ${error.message}` }, { status: 500 })
   }
 }
