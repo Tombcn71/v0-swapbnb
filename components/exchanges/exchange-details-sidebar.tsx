@@ -41,21 +41,32 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
   const handleAcceptExchange = async () => {
     setIsUpdatingStatus(true)
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}`, {
+      // First update status to accepted
+      const statusResponse = await fetch(`/api/exchanges/${exchange.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "accepted" }),
       })
 
-      if (!response.ok) {
+      if (!statusResponse.ok) {
         throw new Error("Failed to update exchange status")
       }
 
-      toast({
-        title: "Swap geaccepteerd!",
-        description: "Je hebt de swap geaccepteerd.",
+      // Then pay with credits
+      const paymentResponse = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+        method: "POST",
       })
-      onStatusUpdate()
+
+      if (paymentResponse.ok) {
+        toast({
+          title: "Swap geaccepteerd!",
+          description: "Je hebt de swap geaccepteerd en 1 credit is afgerekend.",
+        })
+        onStatusUpdate()
+      } else {
+        // If payment fails, redirect to credits page
+        window.location.href = `/credits?redirect=/exchanges/${exchange.id}`
+      }
     } catch (error) {
       console.error("Error accepting exchange:", error)
       toast({
@@ -71,28 +82,30 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
   const handleConfirmExchange = async () => {
     setIsUpdatingStatus(true)
     try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/confirm`, {
+      // First update status to confirmed
+      const statusResponse = await fetch(`/api/exchanges/${exchange.id}/confirm`, {
         method: "POST",
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to confirm exchange")
+      if (!statusResponse.ok) {
+        throw new Error("Failed to confirm exchange")
       }
 
-      const data = await response.json()
-
-      // If we get a checkout URL, redirect to Stripe
-      if (data.url) {
-        window.location.href = data.url
-        return
-      }
-
-      toast({
-        title: "Swap bevestigd!",
-        description: "Je hebt de swap bevestigd.",
+      // Then pay with credits
+      const paymentResponse = await fetch(`/api/exchanges/${exchange.id}/pay-credits`, {
+        method: "POST",
       })
-      onStatusUpdate()
+
+      if (paymentResponse.ok) {
+        toast({
+          title: "Swap bevestigd!",
+          description: "Je hebt de swap bevestigd en 1 credit is afgerekend.",
+        })
+        onStatusUpdate()
+      } else {
+        // If payment fails, redirect to credits page
+        window.location.href = `/credits?redirect=/exchanges/${exchange.id}`
+      }
     } catch (error) {
       console.error("Error confirming exchange:", error)
       toast({
@@ -213,13 +226,9 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
           {/* Action Buttons */}
           {exchange.status === "pending" && isHost && (
             <div className="pt-4 space-y-2">
-              <Button
-                onClick={handleAcceptExchange}
-                className="w-full bg-teal-600 hover:bg-teal-700"
-                disabled={isUpdatingStatus}
-              >
+              <Button onClick={handleAcceptExchange} className="w-full" disabled={isUpdatingStatus}>
                 <CheckCircle className="w-4 h-4 mr-2" />
-                {isUpdatingStatus ? "Bezig..." : "Goedkeuren"}
+                {isUpdatingStatus ? "Bezig..." : "Goedkeuren (1 credit)"}
               </Button>
               <Button onClick={handleRejectExchange} variant="outline" className="w-full" disabled={isUpdatingStatus}>
                 <XCircle className="w-4 h-4 mr-2" />
@@ -228,13 +237,9 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
             </div>
           )}
 
-          {exchange.status === "accepted" && (
+          {exchange.status === "accepted" && isRequester && (
             <div className="pt-4 space-y-2">
-              <Button
-                onClick={handleConfirmExchange}
-                className="w-full bg-teal-600 hover:bg-teal-700"
-                disabled={isUpdatingStatus}
-              >
+              <Button onClick={handleConfirmExchange} className="w-full" disabled={isUpdatingStatus}>
                 <CheckCircle className="w-4 h-4 mr-2" />
                 {isUpdatingStatus ? "Bezig..." : "Bevestigen (1 credit)"}
               </Button>
