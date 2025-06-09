@@ -1,12 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card } from "@/components/ui/card"
-import { ExchangeDetailsSidebar } from "@/components/exchanges/exchange-details-sidebar"
-import { ExchangeChat } from "@/components/exchanges/exchange-chat"
-import type { Exchange, Message } from "@/lib/types"
+import { ExchangesSidebar } from "./exchanges-sidebar"
+import { ExchangeChat } from "./exchange-chat"
+import { ExchangeDetailsSidebar } from "./exchange-details-sidebar"
+import type { Exchange } from "@/lib/types"
 
 interface SimplifiedExchangeDetailProps {
   exchange: Exchange
@@ -15,111 +13,79 @@ interface SimplifiedExchangeDetailProps {
 }
 
 export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId }: SimplifiedExchangeDetailProps) {
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState("messages")
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   const isRequester = exchange.requester_id === currentUserId
   const isHost = exchange.host_id === currentUserId
 
-  // Fetch messages
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const response = await fetch(`/api/exchanges/${exchange.id}/messages`)
-        if (response.ok) {
-          const data = await response.json()
-          setMessages(data)
-        }
-      } catch (error) {
-        console.error("Error fetching messages:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchMessages()
-
-    // Mark messages as read
-    const markMessagesAsRead = async () => {
-      try {
-        await fetch(`/api/exchanges/${exchange.id}/messages/read`, {
-          method: "POST",
-        })
-      } catch (error) {
-        console.error("Error marking messages as read:", error)
-      }
-    }
-
-    markMessagesAsRead()
-
-    // Poll for new messages
-    const interval = setInterval(fetchMessages, 10000)
-    return () => clearInterval(interval)
   }, [exchange.id])
 
-  const handleStatusUpdate = () => {
-    router.refresh()
-  }
-
-  const handleMessageSent = async () => {
+  const fetchMessages = async () => {
     try {
+      setIsLoading(true)
       const response = await fetch(`/api/exchanges/${exchange.id}/messages`)
       if (response.ok) {
         const data = await response.json()
         setMessages(data)
+
+        // Mark messages as read
+        try {
+          await fetch(`/api/exchanges/${exchange.id}/messages/read`, {
+            method: "POST",
+          })
+        } catch (error) {
+          console.error("Error marking messages as read:", error)
+        }
       }
     } catch (error) {
       console.error("Error fetching messages:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
+  const handleMessageSent = () => {
+    fetchMessages()
+  }
+
+  const handleStatusUpdate = () => {
+    // Reload the page to reflect status changes
+    window.location.reload()
+  }
+
   return (
-    <div className="container mx-auto py-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
-            <Tabs defaultValue="messages" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="messages">Berichten</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
-              </TabsList>
+    <div className="flex h-screen bg-white">
+      {/* Left Sidebar - Exchanges List */}
+      <div className="w-80 border-r border-gray-200 bg-gray-50">
+        <ExchangesSidebar exchanges={allExchanges} currentExchangeId={exchange.id} currentUserId={currentUserId} />
+      </div>
 
-              <TabsContent value="messages" className="space-y-4">
-                <ExchangeChat
-                  exchange={exchange}
-                  messages={messages}
-                  currentUserId={currentUserId}
-                  isRequester={isRequester}
-                  isHost={isHost}
-                  onMessageSent={handleMessageSent}
-                  onStatusUpdate={handleStatusUpdate}
-                  isLoading={isLoading}
-                />
-              </TabsContent>
-
-              <TabsContent value="details">
-                <div className="space-y-4">
-                  <h2 className="text-2xl font-bold">Swap Details</h2>
-                  <p>Details over deze swap...</p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </Card>
+      {/* Main Content - Messages */}
+      <div className="flex-1 flex">
+        <div className="flex-1">
+          <ExchangeChat
+            exchange={exchange}
+            messages={messages}
+            currentUserId={currentUserId}
+            isRequester={isRequester}
+            isHost={isHost}
+            onMessageSent={handleMessageSent}
+            onStatusUpdate={handleStatusUpdate}
+            isLoading={isLoading}
+          />
         </div>
 
-        {/* Sidebar */}
-        <div>
-          <Card>
-            <ExchangeDetailsSidebar
-              exchange={exchange}
-              isRequester={isRequester}
-              isHost={isHost}
-              onStatusUpdate={handleStatusUpdate}
-            />
-          </Card>
+        {/* Right Sidebar - Exchange Details */}
+        <div className="w-80 border-l border-gray-200 bg-gray-50">
+          <ExchangeDetailsSidebar
+            exchange={exchange}
+            isRequester={isRequester}
+            isHost={isHost}
+            onStatusUpdate={handleStatusUpdate}
+          />
         </div>
       </div>
     </div>
