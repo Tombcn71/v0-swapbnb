@@ -32,7 +32,7 @@ export function MessagesIndicator() {
             ex.status === "accepted" ||
             ex.status === "confirmed" ||
             ex.status === "videocall_scheduled" ||
-            ex.status === "in_gesprek",
+            ex.status === "videocall_completed",
         )
 
         // Set latest exchange ID for direct navigation to swap detail

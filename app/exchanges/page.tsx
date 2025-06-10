@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Calendar, MapPin, Users, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -33,22 +33,26 @@ interface Exchange {
   host_home_images?: string | string[]
   requester_name?: string
   requester_email?: string
+  requester_profile_image?: string
   host_name?: string
   host_email?: string
+  host_profile_image?: string
 }
 
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "pending":
-      return <Badge className="bg-yellow-100 text-yellow-800">⏳ Nieuw/In behandeling</Badge>
+      return <Badge className="bg-yellow-100 text-yellow-800">⏳ In behandeling</Badge>
     case "accepted":
-      return <Badge className="bg-blue-100 text-blue-800">✓ Geaccepteerd</Badge>
-    case "in_gesprek":
-      return <Badge className="bg-purple-100 text-purple-800">💬 In gesprek</Badge>
+      return <Badge className="bg-blue-100 text-blue-800">💬 In gesprek</Badge>
+    case "videocall_scheduled":
+      return <Badge className="bg-purple-100 text-purple-800">📹 Videocall gepland</Badge>
+    case "videocall_completed":
+      return <Badge className="bg-teal-100 text-teal-800">✓ Kennismaking voltooid</Badge>
     case "rejected":
       return <Badge className="bg-red-100 text-red-800">✗ Geweigerd</Badge>
     case "confirmed":
-      return <Badge className="bg-green-100 text-green-800">✓ Bevestigd</Badge>
+      return <Badge className="bg-green-100 text-green-800">🎉 Bevestigd</Badge>
     case "cancelled":
       return <Badge className="bg-gray-100 text-gray-800">✗ Geannuleerd</Badge>
     default:
@@ -64,6 +68,7 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
   const homeCity = isRequester ? exchange.host_home_city : exchange.requester_home_city
   const homeImages = isRequester ? exchange.host_home_images : exchange.requester_home_images
   const ownerName = isRequester ? exchange.host_name : exchange.requester_name
+  const ownerImage = isRequester ? exchange.host_profile_image : exchange.requester_profile_image
 
   // Get first image or use placeholder
   let firstImage = ""
@@ -82,6 +87,16 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
     }
   }
 
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
+  }
+
   return (
     <Link href={`/exchanges/${exchange.id}`}>
       <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 overflow-hidden">
@@ -95,9 +110,8 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
           <div className="absolute top-3 right-3">{getStatusBadge(exchange.status)}</div>
           <div className="absolute top-3 left-3">
             <Avatar className="h-12 w-12 border-2 border-white shadow-md">
-              <AvatarFallback className="bg-teal-500 text-white">
-                {ownerName?.charAt(0)?.toUpperCase() || "?"}
-              </AvatarFallback>
+              <AvatarImage src={ownerImage || ""} alt={ownerName || ""} />
+              <AvatarFallback className="bg-teal-500 text-white">{getInitials(ownerName || "?")}</AvatarFallback>
             </Avatar>
           </div>
         </div>
@@ -131,7 +145,7 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
               <div className="text-sm text-gray-500">Met {ownerName}</div>
               <div className="flex items-center text-teal-600 text-sm">
                 <MessageCircle className="h-4 w-4 mr-1" />
-                <span>Chat openen</span>
+                <span>Bekijk conversatie</span>
               </div>
             </div>
           </div>
@@ -176,7 +190,7 @@ const ExchangesPage = () => {
   return (
     <div className="container py-10">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Swap Conversaties</h1>
+        <h1 className="text-3xl font-bold">Mijn Swaps</h1>
         <div className="flex items-center text-gray-600">
           <MessageCircle className="h-5 w-5 mr-2" />
           <span className="text-sm">{exchanges === null ? "Laden..." : `${exchanges.length} swaps`}</span>
@@ -211,7 +225,7 @@ const ExchangesPage = () => {
       ) : (
         <div className="text-center py-12">
           <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-2">Geen swap conversaties gevonden.</p>
+          <p className="text-gray-500 text-lg mb-2">Geen swaps gevonden.</p>
           <p className="text-gray-400 text-sm">Begin met het zoeken naar woningen om je eerste swap aan te vragen!</p>
           <div className="mt-6">
             <Link
