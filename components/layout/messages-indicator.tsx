@@ -25,21 +25,14 @@ export function MessagesIndicator() {
 
         const exchanges = await exchangesResponse.json()
 
-        // Find active exchanges
-        const activeExchanges = exchanges.filter(
-          (ex: any) =>
-            ex.status === "pending" ||
-            ex.status === "accepted" ||
-            ex.status === "confirmed" ||
-            ex.status === "videocall_scheduled",
+        // Find ALL exchanges (not just active ones) and sort by most recent activity
+        const sortedExchanges = exchanges.sort(
+          (a: any, b: any) =>
+            new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime(),
         )
 
-        // Set latest exchange ID for direct navigation
-        if (activeExchanges.length > 0) {
-          const sortedExchanges = activeExchanges.sort(
-            (a: any, b: any) =>
-              new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime(),
-          )
+        // Set latest exchange ID for direct navigation (any exchange, not just active)
+        if (sortedExchanges.length > 0) {
           setLatestExchangeId(sortedExchanges[0].id)
         } else {
           setLatestExchangeId(null)
@@ -66,6 +59,7 @@ export function MessagesIndicator() {
       } catch (error) {
         console.error("Error fetching unread count:", error)
         setUnreadCount(0)
+        setLatestExchangeId(null)
       } finally {
         setIsLoading(false)
       }
@@ -78,6 +72,9 @@ export function MessagesIndicator() {
     const interval = setInterval(fetchUnreadCount, 30000)
     return () => clearInterval(interval)
   }, [session?.user?.id])
+
+  // Debug logging
+  console.log("MessagesIndicator - latestExchangeId:", latestExchangeId, "unreadCount:", unreadCount)
 
   if (!session?.user || isLoading) return null
 
