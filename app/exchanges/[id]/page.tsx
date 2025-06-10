@@ -73,7 +73,11 @@ export default async function ExchangePage({ params }: ExchangePageProps) {
 
     return (
       <div className="h-screen overflow-hidden bg-gray-50">
-        <SimplifiedExchangeDetail exchange={exchange} allExchanges={allExchanges} currentUserId={session.user.id} />
+        <SimplifiedExchangeDetail
+          exchange={exchange}
+          allExchanges={allExchanges || []}
+          currentUserId={session.user.id}
+        />
       </div>
     )
   } catch (error) {
