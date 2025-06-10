@@ -25,6 +25,7 @@ import {
 import { useSearchParams } from "next/navigation"
 import { SwapProgressIndicator } from "./swap-progress-indicator"
 import { VideocallScheduler } from "./videocall-scheduler"
+import { VideocallBanner } from "./videocall-banner"
 import { EnhancedSwapConfirmationModal } from "./enhanced-swap-confirmation-modal"
 import type { Exchange, Message } from "@/lib/types"
 
@@ -348,6 +349,9 @@ export function ExchangeChat({
         isRequester={isRequester}
         isHost={isHost}
       />
+
+      {/* Videocall Banner - Shows between progress and chat */}
+      <VideocallBanner exchangeId={exchange.id} />
 
       {/* Videocall Scheduler - Show when in conversation */}
       {exchange.status === "accepted" && <VideocallScheduler exchange={exchange} onStatusUpdate={onStatusUpdate} />}
