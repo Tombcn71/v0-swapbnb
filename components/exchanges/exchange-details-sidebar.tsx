@@ -254,5 +254,3 @@ export function ExchangeDetailsSidebar({ exchange, isRequester, isHost, onStatus
     </div>
   )
 }
-
-export default ExchangeDetailsSidebar

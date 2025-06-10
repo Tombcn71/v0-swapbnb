@@ -40,13 +40,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Voeg confirmation fields toe als ze niet bestaan
     try {
       await executeQuery(`
-       ALTER TABLE exchanges 
-       ADD COLUMN IF NOT EXISTS requester_confirmed BOOLEAN DEFAULT false
-     `)
+        ALTER TABLE exchanges 
+        ADD COLUMN IF NOT EXISTS requester_confirmed BOOLEAN DEFAULT false
+      `)
       await executeQuery(`
-       ALTER TABLE exchanges 
-       ADD COLUMN IF NOT EXISTS host_confirmed BOOLEAN DEFAULT false
-     `)
+        ALTER TABLE exchanges 
+        ADD COLUMN IF NOT EXISTS host_confirmed BOOLEAN DEFAULT false
+      `)
     } catch (error) {
       console.log("Confirmation columns already exist")
     }
@@ -107,11 +107,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // Paid swap - create Stripe session
       const swapPrice = 500 // €5.00 in cents
 
-      // Fix voor de URL
-      const host = request.headers.get("host") || ""
-      const protocol = process.env.NODE_ENV === "production" ? "https" : "http"
-      const baseUrl = process.env.NEXTAUTH_URL || `${protocol}://${host}`
-
       const stripeSession = await stripe.checkout.sessions.create({
         payment_method_types: ["card", "ideal"],
         line_items: [
@@ -128,8 +123,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           },
         ],
         mode: "payment",
-        success_url: `${baseUrl}/exchanges/${exchangeId}?payment=success`,
-        cancel_url: `${baseUrl}/exchanges/${exchangeId}?payment=cancelled`,
+        success_url: `${process.env.NEXTAUTH_URL}/exchanges/${exchangeId}?payment=success`,
+        cancel_url: `${process.env.NEXTAUTH_URL}/exchanges/${exchangeId}?payment=cancelled`,
         metadata: {
           exchange_id: exchangeId,
           user_id: userId,

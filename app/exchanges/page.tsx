@@ -5,12 +5,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Calendar, MapPin, Users, MessageCircle, AlertCircle } from "lucide-react"
+import { Calendar, MapPin, Users, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useSession } from "next-auth/react"
 
 interface Exchange {
   id: string
@@ -24,7 +23,6 @@ interface Exchange {
   message?: string
   status: string
   created_at: string
-  updated_at?: string
 
   // Extended info
   requester_home_title?: string
@@ -83,7 +81,7 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
   }
 
   return (
-    <Link href={`/exchanges/${exchange.id}`} className="block">
+    <Link href={`/exchanges/${exchange.id}`}>
       <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 overflow-hidden">
         <div className="relative h-48 w-full">
           <Image
@@ -136,36 +134,28 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
 }
 
 const ExchangesPage = () => {
-  const { data: session } = useSession()
   const [exchanges, setExchanges] = useState<Exchange[] | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string>("")
 
   useEffect(() => {
     const fetchExchanges = async () => {
-      if (!session?.user?.id) {
-        setLoading(false)
-        return
-      }
-
       setLoading(true)
-      setError(null)
-
       try {
-        console.log("Fetching exchanges...")
         const response = await fetch("/api/exchanges")
-
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-
         const data = await response.json()
-        console.log("Fetched exchanges data:", data)
+        console.log("Fetched exchanges data:", data) // Debug log
+        setExchanges(data)
 
-        setExchanges(Array.isArray(data) ? data : [])
+        // Get current user ID from session
+        const sessionRes = await fetch("/api/auth/session")
+        const sessionData = await sessionRes.json()
+        setCurrentUserId(sessionData?.user?.id || "")
       } catch (error) {
         console.error("Failed to fetch exchanges:", error)
-        setError(error instanceof Error ? error.message : "Er is een fout opgetreden")
         setExchanges([])
       } finally {
         setLoading(false)
@@ -173,27 +163,7 @@ const ExchangesPage = () => {
     }
 
     fetchExchanges()
-  }, [session?.user?.id])
-
-  // Show login prompt if not authenticated
-  if (!session?.user) {
-    return (
-      <div className="container py-10">
-        <div className="text-center py-12">
-          <AlertCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-2">Je moet ingelogd zijn om je uitwisselingen te bekijken.</p>
-          <div className="mt-6">
-            <Link
-              href="/login"
-              className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
-            >
-              Inloggen
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  }, [])
 
   return (
     <div className="container py-10">
@@ -201,18 +171,9 @@ const ExchangesPage = () => {
         <h1 className="text-3xl font-bold">Uitwisselingen</h1>
         <div className="flex items-center text-gray-600">
           <MessageCircle className="h-5 w-5 mr-2" />
-          <span className="text-sm">{loading ? "Laden..." : `${exchanges?.length || 0} uitwisselingen`}</span>
+          <span className="text-sm">{exchanges === null ? "Laden..." : `${exchanges.length} uitwisselingen`}</span>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-700">Fout bij het laden van uitwisselingen: {error}</p>
-          </div>
-        </div>
-      )}
 
       {loading ? (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -236,7 +197,7 @@ const ExchangesPage = () => {
       ) : exchanges && exchanges.length > 0 ? (
         <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {exchanges.map((exchange) => (
-            <ExchangeCard key={exchange.id} exchange={exchange} currentUserId={session.user.id} />
+            <ExchangeCard key={exchange.id} exchange={exchange} currentUserId={currentUserId} />
           ))}
         </div>
       ) : (

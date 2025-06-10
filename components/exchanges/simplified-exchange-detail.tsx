@@ -1,70 +1,92 @@
 "use client"
 
-import { useState } from "react"
-import type { Exchange, Home, Message, User } from "@/lib/types"
-import ExchangeChat from "./exchange-chat"
-import ExchangeDetailsSidebar from "./exchange-details-sidebar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import SwapProgressIndicator from "./swap-progress-indicator"
-import { useWindowSize } from "@/hooks/use-window-size"
+import { useState, useEffect } from "react"
+import { ExchangesSidebar } from "./exchanges-sidebar"
+import { ExchangeChat } from "./exchange-chat"
+import { ExchangeDetailsSidebar } from "./exchange-details-sidebar"
+import type { Exchange } from "@/lib/types"
 
 interface SimplifiedExchangeDetailProps {
   exchange: Exchange
-  guestHome: Home
-  hostHome: Home
-  messages: Message[]
-  otherUser: User
+  allExchanges: any[]
+  currentUserId: string
 }
 
-export function SimplifiedExchangeDetail({
-  exchange,
-  guestHome,
-  hostHome,
-  messages,
-  otherUser,
-}: SimplifiedExchangeDetailProps) {
-  const [activeTab, setActiveTab] = useState("messages")
-  const { isMobile } = useWindowSize()
+export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId }: SimplifiedExchangeDetailProps) {
+  const [messages, setMessages] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const isRequester = exchange.requester_id === currentUserId
+  const isHost = exchange.host_id === currentUserId
+
+  useEffect(() => {
+    fetchMessages()
+  }, [exchange.id])
+
+  const fetchMessages = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/exchanges/${exchange.id}/messages`)
+      if (response.ok) {
+        const data = await response.json()
+        setMessages(data)
+
+        // Mark messages as read
+        try {
+          await fetch(`/api/exchanges/${exchange.id}/messages/read`, {
+            method: "POST",
+          })
+        } catch (error) {
+          console.error("Error marking messages as read:", error)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleMessageSent = () => {
+    fetchMessages()
+  }
+
+  const handleStatusUpdate = () => {
+    // Reload the page to reflect status changes
+    window.location.reload()
+  }
 
   return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="mb-6">
-        <SwapProgressIndicator exchange={exchange} />
+    <div className="flex h-screen bg-white">
+      {/* Left Sidebar - Exchanges List */}
+      <div className="w-80 border-r border-gray-200 bg-gray-50">
+        <ExchangesSidebar exchanges={allExchanges} currentExchangeId={exchange.id} currentUserId={currentUserId} />
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Left side - Tabs for mobile, direct content for desktop */}
+      {/* Main Content - Messages */}
+      <div className="flex-1 flex">
         <div className="flex-1">
-          {isMobile ? (
-            <Tabs defaultValue="messages" className="w-full" onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-2 mb-4">
-                <TabsTrigger value="messages">Berichten</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="messages" className="bg-white rounded-lg shadow h-[70vh]">
-                <ExchangeChat exchange={exchange} initialMessages={messages} otherUser={otherUser} />
-              </TabsContent>
-
-              <TabsContent value="details">
-                <div className="bg-white rounded-lg shadow">
-                  <ExchangeDetailsSidebar exchange={exchange} guestHome={guestHome} hostHome={hostHome} />
-                </div>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="bg-white rounded-lg shadow h-[70vh]">
-              <ExchangeChat exchange={exchange} initialMessages={messages} otherUser={otherUser} />
-            </div>
-          )}
+          <ExchangeChat
+            exchange={exchange}
+            messages={messages}
+            currentUserId={currentUserId}
+            isRequester={isRequester}
+            isHost={isHost}
+            onMessageSent={handleMessageSent}
+            onStatusUpdate={handleStatusUpdate}
+            isLoading={isLoading}
+          />
         </div>
 
-        {/* Right side - Only visible on desktop */}
-        {!isMobile && (
-          <div className="md:w-1/3 lg:w-1/4">
-            <ExchangeDetailsSidebar exchange={exchange} guestHome={guestHome} hostHome={hostHome} />
-          </div>
-        )}
+        {/* Right Sidebar - Exchange Details */}
+        <div className="w-80 border-l border-gray-200 bg-gray-50">
+          <ExchangeDetailsSidebar
+            exchange={exchange}
+            isRequester={isRequester}
+            isHost={isHost}
+            onStatusUpdate={handleStatusUpdate}
+          />
+        </div>
       </div>
     </div>
   )
