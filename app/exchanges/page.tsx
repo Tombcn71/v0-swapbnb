@@ -43,6 +43,8 @@ const getStatusBadge = (status: string) => {
       return <Badge className="bg-yellow-100 text-yellow-800">⏳ Nieuw/In behandeling</Badge>
     case "accepted":
       return <Badge className="bg-blue-100 text-blue-800">✓ Geaccepteerd</Badge>
+    case "in_gesprek":
+      return <Badge className="bg-purple-100 text-purple-800">💬 In gesprek</Badge>
     case "rejected":
       return <Badge className="bg-red-100 text-red-800">✗ Geweigerd</Badge>
     case "confirmed":
@@ -125,7 +127,13 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
               </div>
             </div>
 
-            <div className="text-sm text-gray-500">Met {ownerName}</div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-500">Met {ownerName}</div>
+              <div className="flex items-center text-teal-600 text-sm">
+                <MessageCircle className="h-4 w-4 mr-1" />
+                <span>Chat openen</span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -168,10 +176,10 @@ const ExchangesPage = () => {
   return (
     <div className="container py-10">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Uitwisselingen</h1>
+        <h1 className="text-3xl font-bold">Swap Conversaties</h1>
         <div className="flex items-center text-gray-600">
           <MessageCircle className="h-5 w-5 mr-2" />
-          <span className="text-sm">{exchanges === null ? "Laden..." : `${exchanges.length} uitwisselingen`}</span>
+          <span className="text-sm">{exchanges === null ? "Laden..." : `${exchanges.length} swaps`}</span>
         </div>
       </div>
 
@@ -203,10 +211,8 @@ const ExchangesPage = () => {
       ) : (
         <div className="text-center py-12">
           <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-2">Geen uitwisselingen gevonden.</p>
-          <p className="text-gray-400 text-sm">
-            Begin met het zoeken naar woningen om je eerste uitwisseling aan te vragen!
-          </p>
+          <p className="text-gray-500 text-lg mb-2">Geen swap conversaties gevonden.</p>
+          <p className="text-gray-400 text-sm">Begin met het zoeken naar woningen om je eerste swap aan te vragen!</p>
           <div className="mt-6">
             <Link
               href="/listings"
