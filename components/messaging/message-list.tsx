@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Message {
   id: string
@@ -47,6 +48,7 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null)
+  const [videocallUrl, setVideocallUrl] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
@@ -188,41 +190,69 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
       message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite"
 
     if (isVideocallMessage) {
-      // Split content op newlines en zoek naar Jitsi links
-      const lines = message.content.split("\n")
+      try {
+        // Parse the message content to extract videocall info
+        const messageData = JSON.parse(message.content)
+        const { text, link, linkText } = messageData
 
-      return (
-        <div className="space-y-2">
-          {lines.map((line, index) => {
-            // Check of de lijn een Jitsi link bevat
-            if (line.includes("https://meet.jit.si/")) {
-              const linkMatch = line.match(/(https:\/\/meet\.jit\.si\/[^\s]+)/)
-              if (linkMatch) {
-                const link = linkMatch[1]
-                const beforeLink = line.substring(0, linkMatch.index)
-                const afterLink = line.substring(linkMatch.index! + link.length)
-
-                return (
-                  <div key={index} className="flex items-center gap-2">
-                    {beforeLink && <span>{beforeLink}</span>}
-                    <Button
-                      onClick={() => window.open(link, "_blank")}
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Video className="h-4 w-4 mr-1" />
-                      Deelnemen
-                    </Button>
-                    {afterLink && <span>{afterLink}</span>}
-                  </div>
-                )
-              }
-            }
-
-            return <div key={index}>{line}</div>
-          })}
-        </div>
-      )
+        return (
+          <div className="space-y-2">
+            <p>{text}</p>
+            <div className="flex gap-2 mt-2">
+              <Button
+                onClick={() => setVideocallUrl(link)}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Video className="h-4 w-4 mr-1" />
+                Deelnemen
+              </Button>
+              <Button
+                onClick={() => {
+                  window.open(link, "_blank")
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Externe link
+              </Button>
+              <Button
+                onClick={() => {
+                  navigator.clipboard.writeText(link)
+                  toast({
+                    title: "Link gekopieerd",
+                    description: "De videocall link is gekopieerd naar je klembord.",
+                  })
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Kopieer link
+              </Button>
+            </div>
+          </div>
+        )
+      } catch (e) {
+        // Fallback if parsing fails
+        return (
+          <div>
+            <p>{message.content}</p>
+            <Button
+              onClick={() => {
+                const linkMatch = message.content.match(/(https:\/\/[^\s]+)/)
+                if (linkMatch) {
+                  window.open(linkMatch[1], "_blank")
+                }
+              }}
+              size="sm"
+              className="mt-2"
+            >
+              <Video className="h-4 w-4 mr-1" />
+              Videocall openen
+            </Button>
+          </div>
+        )
+      }
     }
 
     // Normale berichten - zoek naar URLs en maak ze klikbaar
@@ -384,6 +414,27 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
           </Button>
         </div>
       </div>
+
+      {/* Videocall modal */}
+      <Dialog open={!!videocallUrl} onOpenChange={(open) => !open && setVideocallUrl(null)}>
+        <DialogContent className="sm:max-w-[90vw] max-h-[90vh] p-0">
+          <DialogHeader className="p-4">
+            <DialogTitle>Videocall</DialogTitle>
+            <DialogDescription>
+              Je kunt deze videocall sluiten door op ESC te drukken of buiten het venster te klikken.
+            </DialogDescription>
+          </DialogHeader>
+          {videocallUrl && (
+            <div className="w-full h-[70vh]">
+              <iframe
+                src={videocallUrl}
+                allow="camera; microphone; fullscreen; speaker; display-capture"
+                className="w-full h-full border-0"
+              ></iframe>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Bevestigingsdialoog voor het verwijderen van een bericht */}
       <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
