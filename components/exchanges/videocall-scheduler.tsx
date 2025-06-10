@@ -50,7 +50,7 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
       }
 
       toast({
-        title: "📹 Videocall gepland!",
+        title: "📹 Google Meet gepland!",
         description: "De videocall is gepland. Beide partijen ontvangen de details.",
       })
 
@@ -94,7 +94,7 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
       window.open(data.meetingLink, "_blank")
 
       toast({
-        title: "📹 Videocall gestart!",
+        title: "📹 Google Meet gestart!",
         description: "De andere persoon ontvangt een uitnodiging.",
       })
 
@@ -150,7 +150,7 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
       await navigator.clipboard.writeText(link)
       toast({
         title: "Link gekopieerd",
-        description: "De videocall link is gekopieerd naar je klembord.",
+        description: "De Google Meet link is gekopieerd naar je klembord.",
       })
     } catch (error) {
       toast({
@@ -178,7 +178,7 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Video className="h-5 w-5" />
-          Kennismaking Videocall
+          Kennismaking via Google Meet
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -193,14 +193,14 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
         {exchange.videocall_scheduled_at && exchange.videocall_link && (
           <div className="bg-green-50 p-3 rounded-md">
             <p className="text-green-800 text-sm mb-2">
-              <strong>📹 Geplande videocall:</strong>
+              <strong>📹 Geplande Google Meet:</strong>
               <br />
               {formatDateTime(exchange.videocall_scheduled_at)}
             </p>
             <div className="flex gap-2 mb-3">
               <Button onClick={handleJoinCall} className="flex-1" variant="outline">
                 <Video className="mr-2 h-4 w-4" />
-                Deelnemen
+                Deelnemen aan Google Meet
                 <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
               <Button onClick={() => copyLink(exchange.videocall_link!)} variant="outline" size="icon">
@@ -223,18 +223,16 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
           <div className="space-y-3">
             <Button onClick={handleInstantCall} disabled={isLoading} className="w-full bg-green-600 hover:bg-green-700">
               <Phone className="mr-2 h-4 w-4" />
-              {isLoading ? "Starten..." : "Start Direct Videocall"}
+              {isLoading ? "Starten..." : "Start Direct Google Meet"}
             </Button>
-            <p className="text-xs text-gray-500 text-center">
-              Start direct een videocall (Jitsi Meet - geen account nodig)
-            </p>
+            <p className="text-xs text-gray-500 text-center">Start direct een Google Meet videocall</p>
           </div>
         )}
 
         {/* Planning interface */}
         {!exchange.videocall_link && (
           <div className="border-t pt-4">
-            <h4 className="font-medium mb-3">Of plan een videocall</h4>
+            <h4 className="font-medium mb-3">Of plan een Google Meet</h4>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="date">Datum</Label>
@@ -254,7 +252,7 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
 
               <Button onClick={handleScheduleCall} disabled={isLoading} variant="outline" className="w-full">
                 <Calendar className="mr-2 h-4 w-4" />
-                {isLoading ? "Plannen..." : "Plan Videocall"}
+                {isLoading ? "Plannen..." : "Plan Google Meet"}
               </Button>
             </div>
           </div>

@@ -31,15 +31,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const exchangeData = exchange[0]
-    
+
     // Bepaal wie de ontvanger is (de andere persoon in de exchange)
     const isRequester = exchangeData.requester_id === session.user.id
     const receiverId = isRequester ? exchangeData.host_id : exchangeData.requester_id
     const receiverName = isRequester ? exchangeData.host_name : exchangeData.requester_name
 
-    // Genereer Jitsi Meet link
+    // Genereer Google Meet link (simplified - in production you'd use Google Calendar API)
     const timestamp = type === "instant" ? Date.now() : new Date(scheduled_at).getTime()
-    const jitsiLink = videocall_link || `https://meet.jit.si/swapbnb-${exchangeId.substring(0, 8)}-${timestamp}`
+    const meetLink = videocall_link || `https://meet.google.com/new`
 
     if (type === "scheduled") {
       // Update exchange met geplande videocall
@@ -47,59 +47,66 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         `UPDATE exchanges 
          SET videocall_scheduled_at = $1, 
              videocall_link = $2,
+             status = 'videocall_scheduled',
              updated_at = NOW() 
          WHERE id = $3`,
-        [scheduled_at, jitsiLink, exchangeId],
+        [scheduled_at, meetLink, exchangeId],
       )
 
       const scheduledDate = new Date(scheduled_at).toLocaleString("nl-NL", {
         weekday: "long",
-        year: "numeric", 
+        year: "numeric",
         month: "long",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
       })
 
-      // ALLEEN het videocall bericht naar de ontvanger
+      // Videocall bericht naar de ontvanger
       await executeQuery(
         `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
          VALUES ($1, $2, $3, $4, 'videocall_scheduled', NOW())`,
         [
-          session.user.id,     // Jij verstuurt
-          receiverId,          // De ander ontvangt
+          session.user.id,
+          receiverId,
           exchangeId,
           JSON.stringify({
-            type: 'videocall_scheduled',
-            text: `📹 ${session.user.name} heeft een videocall gepland voor ${scheduledDate}`,
-            link: jitsiLink,
-            linkText: 'Klik hier om deel te nemen',
-            scheduledAt: scheduled_at
-          })
+            type: "videocall_scheduled",
+            text: `📹 ${session.user.name} heeft een Google Meet gepland voor ${scheduledDate}`,
+            link: meetLink,
+            linkText: "Klik hier om deel te nemen",
+            scheduledAt: scheduled_at,
+          }),
         ],
       )
-
     } else if (type === "instant") {
-      // ALLEEN het videocall bericht naar de ontvanger
+      // Update status naar videocall_scheduled
+      await executeQuery(
+        `UPDATE exchanges 
+         SET videocall_link = $1,
+             status = 'videocall_scheduled',
+             updated_at = NOW() 
+         WHERE id = $2`,
+        [meetLink, exchangeId],
+      )
+
+      // Videocall bericht naar de ontvanger
       await executeQuery(
         `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
          VALUES ($1, $2, $3, $4, 'videocall_invite', NOW())`,
         [
-          session.user.id,     // Jij verstuurt
-          receiverId,          // De ander ontvangt
+          session.user.id,
+          receiverId,
           exchangeId,
           JSON.stringify({
-            type: 'videocall_invite',
-            text: `📞 ${session.user.name} wil nu videobellen!`,
-            link: jitsiLink,
-            linkText: 'Klik hier om mee te doen'
-          })
+            type: "videocall_invite",
+            text: `📞 ${session.user.name} wil nu videobellen via Google Meet!`,
+            link: meetLink,
+            linkText: "Klik hier om mee te doen",
+          }),
         ],
       )
     }
-
-    // GEEN system message meer - dit voorkomt dubbele notificaties
-    // De frontend kan de bevestiging tonen via de API response
 
     return NextResponse.json({
       success: true,
@@ -107,10 +114,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       type,
       receiverId,
       receiverName,
-      message: `Video call ${type === 'instant' ? 'uitnodiging verstuurd' : 'gepland'} naar ${receiverName}`,
-      meetingLink: jitsiLink // Voor debugging/logging, niet om te tonen
+      message: `Google Meet ${type === "instant" ? "uitnodiging verstuurd" : "gepland"} naar ${receiverName}`,
+      meetingLink: meetLink,
     })
-
   } catch (error) {
     console.error("Error scheduling videocall:", error)
     return NextResponse.json({ error: "Failed to schedule videocall" }, { status: 500 })
