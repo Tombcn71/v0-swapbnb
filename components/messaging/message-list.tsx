@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Send, AlertCircle, Trash2, MoreVertical } from "lucide-react"
+import { Send, AlertCircle, Trash2, MoreVertical, Video } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -23,7 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { VideocallInvite } from "@/components/videocall/videocall-invite"
 
 interface Message {
   id: string
@@ -152,9 +151,30 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
   }
 
   const renderMessageContent = (message: Message) => {
-    // Check of het een videocall bericht is
-    if (message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite") {
-      return <VideocallInvite content={message.content} />
+    // Simpele check: als de content begint met {"type":"videocall_invite"
+    if (message.content.includes('"type":"videocall_invite"')) {
+      try {
+        const videocallData = JSON.parse(message.content)
+
+        return (
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Video className="h-5 w-5 text-blue-600" />
+              <p className="text-blue-800 font-medium">{videocallData.text}</p>
+            </div>
+            <Button
+              onClick={() => window.open(videocallData.link, "_blank")}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Video className="h-4 w-4 mr-2" />
+              {videocallData.linkText}
+            </Button>
+          </div>
+        )
+      } catch (e) {
+        console.error("Error parsing videocall:", e)
+        return <p className="text-red-500">Fout bij laden videocall</p>
+      }
     }
 
     // Normale berichten
@@ -225,8 +245,7 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
         ) : (
           messages.map((message) => {
             const isCurrentUser = message.sender_id === session?.user?.id
-            const isVideocallMessage =
-              message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite"
+            const isVideocallMessage = message.content.includes('"type":"videocall_invite"')
 
             return (
               <div key={message.id} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
