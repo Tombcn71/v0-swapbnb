@@ -89,7 +89,7 @@ export function MessagesIndicator() {
 
   if (!session?.user || isLoading) return null
 
-  // Link directly to the latest exchange detail page where the conversation is
+  // Link directly to the latest exchange detail page - THIS IS THE CORRECT PAGE!
   const href = latestExchangeId ? `/exchanges/${latestExchangeId}` : "/exchanges"
 
   return (

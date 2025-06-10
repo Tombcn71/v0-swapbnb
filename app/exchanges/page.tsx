@@ -145,7 +145,7 @@ const ExchangeCard = ({ exchange, currentUserId }: { exchange: Exchange; current
               <div className="text-sm text-gray-500">Met {ownerName}</div>
               <div className="flex items-center text-teal-600 text-sm">
                 <MessageCircle className="h-4 w-4 mr-1" />
-                <span>Bekijk conversatie</span>
+                <span>Open chat</span>
               </div>
             </div>
           </div>
