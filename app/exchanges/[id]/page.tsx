@@ -2,7 +2,7 @@ import { authOptions } from "@/lib/auth"
 import { executeQuery } from "@/lib/db"
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
-import { ExchangeChat } from "@/components/exchanges/exchange-chat"
+import ExchangeChat from "@/components/exchanges/exchange-chat"
 import { ExchangesSidebar } from "@/components/exchanges/exchanges-sidebar"
 
 async function getExchange(id: string, userId: string) {
@@ -23,7 +23,6 @@ async function getExchange(id: string, userId: string) {
   `
 
   const exchange = await executeQuery(exchangeQuery, [id, userId])
-
   return exchange[0]
 }
 
@@ -37,12 +36,11 @@ async function getMessages(exchangeId: string) {
   `
 
   const messages = await executeQuery(messagesQuery, [exchangeId])
-
   return messages
 }
 
-async function getUser(id: string, exchange: any) {
-  const otherUserId = exchange.requester_id === id ? exchange.host_id : exchange.requester_id
+async function getOtherUser(userId: string, exchange: any) {
+  const otherUserId = exchange.requester_id === userId ? exchange.host_id : exchange.requester_id
 
   const userQuery = `
     SELECT id, name, email, profile_image
@@ -51,29 +49,11 @@ async function getUser(id: string, exchange: any) {
   `
 
   const user = await executeQuery(userQuery, [otherUserId])
-
   return user[0]
 }
 
-export default async function ExchangePage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-
-  if (!session) {
-    redirect("/login")
-  }
-
-  try {
-    const exchange = await getExchange(params.id, session.user.id)
-
-    if (!exchange) {
-      redirect("/exchanges")
-    }
-
-    const messages = await getMessages(params.id)
-    const otherUser = await getUser(session.user.id, exchange)
-
-    // Haal alle exchanges op voor de sidebar
-    const allExchangesQuery = `
+async function getAllExchanges(userId: string) {
+  const allExchangesQuery = `
     SELECT e.*, 
            CASE 
              WHEN e.requester_id = $1 THEN hu.name 
@@ -93,24 +73,47 @@ export default async function ExchangePage({ params }: { params: { id: string } 
     JOIN users ru ON e.requester_id = ru.id
     JOIN users hu ON e.host_id = hu.id
     WHERE e.requester_id = $1 OR e.host_id = $1
-    ORDER BY e.created_at DESC
+    ORDER BY e.updated_at DESC
   `
 
-    const allExchanges = await executeQuery(allExchangesQuery, [session.user.id])
+  return await executeQuery(allExchangesQuery, [userId])
+}
+
+export default async function ExchangePage({ params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.id) {
+    redirect("/login")
+  }
+
+  try {
+    // Haal exchange data op
+    const exchange = await getExchange(params.id, session.user.id)
+
+    if (!exchange) {
+      redirect("/exchanges")
+    }
+
+    // Haal berichten op
+    const messages = await getMessages(params.id)
+
+    // Haal andere gebruiker op
+    const otherUser = await getOtherUser(session.user.id, exchange)
+
+    // Haal alle exchanges op voor sidebar
+    const allExchanges = await getAllExchanges(session.user.id)
 
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="flex h-screen">
-          {/* Sidebar */}
-          <div className="w-80 bg-white border-r border-gray-200">
+          {/* Sidebar met alle exchanges */}
+          <div className="w-80 bg-white border-r border-gray-200 overflow-hidden">
             <ExchangesSidebar exchanges={allExchanges} currentExchangeId={params.id} currentUserId={session.user.id} />
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 flex flex-col">
-            <div className="flex-1 p-6">
-              <ExchangeChat exchange={exchange} initialMessages={messages} otherUser={otherUser} />
-            </div>
+          {/* Main chat area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <ExchangeChat exchange={exchange} initialMessages={messages} otherUser={otherUser} />
           </div>
         </div>
       </div>
