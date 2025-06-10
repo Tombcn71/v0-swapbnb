@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Send, AlertCircle, Trash2, MoreVertical } from "lucide-react"
+import { Send, AlertCircle, Trash2, MoreVertical, Video } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -23,7 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { EmbeddedVideocall } from "./embedded-videocall"
 
 interface Message {
   id: string
@@ -42,6 +41,40 @@ interface MessageListProps {
   recipientName: string
 }
 
+// Component voor het weergeven van videocall uitnodigingen
+function VideocallInviteDisplay({ content }: { content: string }) {
+  try {
+    // Parse de JSON data
+    const videocallData = JSON.parse(content)
+
+    // Controleer of het een geldige videocall invite is
+    if (videocallData && videocallData.type === "videocall_invite") {
+      return (
+        <div className="videocall-invite-box bg-blue-50 p-4 rounded-lg border border-blue-200">
+          {/* De hoofdtekst van de uitnodiging */}
+          <p className="text-blue-800 font-medium mb-3">{videocallData.text}</p>
+
+          {/* De klikbare knop */}
+          <Button
+            onClick={() => window.open(videocallData.link, "_blank")}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Video className="h-4 w-4 mr-2" />
+            {videocallData.linkText}
+          </Button>
+        </div>
+      )
+    }
+  } catch (e) {
+    console.error("Error parsing videocall invite:", e)
+    // Fallback voor als de parsing mislukt
+    return <p className="text-red-500">Fout bij laden videocall uitnodiging</p>
+  }
+
+  // Als er geen geldige data is, toon de originele content
+  return <p>{content}</p>
+}
+
 export function MessageList({ recipientId, recipientName }: MessageListProps) {
   const { data: session, status } = useSession()
   const [messages, setMessages] = useState<Message[]>([])
@@ -57,30 +90,35 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
 
     try {
       setError(null)
+      console.log("Fetching messages with recipient:", recipientId)
       const response = await fetch(`/api/messages?userId=${recipientId}`)
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.error("Error response:", errorData)
         throw new Error(errorData.error || "Failed to fetch messages")
       }
 
       const data = await response.json()
+      console.log("Fetched messages:", data)
       setMessages(data)
     } catch (error) {
       console.error("Error fetching messages:", error)
-      setError("Er is een fout opgetreden bij het ophalen van berichten.")
+      setError("Er is een fout opgetreden bij het ophalen van berichten. Probeer het later opnieuw.")
     }
   }
 
   useEffect(() => {
     if (status === "authenticated" && recipientId) {
       fetchMessages()
+      // Set up polling for new messages
       const interval = setInterval(fetchMessages, 10000)
       return () => clearInterval(interval)
     }
   }, [status, recipientId])
 
   useEffect(() => {
+    // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
@@ -91,7 +129,9 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
     try {
       const response = await fetch("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           recipientId: recipientId,
           content: newMessage,
@@ -108,8 +148,8 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
     } catch (error) {
       console.error("Error sending message:", error)
       toast({
-        title: "Fout bij verzenden",
-        description: "Er is een fout opgetreden bij het verzenden van je bericht.",
+        title: "Fout bij het verzenden van bericht",
+        description: "Er is een fout opgetreden bij het verzenden van je bericht. Probeer het later opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -124,10 +164,13 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to delete message")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete message")
       }
 
+      // Verwijder het bericht uit de lokale state
       setMessages(messages.filter((msg) => msg.id !== messageId))
+
       toast({
         title: "Bericht verwijderd",
         description: "Het bericht is succesvol verwijderd.",
@@ -135,8 +178,8 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
     } catch (error) {
       console.error("Error deleting message:", error)
       toast({
-        title: "Fout bij verwijderen",
-        description: "Er is een fout opgetreden bij het verwijderen van het bericht.",
+        title: "Fout bij het verwijderen van bericht",
+        description: "Er is een fout opgetreden bij het verwijderen van het bericht. Probeer het later opnieuw.",
         variant: "destructive",
       })
     } finally {
@@ -152,38 +195,12 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
   }
 
   const renderMessageContent = (message: Message) => {
-    const isVideocallMessage =
-      message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite"
-
-    if (isVideocallMessage) {
-      try {
-        const messageData = JSON.parse(message.content)
-        const { text, link } = messageData
-
-        return (
-          <div className="w-full">
-            <EmbeddedVideocall
-              roomUrl={link}
-              exchangeId={message.exchange_id || ""}
-              onCallEnd={() => {
-                // Refresh messages after call ends
-                fetchMessages()
-              }}
-            />
-          </div>
-        )
-      } catch (e) {
-        console.error("Error parsing videocall message:", e)
-        return (
-          <div className="p-3 bg-red-50 border border-red-200 rounded">
-            <p className="text-sm text-red-700">Fout bij laden videocall</p>
-            <p className="text-xs text-gray-500 mt-1">{message.content}</p>
-          </div>
-        )
-      }
+    // Check of het een videocall bericht is
+    if (message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite") {
+      return <VideocallInviteDisplay content={message.content} />
     }
 
-    // Normale berichten
+    // Normale berichten - zoek naar URLs en maak ze klikbaar
     const urlRegex = /(https?:\/\/[^\s]+)/g
     const parts = message.content.split(urlRegex)
 
@@ -257,11 +274,9 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
             return (
               <div key={message.id} className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`flex ${isCurrentUser ? "flex-row-reverse" : "flex-row"} items-start gap-2 ${
-                    isVideocallMessage ? "w-full" : "max-w-[80%]"
-                  }`}
+                  className={`flex ${isCurrentUser ? "flex-row-reverse" : "flex-row"} items-start gap-2 max-w-[80%]`}
                 >
-                  {!isCurrentUser && !isVideocallMessage && (
+                  {!isCurrentUser && (
                     <Avatar className="h-8 w-8">
                       <AvatarImage
                         src={`/abstract-geometric-shapes.png?height=32&width=32&query=${message.sender_name}`}
@@ -269,24 +284,29 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
                       <AvatarFallback>{message.sender_name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   )}
-                  <div className="relative group w-full">
-                    {isVideocallMessage ? (
-                      renderMessageContent(message)
-                    ) : (
-                      <Card className={`${isCurrentUser ? "bg-teal-500 text-white" : "bg-gray-100"}`}>
-                        <CardContent className="p-3">{renderMessageContent(message)}</CardContent>
-                      </Card>
-                    )}
+                  <div className="relative group">
+                    <Card
+                      className={`${
+                        isVideocallMessage
+                          ? "bg-blue-50 border-blue-200"
+                          : isCurrentUser
+                            ? "bg-teal-500 text-white"
+                            : "bg-gray-100"
+                      }`}
+                    >
+                      <CardContent className="p-3">{renderMessageContent(message)}</CardContent>
+                    </Card>
                     <p className={`text-xs text-gray-500 mt-1 ${isCurrentUser ? "text-right" : ""}`}>
                       {formatDistanceToNow(new Date(message.created_at), { addSuffix: true, locale: nl })}
                     </p>
 
-                    {isCurrentUser && !isVideocallMessage && (
+                    {isCurrentUser && (
                       <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreVertical className="h-4 w-4" />
+                              <span className="sr-only">Acties</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -319,15 +339,19 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
           />
           <Button onClick={handleSendMessage} disabled={isLoading || !newMessage.trim()} className="self-end">
             <Send className="h-5 w-5" />
+            <span className="sr-only">Verstuur</span>
           </Button>
         </div>
       </div>
 
+      {/* Bevestigingsdialoog voor het verwijderen van een bericht */}
       <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Bericht verwijderen</AlertDialogTitle>
-            <AlertDialogDescription>Weet je zeker dat je dit bericht wilt verwijderen?</AlertDialogDescription>
+            <AlertDialogDescription>
+              Weet je zeker dat je dit bericht wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
