@@ -36,7 +36,7 @@ export default async function ExchangePage({ params }: ExchangePageProps) {
       [params.id, session.user.id],
     )
 
-    if (exchanges.length === 0) {
+    if (!exchanges || exchanges.length === 0) {
       return notFound()
     }
 
