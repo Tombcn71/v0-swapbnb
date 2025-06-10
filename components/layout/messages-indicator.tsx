@@ -14,28 +14,46 @@ export function MessagesIndicator() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!session?.user?.id) return
+    if (!session?.user?.id) {
+      setIsLoading(false)
+      return
+    }
 
     const fetchUnreadCount = async () => {
       setIsLoading(true)
       try {
+        console.log("MessagesIndicator: Fetching exchanges...")
+
         // Fetch all exchanges
         const exchangesResponse = await fetch("/api/exchanges")
-        if (!exchangesResponse.ok) throw new Error("Failed to fetch exchanges")
+        if (!exchangesResponse.ok) {
+          console.error("MessagesIndicator: Failed to fetch exchanges", exchangesResponse.status)
+          throw new Error("Failed to fetch exchanges")
+        }
 
         const exchanges = await exchangesResponse.json()
+        console.log("MessagesIndicator: Fetched exchanges:", exchanges)
 
-        // Find ALL exchanges (not just active ones) and sort by most recent activity
+        if (!Array.isArray(exchanges)) {
+          console.error("MessagesIndicator: Exchanges is not an array:", exchanges)
+          setLatestExchangeId(null)
+          setUnreadCount(0)
+          return
+        }
+
+        // Find ALL exchanges and sort by most recent activity
         const sortedExchanges = exchanges.sort(
           (a: any, b: any) =>
             new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime(),
         )
 
-        // Set latest exchange ID for direct navigation (any exchange, not just active)
+        // Set latest exchange ID for direct navigation
         if (sortedExchanges.length > 0) {
           setLatestExchangeId(sortedExchanges[0].id)
+          console.log("MessagesIndicator: Latest exchange ID:", sortedExchanges[0].id)
         } else {
           setLatestExchangeId(null)
+          console.log("MessagesIndicator: No exchanges found")
         }
 
         // Count unread messages across all exchanges
@@ -51,13 +69,14 @@ export function MessagesIndicator() {
               totalUnread += unreadMessages.length
             }
           } catch (error) {
-            console.error(`Error fetching messages for exchange ${exchange.id}:`, error)
+            console.error(`MessagesIndicator: Error fetching messages for exchange ${exchange.id}:`, error)
           }
         }
 
+        console.log("MessagesIndicator: Total unread count:", totalUnread)
         setUnreadCount(totalUnread)
       } catch (error) {
-        console.error("Error fetching unread count:", error)
+        console.error("MessagesIndicator: Error fetching unread count:", error)
         setUnreadCount(0)
         setLatestExchangeId(null)
       } finally {
@@ -73,13 +92,12 @@ export function MessagesIndicator() {
     return () => clearInterval(interval)
   }, [session?.user?.id])
 
-  // Debug logging
-  console.log("MessagesIndicator - latestExchangeId:", latestExchangeId, "unreadCount:", unreadCount)
-
   if (!session?.user || isLoading) return null
 
   // Link to the most recent exchange, or to exchanges overview if none
   const href = latestExchangeId ? `/exchanges/${latestExchangeId}` : "/exchanges"
+
+  console.log("MessagesIndicator: Final href:", href)
 
   return (
     <Button variant="ghost" size="icon" asChild className="relative">
