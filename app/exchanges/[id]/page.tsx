@@ -36,7 +36,7 @@ export default async function ExchangePage({ params }: ExchangePageProps) {
       [params.id, session.user.id],
     )
 
-    if (!exchanges || exchanges.length === 0) {
+    if (exchanges.length === 0) {
       return notFound()
     }
 
@@ -44,7 +44,7 @@ export default async function ExchangePage({ params }: ExchangePageProps) {
 
     // Get all user's exchanges for the sidebar
     const allExchanges = await executeQuery(
-      `SELECT e.id, e.status, e.created_at, e.updated_at,
+      `SELECT e.id, e.status, e.created_at,
              CASE 
                WHEN e.requester_id = $1 THEN hu.name
                ELSE ru.name
@@ -56,11 +56,7 @@ export default async function ExchangePage({ params }: ExchangePageProps) {
              CASE 
                WHEN e.requester_id = $1 THEN hh.city
                ELSE rh.city
-             END as other_user_city,
-             CASE 
-               WHEN e.requester_id = $1 THEN hh.title
-               ELSE rh.title
-             END as other_home_title
+             END as other_user_city
       FROM exchanges e
       JOIN homes rh ON e.requester_home_id = rh.id
       JOIN homes hh ON e.host_home_id = hh.id
@@ -72,12 +68,8 @@ export default async function ExchangePage({ params }: ExchangePageProps) {
     )
 
     return (
-      <div className="h-screen overflow-hidden bg-gray-50">
-        <SimplifiedExchangeDetail
-          exchange={exchange}
-          allExchanges={allExchanges || []}
-          currentUserId={session.user.id}
-        />
+      <div className="min-h-screen bg-gray-50">
+        <SimplifiedExchangeDetail exchange={exchange} allExchanges={allExchanges} currentUserId={session.user.id} />
       </div>
     )
   } catch (error) {

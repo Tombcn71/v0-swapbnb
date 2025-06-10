@@ -30,9 +30,6 @@ export function ExchangesSidebar({ exchanges, currentExchangeId, currentUserId }
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
 
-  // Fix the map error with null check
-  const safeExchanges = exchanges || []
-
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       pending: { label: "Nieuw", variant: "secondary" as const, color: "bg-orange-100 text-orange-800" },
@@ -97,12 +94,12 @@ export function ExchangesSidebar({ exchanges, currentExchangeId, currentUserId }
 
       {/* Exchanges List */}
       <div className="flex-1 overflow-y-auto">
-        {safeExchanges.length === 0 ? (
+        {exchanges.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
             <p>Geen berichten gevonden</p>
           </div>
         ) : (
-          safeExchanges.map((exchange) => (
+          exchanges.map((exchange) => (
             <div
               key={exchange.id}
               className={`border-b border-gray-200 hover:bg-gray-100 transition-colors ${
@@ -176,6 +173,3 @@ export function ExchangesSidebar({ exchanges, currentExchangeId, currentUserId }
     </div>
   )
 }
-
-// Add default export too
-export default ExchangesSidebar

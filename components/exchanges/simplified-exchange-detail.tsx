@@ -29,7 +29,7 @@ export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId
       const response = await fetch(`/api/exchanges/${exchange.id}/messages`)
       if (response.ok) {
         const data = await response.json()
-        setMessages(data || [])
+        setMessages(data)
 
         // Mark messages as read
         try {
@@ -56,15 +56,11 @@ export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId
     window.location.reload()
   }
 
-  // Fix all potential map errors
-  const safeAllExchanges = allExchanges || []
-  const safeMessages = messages || []
-
   return (
     <div className="flex h-screen bg-white">
       {/* Left Sidebar - Exchanges List */}
       <div className="w-80 border-r border-gray-200 bg-gray-50">
-        <ExchangesSidebar exchanges={safeAllExchanges} currentExchangeId={exchange.id} currentUserId={currentUserId} />
+        <ExchangesSidebar exchanges={allExchanges} currentExchangeId={exchange.id} currentUserId={currentUserId} />
       </div>
 
       {/* Main Content - Messages */}
@@ -72,7 +68,7 @@ export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId
         <div className="flex-1">
           <ExchangeChat
             exchange={exchange}
-            messages={safeMessages}
+            messages={messages}
             currentUserId={currentUserId}
             isRequester={isRequester}
             isHost={isHost}
@@ -95,5 +91,3 @@ export function SimplifiedExchangeDetail({ exchange, allExchanges, currentUserId
     </div>
   )
 }
-
-export default SimplifiedExchangeDetail

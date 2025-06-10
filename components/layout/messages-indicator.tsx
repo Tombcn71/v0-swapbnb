@@ -25,26 +25,18 @@ export function MessagesIndicator() {
 
         const exchanges = await exchangesResponse.json()
 
-        // Find active exchanges (where conversation is happening)
+        // Find active exchanges
         const activeExchanges = exchanges.filter(
           (ex: any) =>
             ex.status === "pending" ||
             ex.status === "accepted" ||
             ex.status === "confirmed" ||
-            ex.status === "videocall_scheduled" ||
-            ex.status === "videocall_completed",
+            ex.status === "videocall_scheduled",
         )
 
-        // Set latest exchange ID for direct navigation to swap detail
+        // Set latest exchange ID for direct navigation
         if (activeExchanges.length > 0) {
           const sortedExchanges = activeExchanges.sort(
-            (a: any, b: any) =>
-              new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime(),
-          )
-          setLatestExchangeId(sortedExchanges[0].id)
-        } else if (exchanges.length > 0) {
-          // If no active exchanges, take the most recent one
-          const sortedExchanges = exchanges.sort(
             (a: any, b: any) =>
               new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime(),
           )
@@ -89,7 +81,7 @@ export function MessagesIndicator() {
 
   if (!session?.user || isLoading) return null
 
-  // Link directly to the latest exchange detail page - THIS IS THE CORRECT PAGE!
+  // Link to the most recent exchange, or to exchanges overview if none
   const href = latestExchangeId ? `/exchanges/${latestExchangeId}` : "/exchanges"
 
   return (
