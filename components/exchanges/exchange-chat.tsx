@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Send, CheckCircle, X, Ban, Loader2 } from "lucide-react"
+import { Send, CheckCircle, X, Ban, Loader2, MessageCircle, XCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -54,6 +54,7 @@ export function ExchangeChat({
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [showQuickReplies, setShowQuickReplies] = useState(true) // Standaard tonen voor de host
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const searchParams = useSearchParams()
@@ -146,6 +147,56 @@ export function ExchangeChat({
       })
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Nieuwe functie voor snelberichten
+  const handleQuickReply = async (message: string, action: "accept" | "reject") => {
+    setActionLoading(action)
+
+    try {
+      // Verstuur het snelbericht
+      const messageResponse = await fetch(`/api/exchanges/${exchange.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: message }),
+      })
+
+      if (messageResponse.ok) {
+        const newMessage = await messageResponse.json()
+        setLocalMessages((prev) => [...prev, newMessage])
+
+        // Update exchange status bij afwijzing
+        if (action === "reject") {
+          const statusResponse = await fetch(`/api/exchanges/${exchange.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "rejected" }),
+          })
+
+          if (statusResponse.ok) {
+            onStatusUpdate()
+          }
+        }
+
+        // Verberg de snelberichten na gebruik
+        setShowQuickReplies(false)
+        onMessageSent()
+
+        toast({
+          title: action === "accept" ? "✅ Bericht verzonden" : "❌ Swap afgewezen",
+          description: action === "accept" ? "Je kunt nu verder chatten over de details." : "De swap is afgewezen.",
+        })
+      }
+    } catch (error) {
+      console.error("Error sending quick reply:", error)
+      toast({
+        title: "❌ Fout",
+        description: "Er is een fout opgetreden bij het verzenden van je reactie.",
+        variant: "destructive",
+      })
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -385,6 +436,44 @@ export function ExchangeChat({
             </div>
           </div>
 
+          {/* SNELBERICHTEN VOOR HOST */}
+          {showQuickReplies && exchange.status === "pending" && isHost && (
+            <div className="mb-4 p-4 bg-teal-50 rounded-lg border-2 border-teal-200">
+              <h4 className="font-medium text-teal-900 mb-3">Snelle reactie:</h4>
+              <div className="space-y-2">
+                <Button
+                  onClick={() =>
+                    handleQuickReply("Ja, laten we praten! Ik ben geïnteresseerd in jullie swap voorstel.", "accept")
+                  }
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                  disabled={actionLoading === "accept"}
+                >
+                  {actionLoading === "accept" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                  )}
+                  Ja, laten we praten
+                </Button>
+                <Button
+                  onClick={() =>
+                    handleQuickReply("Helaas komen onze plannen niet overeen. Bedankt voor je interesse!", "reject")
+                  }
+                  variant="outline"
+                  className="w-full border-red-600 text-red-600 hover:bg-red-50"
+                  disabled={actionLoading === "reject"}
+                >
+                  {actionLoading === "reject" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <XCircle className="w-4 h-4 mr-2" />
+                  )}
+                  Nee, helaas niet
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Betaling succes melding */}
           {showPaymentSuccess && (
             <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200 animate-pulse">
@@ -443,7 +532,7 @@ export function ExchangeChat({
 
           {/* Action Buttons */}
           <div className="space-y-2 mb-4">
-            {exchange.status === "pending" && isHost && (
+            {exchange.status === "pending" && isHost && !showQuickReplies && (
               <div className="space-y-2">
                 <Button
                   onClick={handleAccept}
@@ -518,6 +607,22 @@ export function ExchangeChat({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            )}
+
+            {/* Confirmation buttons for both parties when status is accepted */}
+            {exchange.status === "accepted" && !currentUserConfirmed && (
+              <Button
+                onClick={handleConfirm}
+                className="w-full bg-teal-600 hover:bg-teal-700"
+                disabled={actionLoading === "confirm"}
+              >
+                {actionLoading === "confirm" ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Bevestigen
+              </Button>
             )}
 
             {/* Waiting for other party to approve */}
