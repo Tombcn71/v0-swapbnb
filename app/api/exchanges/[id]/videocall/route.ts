@@ -1,4 +1,3 @@
-// API Route: /api/exchanges/[id]/videocall/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
@@ -11,14 +10,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { scheduled_at, videocall_link, type = "scheduled" } = await request.json()
+    const { scheduled_at, type = "scheduled" } = await request.json()
     const exchangeId = params.id
 
     // Haal exchange details op
     const exchange = await executeQuery(
       `SELECT e.*, 
-              r.name as requester_name, 
-              h.name as host_name
+              r.name as requester_name, r.email as requester_email,
+              h.name as host_name, h.email as host_email
        FROM exchanges e
        JOIN users r ON e.requester_id = r.id
        JOIN users h ON e.host_id = h.id
@@ -32,14 +31,56 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const exchangeData = exchange[0]
 
-    // Bepaal wie de ontvanger is (de andere persoon in de exchange)
+    // Bepaal wie de ontvanger is
     const isRequester = exchangeData.requester_id === session.user.id
     const receiverId = isRequester ? exchangeData.host_id : exchangeData.requester_id
     const receiverName = isRequester ? exchangeData.host_name : exchangeData.requester_name
 
-    // Genereer Google Meet link (simplified - in production you'd use Google Calendar API)
-    const timestamp = type === "instant" ? Date.now() : new Date(scheduled_at).getTime()
-    const meetLink = videocall_link || `https://meet.google.com/new`
+    // Maak Daily.co room aan
+    const roomName = `swapbnb-${exchangeId}-${Date.now()}`
+    const dailyApiKey = process.env.DAILY_API_KEY
+
+    let roomUrl = ""
+
+    if (dailyApiKey) {
+      try {
+        // Maak room aan via Daily.co API
+        const roomResponse = await fetch("https://api.daily.co/v1/rooms", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${dailyApiKey}`,
+          },
+          body: JSON.stringify({
+            name: roomName,
+            properties: {
+              max_participants: 2,
+              enable_screenshare: true,
+              enable_chat: true,
+              start_video_off: false,
+              start_audio_off: false,
+              exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 uur geldig
+            },
+          }),
+        })
+
+        if (roomResponse.ok) {
+          const roomData = await roomResponse.json()
+          roomUrl = roomData.url
+        } else {
+          console.error("Failed to create Daily.co room:", await roomResponse.text())
+          // Fallback naar publieke room
+          roomUrl = `https://swapbnb.daily.co/${roomName}`
+        }
+      } catch (error) {
+        console.error("Error creating Daily.co room:", error)
+        // Fallback naar publieke room
+        roomUrl = `https://swapbnb.daily.co/${roomName}`
+      }
+    } else {
+      // Geen API key, gebruik publieke room
+      roomUrl = `https://swapbnb.daily.co/${roomName}`
+    }
 
     if (type === "scheduled") {
       // Update exchange met geplande videocall
@@ -50,7 +91,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
              status = 'videocall_scheduled',
              updated_at = NOW() 
          WHERE id = $3`,
-        [scheduled_at, meetLink, exchangeId],
+        [scheduled_at, roomUrl, exchangeId],
       )
 
       const scheduledDate = new Date(scheduled_at).toLocaleString("nl-NL", {
@@ -72,8 +113,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           exchangeId,
           JSON.stringify({
             type: "videocall_scheduled",
-            text: `📹 ${session.user.name} heeft een Google Meet gepland voor ${scheduledDate}`,
-            link: meetLink,
+            text: `📹 ${session.user.name} heeft een videocall gepland voor ${scheduledDate}`,
+            link: roomUrl,
             linkText: "Klik hier om deel te nemen",
             scheduledAt: scheduled_at,
           }),
@@ -87,7 +128,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
              status = 'videocall_scheduled',
              updated_at = NOW() 
          WHERE id = $2`,
-        [meetLink, exchangeId],
+        [roomUrl, exchangeId],
       )
 
       // Videocall bericht naar de ontvanger
@@ -100,8 +141,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           exchangeId,
           JSON.stringify({
             type: "videocall_invite",
-            text: `📞 ${session.user.name} wil nu videobellen via Google Meet!`,
-            link: meetLink,
+            text: `📞 ${session.user.name} wil nu videobellen!`,
+            link: roomUrl,
             linkText: "Klik hier om mee te doen",
           }),
         ],
@@ -114,8 +155,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       type,
       receiverId,
       receiverName,
-      message: `Google Meet ${type === "instant" ? "uitnodiging verstuurd" : "gepland"} naar ${receiverName}`,
-      meetingLink: meetLink,
+      roomUrl,
+      message: `Videocall ${type === "instant" ? "uitnodiging verstuurd" : "gepland"} naar ${receiverName}`,
     })
   } catch (error) {
     console.error("Error scheduling videocall:", error)
