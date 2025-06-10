@@ -1,71 +1,84 @@
-import { CheckCircle, Circle } from "lucide-react"
+"use client"
+
 import { Progress } from "@/components/ui/progress"
-import type { Exchange } from "@/lib/types"
+import { CheckCircle, Circle, Clock } from "lucide-react"
 
 interface SwapProgressIndicatorProps {
-  exchange: Exchange
-  currentUserId: string
-  isRequester: boolean
-  isHost: boolean
+  exchange: any
 }
 
-export function SwapProgressIndicator({ exchange, currentUserId, isRequester, isHost }: SwapProgressIndicatorProps) {
-  // Determine the current stage
-  const getStage = () => {
-    if (exchange.status === "pending") return 0
-    if (exchange.status === "accepted") return 1
-    if (exchange.status === "confirmed") return 2
-    return 0
+export function SwapProgressIndicator({ exchange }: SwapProgressIndicatorProps) {
+  const getProgressValue = (status: string) => {
+    switch (status) {
+      case "pending":
+        return 20
+      case "accepted":
+        return 40
+      case "confirmed":
+        return 80
+      case "completed":
+        return 100
+      default:
+        return 0
+    }
   }
 
-  const currentStage = getStage()
-  const progressPercentage = (currentStage / 2) * 100
+  const getStepStatus = (step: string, currentStatus: string) => {
+    const statusOrder = ["pending", "accepted", "confirmed", "completed"]
+    const currentIndex = statusOrder.indexOf(currentStatus)
+    const stepIndex = statusOrder.indexOf(step)
 
-  // Check if the current user has confirmed
-  const userConfirmed = isRequester ? exchange.requester_confirmed : exchange.host_confirmed
-  const otherUserConfirmed = isRequester ? exchange.host_confirmed : exchange.requester_confirmed
+    if (stepIndex <= currentIndex) return "completed"
+    if (stepIndex === currentIndex + 1) return "current"
+    return "upcoming"
+  }
+
+  const steps = [
+    { key: "pending", label: "Aanvraag", description: "Swap aangevraagd" },
+    { key: "accepted", label: "Geaccepteerd", description: "Host heeft geaccepteerd" },
+    { key: "confirmed", label: "Bevestigd", description: "Beide partijen bevestigd" },
+    { key: "completed", label: "Voltooid", description: "Swap afgerond" },
+  ]
 
   return (
-    <div className="mb-6">
-      <div className="relative mb-2">
-        <Progress value={progressPercentage} className="h-2 bg-gray-200" />
+    <div className="w-full">
+      <div className="mb-4">
+        <Progress value={getProgressValue(exchange.status)} className="h-2" />
       </div>
-      <div className="flex justify-between text-sm">
-        <div className="flex flex-col items-center">
-          <div
-            className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
-              currentStage >= 0 ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-500"
-            }`}
-          >
-            {currentStage > 0 ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
-          </div>
-          <span className={currentStage >= 0 ? "text-teal-700 font-medium" : "text-gray-500"}>Details</span>
-        </div>
 
-        <div className="flex flex-col items-center">
-          <div
-            className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
-              currentStage >= 1 ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-500"
-            }`}
-          >
-            {currentStage > 1 ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
-          </div>
-          <span className={currentStage >= 1 ? "text-teal-700 font-medium" : "text-gray-500"}>
-            {isHost ? "Goedkeuren" : "Host Goedkeuring"}
-          </span>
-        </div>
+      <div className="flex justify-between">
+        {steps.map((step, index) => {
+          const status = getStepStatus(step.key, exchange.status)
 
-        <div className="flex flex-col items-center">
-          <div
-            className={`flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
-              currentStage >= 2 ? "bg-teal-500 text-white" : "bg-gray-200 text-gray-500"
-            }`}
-          >
-            {currentStage > 2 ? <CheckCircle className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
-          </div>
-          <span className={currentStage >= 2 ? "text-teal-700 font-medium" : "text-gray-500"}>Bevestigen</span>
-        </div>
+          return (
+            <div key={step.key} className="flex flex-col items-center text-center flex-1">
+              <div className="flex items-center mb-2">
+                {status === "completed" ? (
+                  <CheckCircle className="h-6 w-6 text-teal-600" />
+                ) : status === "current" ? (
+                  <Clock className="h-6 w-6 text-teal-600" />
+                ) : (
+                  <Circle className="h-6 w-6 text-gray-300" />
+                )}
+              </div>
+
+              <div className="text-xs">
+                <div
+                  className={`font-medium ${
+                    status === "completed" || status === "current" ? "text-teal-600" : "text-gray-400"
+                  }`}
+                >
+                  {step.label}
+                </div>
+                <div className="text-gray-500 mt-1">{step.description}</div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
+
+// Also export as default for backward compatibility
+export default SwapProgressIndicator

@@ -3,10 +3,20 @@
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, Calendar, MapPin } from "lucide-react"
-import confetti from "canvas-confetti"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { CalendarDays, Home } from "lucide-react"
+import dynamic from "next/dynamic"
+
+// Dynamically import Confetti to avoid SSR issues
+const Confetti = dynamic(() => import("react-confetti"), { ssr: false })
 
 interface EnhancedSwapConfirmationModalProps {
   userName: string
@@ -32,48 +42,28 @@ export function EnhancedSwapConfirmationModal({
   onClose,
 }: EnhancedSwapConfirmationModalProps) {
   const [open, setOpen] = useState(true)
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
 
-  // Trigger confetti when modal opens
+  // Set window dimensions for confetti
   useEffect(() => {
-    if (open) {
-      const duration = 3000
-      const animationEnd = Date.now() + duration
-      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 }
-
-      function randomInRange(min: number, max: number) {
-        return Math.random() * (max - min) + min
-      }
-
-      const interval: any = setInterval(() => {
-        const timeLeft = animationEnd - Date.now()
-
-        if (timeLeft <= 0) {
-          return clearInterval(interval)
-        }
-
-        const particleCount = 50 * (timeLeft / duration)
-        // since particles fall down, start a bit higher than random
-        confetti({
-          ...defaults,
-          particleCount,
-          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-          colors: ["#14b8a6", "#0d9488", "#0f766e"],
-        })
-        confetti({
-          ...defaults,
-          particleCount,
-          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-          colors: ["#14b8a6", "#0d9488", "#0f766e"],
-        })
-      }, 250)
-
-      // Save to localStorage to prevent showing again
-      const shownConfirmations = JSON.parse(localStorage.getItem("shownSwapConfirmations") || "[]")
-      if (!shownConfirmations.includes(exchangeId)) {
-        localStorage.setItem("shownSwapConfirmations", JSON.stringify([...shownConfirmations, exchangeId]))
-      }
+    const updateDimensions = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      })
     }
-  }, [open, exchangeId])
+
+    updateDimensions()
+    window.addEventListener("resize", updateDimensions)
+
+    // Store that we've shown this confirmation
+    const shownConfirmations = JSON.parse(localStorage.getItem("shownSwapConfirmations") || "[]")
+    if (!shownConfirmations.includes(exchangeId)) {
+      localStorage.setItem("shownSwapConfirmations", JSON.stringify([...shownConfirmations, exchangeId]))
+    }
+
+    return () => window.removeEventListener("resize", updateDimensions)
+  }, [exchangeId])
 
   const handleClose = () => {
     setOpen(false)
@@ -81,55 +71,61 @@ export function EnhancedSwapConfirmationModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold text-teal-700">🎉 Swap Bevestigd! 🎉</DialogTitle>
-        </DialogHeader>
-        <div className="py-6 space-y-6">
-          <div className="flex justify-center">
-            <div className="bg-teal-50 rounded-full p-4">
-              <CheckCircle className="h-16 w-16 text-teal-600" />
+    <>
+      {open && <Confetti width={dimensions.width} height={dimensions.height} recycle={false} numberOfPieces={200} />}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">🎉 Gefeliciteerd!</DialogTitle>
+            <DialogDescription className="text-center pt-2">Je swap is succesvol bevestigd!</DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-purple-100 my-4">
+            <div className="text-center mb-4">
+              <span className="text-lg font-medium text-purple-800">
+                {requesterName} ↔️ {hostName}
+              </span>
             </div>
-          </div>
 
-          <div className="text-center space-y-2">
-            <p className="text-lg font-medium">Gefeliciteerd, {userName}! Jullie swap is bevestigd.</p>
-            <p className="text-gray-600">
-              Beide partijen hebben de swap goedgekeurd en betaald. Jullie kunnen nu de details afronden.
-            </p>
-          </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <CalendarDays className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Periode</p>
+                  <p className="text-sm text-gray-600">
+                    {format(new Date(startDate), "d MMM", { locale: nl })} -{" "}
+                    {format(new Date(endDate), "d MMM yyyy", { locale: nl })}
+                  </p>
+                </div>
+              </div>
 
-          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-teal-600" />
-              <div>
-                <p className="text-sm font-medium">Periode</p>
-                <p className="text-gray-600">
-                  {format(new Date(startDate), "d MMM", { locale: nl })} -{" "}
-                  {format(new Date(endDate), "d MMM yyyy", { locale: nl })}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 p-2 rounded-full">
+                  <Home className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Locaties</p>
+                  <p className="text-sm text-gray-600">
+                    {requesterHomeCity} ↔️ {hostHomeCity}
+                  </p>
+                </div>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-teal-600" />
-              <div>
-                <p className="text-sm font-medium">Locaties</p>
-                <p className="text-gray-600">
-                  {requesterName} ({requesterHomeCity}) ↔️ {hostName} ({hostHomeCity})
-                </p>
-              </div>
-            </div>
           </div>
 
-          <div className="flex justify-center">
-            <Button onClick={handleClose} className="bg-teal-600 hover:bg-teal-700">
+          <p className="text-center text-sm text-gray-600">
+            Je kunt nu alle details uitwisselen via de chat. Veel plezier met je huizenruil!
+          </p>
+
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={handleClose} className="bg-purple-600 hover:bg-purple-700">
               Geweldig!
             </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
