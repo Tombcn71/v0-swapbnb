@@ -27,7 +27,6 @@ export default function RootLayout({
         <NextAuthProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             <OnboardingProvider>
-            
               <Navbar />
               {children}
               <Toaster />
