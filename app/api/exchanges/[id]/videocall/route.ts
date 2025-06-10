@@ -1,4 +1,3 @@
-// API Route: /api/exchanges/[id]/videocall/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
@@ -11,7 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { scheduled_at, videocall_link, type = "scheduled" } = await request.json()
+    const { type = "instant", meeting_link, platform = "whereby" } = await request.json()
     const exchangeId = params.id
 
     // Haal exchange details op
@@ -31,94 +30,58 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const exchangeData = exchange[0]
-
-    // Bepaal wie de ontvanger is (de andere persoon in de exchange)
     const isRequester = exchangeData.requester_id === session.user.id
     const receiverId = isRequester ? exchangeData.host_id : exchangeData.requester_id
     const receiverName = isRequester ? exchangeData.host_name : exchangeData.requester_name
 
-    // Genereer Google Meet link (simplified - in production you'd use Google Calendar API)
-    const timestamp = type === "instant" ? Date.now() : new Date(scheduled_at).getTime()
-    const meetLink = videocall_link || `https://meet.google.com/new`
+    let messageContent = ""
+    const meetLink = meeting_link
 
-    if (type === "scheduled") {
-      // Update exchange met geplande videocall
-      await executeQuery(
-        `UPDATE exchanges 
-         SET videocall_scheduled_at = $1, 
-             videocall_link = $2,
-             status = 'videocall_scheduled',
-             updated_at = NOW() 
-         WHERE id = $3`,
-        [scheduled_at, meetLink, exchangeId],
-      )
-
-      const scheduledDate = new Date(scheduled_at).toLocaleString("nl-NL", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-
-      // Videocall bericht naar de ontvanger
-      await executeQuery(
-        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
-         VALUES ($1, $2, $3, $4, 'videocall_scheduled', NOW())`,
-        [
-          session.user.id,
-          receiverId,
-          exchangeId,
-          JSON.stringify({
-            type: "videocall_scheduled",
-            text: `📹 ${session.user.name} heeft een Google Meet gepland voor ${scheduledDate}`,
-            link: meetLink,
-            linkText: "Klik hier om deel te nemen",
-            scheduledAt: scheduled_at,
-          }),
-        ],
-      )
-    } else if (type === "instant") {
-      // Update status naar videocall_scheduled
+    if (platform === "whereby") {
+      // Update exchange met Whereby link
       await executeQuery(
         `UPDATE exchanges 
          SET videocall_link = $1,
+             videocall_platform = 'whereby',
              status = 'videocall_scheduled',
              updated_at = NOW() 
          WHERE id = $2`,
         [meetLink, exchangeId],
       )
 
-      // Videocall bericht naar de ontvanger
+      messageContent = `🎥 ${session.user.name} heeft een Whereby videocall kamer aangemaakt! Klik op de link om deel te nemen. Whereby heeft uitstekende HD kwaliteit en werkt direct in je browser.`
+    } else if (platform === "whatsapp") {
+      // Update exchange status
       await executeQuery(
-        `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
-         VALUES ($1, $2, $3, $4, 'videocall_invite', NOW())`,
-        [
-          session.user.id,
-          receiverId,
-          exchangeId,
-          JSON.stringify({
-            type: "videocall_invite",
-            text: `📞 ${session.user.name} wil nu videobellen via Google Meet!`,
-            link: meetLink,
-            linkText: "Klik hier om mee te doen",
-          }),
-        ],
+        `UPDATE exchanges 
+         SET videocall_platform = 'whatsapp',
+             status = 'videocall_scheduled',
+             updated_at = NOW() 
+         WHERE id = $1`,
+        [exchangeId],
       )
+
+      messageContent = `📱 ${session.user.name} stelt voor om via WhatsApp te videobellen! Dit is vaak de makkelijkste optie. Deel je WhatsApp nummer zodat jullie kunnen bellen.`
     }
+
+    // Verstuur bericht naar de ontvanger
+    await executeQuery(
+      `INSERT INTO messages (sender_id, receiver_id, exchange_id, content, message_type, created_at)
+       VALUES ($1, $2, $3, $4, 'videocall_invite', NOW())`,
+      [session.user.id, receiverId, exchangeId, messageContent],
+    )
 
     return NextResponse.json({
       success: true,
-      scheduledAt: scheduled_at,
       type,
+      platform,
       receiverId,
       receiverName,
-      message: `Google Meet ${type === "instant" ? "uitnodiging verstuurd" : "gepland"} naar ${receiverName}`,
+      message: `${platform === "whereby" ? "Whereby kamer" : "WhatsApp voorstel"} verstuurd naar ${receiverName}`,
       meetingLink: meetLink,
     })
   } catch (error) {
-    console.error("Error scheduling videocall:", error)
-    return NextResponse.json({ error: "Failed to schedule videocall" }, { status: 500 })
+    console.error("Error creating videocall:", error)
+    return NextResponse.json({ error: "Failed to create videocall" }, { status: 500 })
   }
 }

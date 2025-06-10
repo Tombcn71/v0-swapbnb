@@ -1,37 +1,61 @@
 "use client"
 
 import { useState } from "react"
+import { format, addDays } from "date-fns"
+import { nl } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { Calendar, Video, ExternalLink, Phone, Copy, Users } from "lucide-react"
+import { CalendarIcon, Video, Loader2, Phone } from "lucide-react"
+import { cn } from "@/lib/utils"
+import type { Exchange } from "@/lib/types"
 
 interface VideocallSchedulerProps {
-  exchange: any
+  exchange: Exchange
   onStatusUpdate: () => void
 }
 
 export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedulerProps) {
-  const [selectedDate, setSelectedDate] = useState("")
-  const [selectedTime, setSelectedTime] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [time, setTime] = useState<string>("14:00")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [activeTab, setActiveTab] = useState("whereby")
   const { toast } = useToast()
 
   const handleScheduleCall = async () => {
-    if (!selectedDate || !selectedTime) {
+    if (!date) {
       toast({
-        title: "Vul alle velden in",
-        description: "Selecteer een datum en tijd voor de videocall.",
+        title: "❌ Selecteer een datum",
+        description: "Kies een datum voor de videocall.",
         variant: "destructive",
       })
       return
     }
 
-    setIsLoading(true)
+    setIsSubmitting(true)
+
     try {
-      const scheduledDateTime = `${selectedDate}T${selectedTime}:00`
+      // Format the date and time
+      const callDate = new Date(date)
+      const [hours, minutes] = time.split(":").map(Number)
+      callDate.setHours(hours, minutes)
+
+      let callUrl = ""
+      let callProvider = ""
+
+      if (activeTab === "whereby") {
+        // Generate a Whereby room URL
+        const roomName = `swapbnb-${exchange.id}-${Date.now()}`
+        callUrl = `https://whereby.com/${roomName}`
+        callProvider = "Whereby"
+      } else if (activeTab === "whatsapp") {
+        // For WhatsApp, we'll just suggest exchanging numbers
+        callUrl = "whatsapp://send?text=Hallo! Laten we een videocall plannen voor onze huizenruil."
+        callProvider = "WhatsApp"
+      }
 
       const response = await fetch(`/api/exchanges/${exchange.id}/videocall`, {
         method: "POST",
@@ -39,224 +63,131 @@ export function VideocallScheduler({ exchange, onStatusUpdate }: VideocallSchedu
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          scheduled_at: scheduledDateTime,
-          type: "scheduled",
+          scheduled_date: callDate.toISOString(),
+          call_url: callUrl,
+          call_provider: callProvider,
         }),
       })
 
-      if (!response.ok) {
+      if (response.ok) {
+        toast({
+          title: "✅ Videocall gepland!",
+          description: `Je videocall is gepland voor ${format(callDate, "d MMMM 'om' HH:mm", { locale: nl })}.`,
+        })
+        onStatusUpdate()
+      } else {
         const errorData = await response.json()
         throw new Error(errorData.error || "Failed to schedule videocall")
       }
-
-      toast({
-        title: "📹 Google Meet gepland!",
-        description: "De videocall is gepland. Beide partijen ontvangen de details.",
-      })
-
-      // Reset form
-      setSelectedDate("")
-      setSelectedTime("")
-
-      onStatusUpdate()
     } catch (error: any) {
+      console.error("Error scheduling videocall:", error)
       toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de videocall niet plannen. Probeer het later opnieuw.",
+        title: "❌ Fout",
+        description: error.message || "Er is een fout opgetreden bij het plannen van de videocall.",
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
-  const handleInstantCall = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/videocall`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "instant",
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to start videocall")
-      }
-
-      const data = await response.json()
-
-      // Open de videocall
-      window.open(data.meetingLink, "_blank")
-
-      toast({
-        title: "📹 Google Meet gestart!",
-        description: "De andere persoon ontvangt een uitnodiging.",
-      })
-
-      onStatusUpdate()
-    } catch (error: any) {
-      toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de videocall niet starten.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleJoinCall = () => {
-    if (exchange.videocall_link) {
-      window.open(exchange.videocall_link, "_blank")
-    }
-  }
-
-  const handleCompleteCall = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/exchanges/${exchange.id}/videocall/complete`, {
-        method: "POST",
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to complete videocall")
-      }
-
-      toast({
-        title: "✅ Videocall voltooid!",
-        description: "Jullie kunnen nu beide de swap bevestigen.",
-      })
-
-      onStatusUpdate()
-    } catch (error: any) {
-      toast({
-        title: "Er is iets misgegaan",
-        description: error.message || "Kon de videocall niet voltooien.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const copyLink = async (link: string) => {
-    try {
-      await navigator.clipboard.writeText(link)
-      toast({
-        title: "Link gekopieerd",
-        description: "De Google Meet link is gekopieerd naar je klembord.",
-      })
-    } catch (error) {
-      toast({
-        title: "Kon link niet kopiëren",
-        description: "Probeer de link handmatig te selecteren en kopiëren.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const formatDateTime = (dateTimeString: string) => {
-    const date = new Date(dateTimeString)
-    return date.toLocaleString("nl-NL", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
+  const timeOptions = [
+    "09:00",
+    "10:00",
+    "11:00",
+    "12:00",
+    "13:00",
+    "14:00",
+    "15:00",
+    "16:00",
+    "17:00",
+    "18:00",
+    "19:00",
+    "20:00",
+  ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Video className="h-5 w-5" />
-          Kennismaking via Google Meet
-        </CardTitle>
+    <Card className="mb-4">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg">Plan een videocall</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="bg-blue-50 p-3 rounded-md">
-          <p className="text-blue-800 text-sm">
-            <strong>💡 Waarom een videocall?</strong> Maak kennis met elkaar voordat jullie de swap bevestigen. Dit
-            bouwt vertrouwen op en jullie kunnen details bespreken.
-          </p>
+      <CardContent>
+        <p className="text-sm text-gray-600 mb-4">
+          Plan een videocall om elkaar te leren kennen en vragen te stellen over elkaars woning.
+        </p>
+
+        <Tabs defaultValue="whereby" onValueChange={setActiveTab} className="mb-4">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="whereby">
+              <Video className="w-4 h-4 mr-2" />
+              Whereby (aanbevolen)
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp">
+              <Phone className="w-4 h-4 mr-2" />
+              WhatsApp
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="whereby" className="pt-2">
+            <p className="text-sm text-gray-600 mb-2">
+              Whereby werkt direct in je browser zonder installatie. HD kwaliteit en betrouwbare verbinding.
+            </p>
+          </TabsContent>
+          <TabsContent value="whatsapp" className="pt-2">
+            <p className="text-sm text-gray-600 mb-2">
+              Gebruik WhatsApp als je dat liever hebt. Je kunt telefoonnummers uitwisselen via de chat.
+            </p>
+          </TabsContent>
+        </Tabs>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Datum</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date ? format(date, "PPP", { locale: nl }) : <span>Kies een datum</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  disabled={(date) => date < new Date() || date > addDays(new Date(), 90)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tijd</label>
+            <select
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            >
+              {timeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Geplande videocall weergave */}
-        {exchange.videocall_scheduled_at && exchange.videocall_link && (
-          <div className="bg-green-50 p-3 rounded-md">
-            <p className="text-green-800 text-sm mb-2">
-              <strong>📹 Geplande Google Meet:</strong>
-              <br />
-              {formatDateTime(exchange.videocall_scheduled_at)}
-            </p>
-            <div className="flex gap-2 mb-3">
-              <Button onClick={handleJoinCall} className="flex-1" variant="outline">
-                <Video className="mr-2 h-4 w-4" />
-                Deelnemen aan Google Meet
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-              <Button onClick={() => copyLink(exchange.videocall_link!)} variant="outline" size="icon">
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            <Button
-              onClick={handleCompleteCall}
-              disabled={isLoading}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              <Users className="mr-2 h-4 w-4" />
-              {isLoading ? "Voltooien..." : "Videocall Voltooid"}
-            </Button>
-          </div>
-        )}
-
-        {/* Directe videocall optie */}
-        {!exchange.videocall_link && (
-          <div className="space-y-3">
-            <Button onClick={handleInstantCall} disabled={isLoading} className="w-full bg-green-600 hover:bg-green-700">
-              <Phone className="mr-2 h-4 w-4" />
-              {isLoading ? "Starten..." : "Start Direct Google Meet"}
-            </Button>
-            <p className="text-xs text-gray-500 text-center">Start direct een Google Meet videocall</p>
-          </div>
-        )}
-
-        {/* Planning interface */}
-        {!exchange.videocall_link && (
-          <div className="border-t pt-4">
-            <h4 className="font-medium mb-3">Of plan een Google Meet</h4>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="date">Datum</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="time">Tijd</Label>
-                <Input id="time" type="time" value={selectedTime} onChange={(e) => setSelectedTime(e.target.value)} />
-              </div>
-
-              <Button onClick={handleScheduleCall} disabled={isLoading} variant="outline" className="w-full">
-                <Calendar className="mr-2 h-4 w-4" />
-                {isLoading ? "Plannen..." : "Plan Google Meet"}
-              </Button>
-            </div>
-          </div>
-        )}
+        <Button
+          onClick={handleScheduleCall}
+          className="w-full bg-teal-600 hover:bg-teal-700"
+          disabled={isSubmitting || !date}
+        >
+          {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Video className="mr-2 h-4 w-4" />}
+          Plan Videocall
+        </Button>
       </CardContent>
     </Card>
   )
