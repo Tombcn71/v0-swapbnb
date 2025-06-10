@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Video, ExternalLink, X } from "lucide-react"
+import { Video, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface VideocallBannerProps {
@@ -14,6 +14,7 @@ export function VideocallBanner({ exchangeId }: VideocallBannerProps) {
   const [videocallData, setVideocallData] = useState<any>(null)
   const [isVisible, setIsVisible] = useState(true)
   const { toast } = useToast()
+  const [isCallActive, setIsCallActive] = useState(false)
 
   useEffect(() => {
     // Check for active videocall
@@ -48,22 +49,55 @@ export function VideocallBanner({ exchangeId }: VideocallBannerProps) {
     return () => clearInterval(interval)
   }, [exchangeId])
 
-  if (!videocallData || !isVisible) {
-    return null
+  const handleJoinCall = () => {
+    setIsCallActive(true)
+    toast({
+      title: "Videocall gestart",
+      description: "Je bent nu verbonden met de videocall.",
+    })
   }
 
-  const handleJoinCall = () => {
-    window.open(videocallData.link, "_blank", "noopener,noreferrer")
-    toast({
-      title: "Videocall geopend",
-      description: "De videocall is geopend in een nieuwe tab.",
-    })
+  const handleEndCall = () => {
+    setIsCallActive(false)
   }
 
   const handleDismiss = () => {
     setIsVisible(false)
   }
 
+  if (!videocallData || !isVisible) {
+    return null
+  }
+
+  // Als videocall actief is, toon iframe
+  if (isCallActive) {
+    return (
+      <Card className="bg-black">
+        <CardContent className="p-0">
+          <div className="bg-gray-900 p-2 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-white">
+              <Video className="h-4 w-4 text-green-400" />
+              <span className="text-sm font-medium">Videocall actief</span>
+            </div>
+            <Button onClick={handleEndCall} size="sm" variant="ghost" className="text-white hover:bg-gray-700">
+              <X className="h-4 w-4 mr-1" />
+              Sluiten
+            </Button>
+          </div>
+          <div className="h-96 w-full">
+            <iframe
+              src={videocallData.link}
+              allow="camera; microphone; fullscreen; speaker; display-capture"
+              className="w-full h-full border-0"
+              title="Videocall"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Anders toon de banner (rest blijft hetzelfde)
   return (
     <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200 shadow-lg">
       <CardContent className="p-4">
@@ -82,15 +116,6 @@ export function VideocallBanner({ exchangeId }: VideocallBannerProps) {
             <Button onClick={handleJoinCall} className="bg-green-600 hover:bg-green-700 text-white">
               <Video className="h-4 w-4 mr-2" />
               Deelnemen
-            </Button>
-
-            <Button
-              onClick={handleJoinCall}
-              variant="outline"
-              className="border-green-300 text-green-700 hover:bg-green-50"
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Nieuwe tab
             </Button>
 
             <Button onClick={handleDismiss} variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
