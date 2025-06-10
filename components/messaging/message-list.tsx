@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Send, AlertCircle, Trash2, MoreVertical, Video, Phone } from "lucide-react"
+import { Send, AlertCircle, Trash2, MoreVertical, Video, Phone, Copy } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useToast } from "@/hooks/use-toast"
@@ -23,7 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Message {
   id: string
@@ -48,7 +47,6 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null)
-  const [videocallUrl, setVideocallUrl] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
@@ -185,71 +183,83 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
     }
   }
 
+  const copyLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link)
+      toast({
+        title: "Link gekopieerd",
+        description: "De videocall link is gekopieerd naar je klembord.",
+      })
+    } catch (error) {
+      toast({
+        title: "Kon link niet kopiëren",
+        description: "Probeer de link handmatig te selecteren en kopiëren.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const renderMessageContent = (message: Message) => {
     const isVideocallMessage =
       message.message_type === "videocall_scheduled" || message.message_type === "videocall_invite"
 
     if (isVideocallMessage) {
       try {
-        // Parse the message content to extract videocall info
+        // Parse the JSON content
         const messageData = JSON.parse(message.content)
-        const { text, link, linkText } = messageData
+        const { text, link, linkText, scheduledAt } = messageData
 
         return (
-          <div className="space-y-2">
-            <p>{text}</p>
-            <div className="flex gap-2 mt-2">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              {message.message_type === "videocall_scheduled" ? (
+                <Video className="h-4 w-4 text-blue-600" />
+              ) : (
+                <Phone className="h-4 w-4 text-green-600" />
+              )}
+              <span className="text-sm font-medium text-blue-800">
+                {message.message_type === "videocall_scheduled" ? "Geplande Videocall" : "Videocall Uitnodiging"}
+              </span>
+            </div>
+
+            <p className="text-sm">{text}</p>
+
+            {scheduledAt && (
+              <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                📅{" "}
+                {new Date(scheduledAt).toLocaleString("nl-NL", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            )}
+
+            <div className="flex gap-2 mt-3">
               <Button
-                onClick={() => setVideocallUrl(link)}
+                onClick={() => window.open(link, "_blank")}
                 size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Video className="h-4 w-4 mr-1" />
                 Deelnemen
               </Button>
-              <Button
-                onClick={() => {
-                  window.open(link, "_blank")
-                }}
-                variant="outline"
-                size="sm"
-              >
-                Externe link
-              </Button>
-              <Button
-                onClick={() => {
-                  navigator.clipboard.writeText(link)
-                  toast({
-                    title: "Link gekopieerd",
-                    description: "De videocall link is gekopieerd naar je klembord.",
-                  })
-                }}
-                variant="outline"
-                size="sm"
-              >
-                Kopieer link
+              <Button onClick={() => copyLink(link)} variant="outline" size="sm">
+                <Copy className="h-4 w-4" />
               </Button>
             </div>
           </div>
         )
       } catch (e) {
-        // Fallback if parsing fails
+        console.error("Error parsing videocall message:", e)
+        // Fallback - toon de raw content als er een parsing error is
         return (
           <div>
-            <p>{message.content}</p>
-            <Button
-              onClick={() => {
-                const linkMatch = message.content.match(/(https:\/\/[^\s]+)/)
-                if (linkMatch) {
-                  window.open(linkMatch[1], "_blank")
-                }
-              }}
-              size="sm"
-              className="mt-2"
-            >
-              <Video className="h-4 w-4 mr-1" />
-              Videocall openen
-            </Button>
+            <p className="text-sm text-red-600">Fout bij het laden van videocall bericht</p>
+            <p className="text-xs text-gray-500 mt-1">{message.content}</p>
           </div>
         )
       }
@@ -343,29 +353,13 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
                     <Card
                       className={`${
                         isVideocallMessage
-                          ? "bg-blue-50 border-blue-200"
+                          ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
                           : isCurrentUser
                             ? "bg-teal-500 text-white"
                             : "bg-gray-100"
                       }`}
                     >
-                      <CardContent className="p-3">
-                        {isVideocallMessage && (
-                          <div className="flex items-center gap-2 mb-2">
-                            {message.message_type === "videocall_scheduled" ? (
-                              <Video className="h-4 w-4 text-blue-600" />
-                            ) : (
-                              <Phone className="h-4 w-4 text-green-600" />
-                            )}
-                            <span className="text-sm font-medium text-blue-800">
-                              {message.message_type === "videocall_scheduled"
-                                ? "Videocall Gepland"
-                                : "Videocall Uitnodiging"}
-                            </span>
-                          </div>
-                        )}
-                        {renderMessageContent(message)}
-                      </CardContent>
+                      <CardContent className="p-3">{renderMessageContent(message)}</CardContent>
                     </Card>
                     <p className={`text-xs text-gray-500 mt-1 ${isCurrentUser ? "text-right" : ""}`}>
                       {formatDistanceToNow(new Date(message.created_at), { addSuffix: true, locale: nl })}
@@ -414,27 +408,6 @@ export function MessageList({ recipientId, recipientName }: MessageListProps) {
           </Button>
         </div>
       </div>
-
-      {/* Videocall modal */}
-      <Dialog open={!!videocallUrl} onOpenChange={(open) => !open && setVideocallUrl(null)}>
-        <DialogContent className="sm:max-w-[90vw] max-h-[90vh] p-0">
-          <DialogHeader className="p-4">
-            <DialogTitle>Videocall</DialogTitle>
-            <DialogDescription>
-              Je kunt deze videocall sluiten door op ESC te drukken of buiten het venster te klikken.
-            </DialogDescription>
-          </DialogHeader>
-          {videocallUrl && (
-            <div className="w-full h-[70vh]">
-              <iframe
-                src={videocallUrl}
-                allow="camera; microphone; fullscreen; speaker; display-capture"
-                className="w-full h-full border-0"
-              ></iframe>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Bevestigingsdialoog voor het verwijderen van een bericht */}
       <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>

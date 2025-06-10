@@ -36,7 +36,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const receiverId = isRequester ? exchangeData.host_id : exchangeData.requester_id
     const receiverName = isRequester ? exchangeData.host_name : exchangeData.requester_name
 
-    // Maak Daily.co room aan
+    // Maak Daily.co room aan met Prebuilt
     const roomName = `swapbnb-${exchangeId}-${Date.now()}`
     const dailyApiKey = process.env.DAILY_API_KEY
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     if (dailyApiKey) {
       try {
-        // Maak room aan via Daily.co API
+        // Maak room aan via Daily.co API (Prebuilt)
         const roomResponse = await fetch("https://api.daily.co/v1/rooms", {
           method: "POST",
           headers: {
@@ -60,6 +60,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
               start_video_off: false,
               start_audio_off: false,
               exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 uur geldig
+              enable_prejoin_ui: true, // Prebuilt UI
+              enable_network_ui: true,
+              enable_people_ui: true,
             },
           }),
         })
