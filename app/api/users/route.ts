@@ -1,9 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/db"
 import bcrypt from "bcryptjs"
-import { render } from "@react-email/render"
-import { sendEmail } from "@/lib/email-service"
-import WelcomeEmail from "@/emails/templates/welcome"
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,25 +28,6 @@ export async function POST(request: NextRequest) {
     )
 
     const newUser = result[0]
-
-    // Send welcome email
-    try {
-      const emailHtml = render(
-        WelcomeEmail({
-          userName: newUser.name,
-          loginUrl: `${process.env.NEXTAUTH_URL}/login`,
-        }),
-      )
-
-      await sendEmail({
-        to: newUser.email,
-        subject: "Welcome to SwapBnB! 🏠",
-        html: emailHtml,
-      })
-    } catch (error) {
-      console.error("Failed to send welcome email:", error)
-      // Don't fail user creation if email fails
-    }
 
     return NextResponse.json(
       {
