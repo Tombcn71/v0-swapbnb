@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Users } from "lucide-react"
+import { Users, CreditCard, AlertCircle } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
+import Link from "next/link"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -31,6 +32,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
+  const [userCredits, setUserCredits] = useState<number | null>(null)
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true)
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -51,6 +54,28 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     fetchAvailabilities()
   }, [targetHome?.id])
 
+  // Fetch user credits
+  useEffect(() => {
+    async function fetchUserCredits() {
+      if (!session?.user) return
+
+      setIsLoadingCredits(true)
+      try {
+        const response = await fetch("/api/credits")
+        if (response.ok) {
+          const data = await response.json()
+          setUserCredits(data.credits)
+        }
+      } catch (error) {
+        console.error("Error fetching credits:", error)
+      } finally {
+        setIsLoadingCredits(false)
+      }
+    }
+
+    fetchUserCredits()
+  }, [session?.user])
+
   // Convert availabilities to DateRange format
   const availableDateRanges = availabilities.map((availability) => ({
     from: new Date(availability.start_date || availability.startDate),
@@ -68,6 +93,16 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     if (!selectedHomeId || !dateRange?.from || !dateRange?.to || !message.trim()) {
       toast({
         title: "Vul alle velden in",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if user has enough credits
+    if (userCredits !== null && userCredits < 1) {
+      toast({
+        title: "Niet genoeg credits",
+        description: "Je hebt minimaal 1 credit nodig om een swap aan te vragen.",
         variant: "destructive",
       })
       return
@@ -151,6 +186,45 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         <CardTitle>Swap aanvragen</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Credits info banner */}
+        <div
+          className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
+            isLoadingCredits
+              ? "bg-gray-100"
+              : userCredits !== null && userCredits < 1
+                ? "bg-red-50 text-red-800"
+                : "bg-green-50 text-green-800"
+          }`}
+        >
+          {isLoadingCredits ? (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+              <span>Credits laden...</span>
+            </div>
+          ) : userCredits !== null && userCredits < 1 ? (
+            <>
+              <AlertCircle className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Je hebt geen credits meer</p>
+                <p className="text-sm">Je hebt minimaal 1 credit nodig om een swap aan te vragen.</p>
+                <Link href="/credits" className="text-sm underline mt-1 inline-block">
+                  Koop credits
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <CreditCard className="h-5 w-5" />
+              <div>
+                <p className="font-medium">
+                  Je hebt {userCredits} credit{userCredits !== 1 ? "s" : ""}
+                </p>
+                <p className="text-sm">1 credit wordt gebruikt bij het versturen van deze aanvraag.</p>
+              </div>
+            </>
+          )}
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>Je huis</Label>
@@ -202,7 +276,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || isLoadingCredits || (userCredits !== null && userCredits < 1)}
+          >
             {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
           </Button>
         </form>
