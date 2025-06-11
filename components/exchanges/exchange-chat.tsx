@@ -351,7 +351,7 @@ export function ExchangeChat({
       />
 
       {/* Videocall Banner - Shows between progress and chat */}
-      <VideocallBanner exchangeId={exchange.id} />
+      <VideocallBanner exchangeId={exchange.id} onStatusUpdate={onStatusUpdate} />
 
       {/* Videocall Scheduler - Show when in conversation */}
       {exchange.status === "accepted" && <VideocallScheduler exchange={exchange} onStatusUpdate={onStatusUpdate} />}

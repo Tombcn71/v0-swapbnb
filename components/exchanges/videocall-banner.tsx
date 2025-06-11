@@ -3,18 +3,20 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Video, X } from "lucide-react"
+import { Video, X, CheckCircle, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface VideocallBannerProps {
   exchangeId: string
+  onStatusUpdate?: () => void
 }
 
-export function VideocallBanner({ exchangeId }: VideocallBannerProps) {
+export function VideocallBanner({ exchangeId, onStatusUpdate }: VideocallBannerProps) {
   const [videocallData, setVideocallData] = useState<any>(null)
   const [isVisible, setIsVisible] = useState(true)
   const { toast } = useToast()
   const [isCallActive, setIsCallActive] = useState(false)
+  const [isCompleting, setIsCompleting] = useState(false)
 
   useEffect(() => {
     // Check for active videocall
@@ -65,6 +67,38 @@ export function VideocallBanner({ exchangeId }: VideocallBannerProps) {
     setIsVisible(false)
   }
 
+  const handleCompleteCall = async () => {
+    setIsCompleting(true)
+    try {
+      const response = await fetch(`/api/exchanges/${exchangeId}/videocall/complete`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        toast({
+          title: "✅ Videocall voltooid!",
+          description: "Je kunt nu doorgaan naar de bevestigingsstap.",
+        })
+        setIsVisible(false)
+        if (onStatusUpdate) {
+          onStatusUpdate()
+        }
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to complete videocall")
+      }
+    } catch (error: any) {
+      console.error("Error completing videocall:", error)
+      toast({
+        title: "❌ Fout",
+        description: error.message || "Er is een fout opgetreden bij het voltooien van de videocall.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCompleting(false)
+    }
+  }
+
   if (!videocallData || !isVisible) {
     return null
   }
@@ -79,10 +113,25 @@ export function VideocallBanner({ exchangeId }: VideocallBannerProps) {
               <Video className="h-4 w-4 text-green-400" />
               <span className="text-sm font-medium">Videocall actief</span>
             </div>
-            <Button onClick={handleEndCall} size="sm" variant="ghost" className="text-white hover:bg-gray-700">
-              <X className="h-4 w-4 mr-1" />
-              Sluiten
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleCompleteCall}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={isCompleting}
+              >
+                {isCompleting ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                )}
+                Videocall voltooid
+              </Button>
+              <Button onClick={handleEndCall} size="sm" variant="ghost" className="text-white hover:bg-gray-700">
+                <X className="h-4 w-4 mr-1" />
+                Sluiten
+              </Button>
+            </div>
           </div>
           <div className="h-96 w-full">
             <iframe
