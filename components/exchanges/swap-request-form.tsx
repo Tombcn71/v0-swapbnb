@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Users, CreditCard, AlertCircle, X } from "lucide-react"
+import { Users, X } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
 
@@ -32,13 +32,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
-  const [isLoadingCredits, setIsLoadingCredits] = useState(true)
   const [showModal, setShowModal] = useState(false)
 
-  // Fetch availabilities
+  // Fetch availabilities for the target home
   useEffect(() => {
     async function fetchAvailabilities() {
       if (!targetHome?.id) return
+
       try {
         const response = await fetch(`/api/availabilities?homeId=${targetHome.id}`)
         if (response.ok) {
@@ -49,17 +49,15 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         console.error("Error fetching availabilities:", error)
       }
     }
+
     fetchAvailabilities()
   }, [targetHome?.id])
 
   // Fetch user credits
   useEffect(() => {
     async function fetchUserCredits() {
-      if (!session?.user) {
-        setIsLoadingCredits(false)
-        return
-      }
-      setIsLoadingCredits(true)
+      if (!session?.user) return
+
       try {
         const response = await fetch("/api/credits")
         if (response.ok) {
@@ -68,13 +66,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         }
       } catch (error) {
         console.error("Error fetching credits:", error)
-      } finally {
-        setIsLoadingCredits(false)
       }
     }
+
     fetchUserCredits()
   }, [session?.user])
 
+  // Convert availabilities to DateRange format
   const availableDateRanges = availabilities.map((availability) => ({
     from: new Date(availability.start_date || availability.startDate),
     to: new Date(availability.end_date || availability.endDate),
@@ -181,34 +179,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
         <CardContent>
-          {!isLoadingCredits && (
-            <div
-              className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
-                userCredits !== null && userCredits < 1 ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"
-              }`}
-            >
-              {userCredits !== null && userCredits < 1 ? (
-                <>
-                  <AlertCircle className="h-5 w-5" />
-                  <div>
-                    <p className="font-medium">Je hebt geen credits meer</p>
-                    <p className="text-sm">Je hebt credits nodig om een swap aan te vragen.</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <CreditCard className="h-5 w-5" />
-                  <div>
-                    <p className="font-medium">
-                      Je hebt {userCredits} credit{userCredits !== 1 ? "s" : ""}
-                    </p>
-                    <p className="text-sm">1 credit wordt gebruikt bij het versturen van deze aanvraag.</p>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
@@ -267,33 +237,25 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         </CardContent>
       </Card>
 
-      {/* CONDITIONAL POPUP */}
+      {/* MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Je hebt credits nodig</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-bold">Credits nodig</h2>
+              <button onClick={() => setShowModal(false)}>
                 <X className="h-5 w-5" />
               </button>
             </div>
-
-            <p className="mb-6 text-gray-600">
-              Om een swap aanvraag te versturen heb je credits nodig. Credits helpen ons om spam te voorkomen en zorgen
-              ervoor dat alleen serieuze gebruikers aanvragen kunnen doen.
+            <p className="mb-6">
+              Je hebt credits nodig om een swap aan te vragen. Credits voorkomen spam en zorgen voor serieuze
+              gebruikers.
             </p>
-
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setShowModal(false)} className="flex-1">
                 Sluiten
               </Button>
-              <Button
-                onClick={() => {
-                  setShowModal(false)
-                  router.push("/credits")
-                }}
-                className="flex-1"
-              >
+              <Button onClick={() => router.push("/credits")} className="flex-1">
                 Credits kopen
               </Button>
             </div>
