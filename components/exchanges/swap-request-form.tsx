@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Users, CreditCard, AlertCircle } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
-import { CreditExplanationModal } from "./credit-explanation-modal"
+import { SimpleCreditModal } from "./simple-credit-modal"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -34,7 +34,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
   const [isLoadingCredits, setIsLoadingCredits] = useState(true)
-  const [isExplanationModalOpen, setIsExplanationModalOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -77,23 +77,23 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     fetchUserCredits()
   }, [session?.user])
 
+  // Open modal when credits are insufficient
+  useEffect(() => {
+    if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
+      setIsModalOpen(true)
+    }
+  }, [isLoadingCredits, userCredits])
+
   // Convert availabilities to DateRange format
   const availableDateRanges = availabilities.map((availability) => ({
     from: new Date(availability.start_date || availability.startDate),
     to: new Date(availability.end_date || availability.endDate),
   }))
 
-  // Open modal when credits are insufficient
-  useEffect(() => {
+  const handleFormClick = () => {
     if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
-      console.log("Should open modal: insufficient credits detected")
-      setIsExplanationModalOpen(true)
+      setIsModalOpen(true)
     }
-  }, [isLoadingCredits, userCredits])
-
-  const openModal = () => {
-    console.log("Opening modal manually")
-    setIsExplanationModalOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,8 +106,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
     // Check credits first
     if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
-      console.log("Opening modal on submit")
-      setIsExplanationModalOpen(true)
+      setIsModalOpen(true)
       return
     }
 
@@ -207,7 +206,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   ? "bg-amber-50 text-amber-800 cursor-pointer hover:bg-amber-100"
                   : "bg-green-50 text-green-800"
             }`}
-            onClick={openModal}
+            onClick={() => setIsModalOpen(true)}
             style={{ cursor: "pointer" }}
           >
             {isLoadingCredits ? (
@@ -232,7 +231,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   </p>
                   <p className="text-sm">
                     1 credit wordt gebruikt bij het versturen van deze aanvraag.{" "}
-                    <span className="underline cursor-pointer" onClick={openModal}>
+                    <span
+                      className="underline cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsModalOpen(true)
+                      }}
+                    >
                       Meer info
                     </span>
                   </p>
@@ -241,12 +246,16 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
             )}
           </div>
 
-          {/* Test button - VERWIJDER NA TESTEN */}
-          <Button type="button" onClick={openModal} className="mb-4 w-full bg-amber-500 hover:bg-amber-600">
+          {/* Test button */}
+          <Button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="mb-4 w-full bg-amber-500 hover:bg-amber-600"
+          >
             Open Credits Uitleg (TEST KNOP)
           </Button>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" onClick={handleFormClick}>
             <div>
               <Label>Je huis</Label>
               <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
@@ -308,13 +317,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         </CardContent>
       </Card>
 
-      <CreditExplanationModal
-        open={isExplanationModalOpen}
-        onOpenChange={(open) => {
-          console.log("Modal state changing to:", open)
-          setIsExplanationModalOpen(open)
-        }}
-      />
+      {/* Simple modal without dependencies */}
+      <SimpleCreditModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </>
   )
 }
