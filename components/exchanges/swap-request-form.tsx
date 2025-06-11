@@ -80,7 +80,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     fetchUserCredits()
   }, [session?.user])
 
-  // Open modal ONLY for logged in users with insufficient credits
+  // Open modal ONLY for logged in users with insufficient credits (bij laden van component)
   useEffect(() => {
     if (session?.user && !isLoadingCredits && userCredits !== null && userCredits < 1) {
       setIsModalOpen(true)
@@ -93,13 +93,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
-  const handleFormClick = () => {
-    // Only show modal for logged in users with insufficient credits
-    if (session?.user && !isLoadingCredits && userCredits !== null && userCredits < 1) {
-      setIsModalOpen(true)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -108,10 +101,10 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
       return
     }
 
-    // Check credits for logged in users
+    // Check credits for logged in users (bij indienen van formulier)
     if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
       setIsModalOpen(true)
-      return
+      return // Stop hier - geen verdere verwerking
     }
 
     if (!selectedHomeId || !dateRange?.from || !dateRange?.to || !message.trim()) {
@@ -234,7 +227,15 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                     </p>
                     <p className="text-sm">
                       1 credit wordt gebruikt bij het versturen van deze aanvraag.{" "}
-                      <span className="underline">Meer info</span>
+                      <span
+                        className="underline cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setIsModalOpen(true)
+                        }}
+                      >
+                        Meer info
+                      </span>
                     </p>
                   </div>
                 </>
@@ -261,7 +262,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
             </Button>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" onClick={handleFormClick}>
+          {/* BELANGRIJKE WIJZIGING: onClick verwijderd van form element */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
               <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
