@@ -83,17 +83,17 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
-  // Check if user has insufficient credits and show modal
-  const checkCreditsAndShowModal = (e?: React.MouseEvent) => {
+  // Open modal when credits are insufficient
+  useEffect(() => {
     if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
-      if (e) {
-        e.preventDefault()
-        e.stopPropagation()
-      }
+      console.log("Should open modal: insufficient credits detected")
       setIsExplanationModalOpen(true)
-      return true
     }
-    return false
+  }, [isLoadingCredits, userCredits])
+
+  const openModal = () => {
+    console.log("Opening modal manually")
+    setIsExplanationModalOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,7 +105,9 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     }
 
     // Check credits first
-    if (checkCreditsAndShowModal()) {
+    if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
+      console.log("Opening modal on submit")
+      setIsExplanationModalOpen(true)
       return
     }
 
@@ -205,7 +207,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   ? "bg-amber-50 text-amber-800 cursor-pointer hover:bg-amber-100"
                   : "bg-green-50 text-green-800"
             }`}
-            onClick={() => setIsExplanationModalOpen(true)}
+            onClick={openModal}
+            style={{ cursor: "pointer" }}
           >
             {isLoadingCredits ? (
               <div className="flex items-center gap-2">
@@ -228,24 +231,26 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                     Je hebt {userCredits} credit{userCredits !== 1 ? "s" : ""}
                   </p>
                   <p className="text-sm">
-                    1 credit wordt gebruikt bij het versturen van deze aanvraag. Klik voor meer info.
+                    1 credit wordt gebruikt bij het versturen van deze aanvraag.{" "}
+                    <span className="underline cursor-pointer" onClick={openModal}>
+                      Meer info
+                    </span>
                   </p>
                 </div>
               </>
             )}
           </div>
 
+          {/* Test button - VERWIJDER NA TESTEN */}
+          <Button type="button" onClick={openModal} className="mb-4 w-full bg-amber-500 hover:bg-amber-600">
+            Open Credits Uitleg (TEST KNOP)
+          </Button>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div onClick={checkCreditsAndShowModal}>
+            <div>
               <Label>Je huis</Label>
-              <Select
-                value={selectedHomeId}
-                onValueChange={setSelectedHomeId}
-                onOpenChange={(open) => {
-                  if (open) checkCreditsAndShowModal()
-                }}
-              >
-                <SelectTrigger onClick={checkCreditsAndShowModal}>
+              <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -258,22 +263,16 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               </Select>
             </div>
 
-            <div onClick={checkCreditsAndShowModal}>
+            <div>
               <Label>Datums</Label>
-              <div onClick={checkCreditsAndShowModal}>
-                <DatePickerWithRange
-                  dateRange={dateRange}
-                  setDateRange={(range) => {
-                    if (!checkCreditsAndShowModal()) {
-                      setDateRange(range)
-                    }
-                  }}
-                  availableDateRanges={availableDateRanges}
-                />
-              </div>
+              <DatePickerWithRange
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                availableDateRanges={availableDateRanges}
+              />
             </div>
 
-            <div onClick={checkCreditsAndShowModal}>
+            <div>
               <Label>Gasten</Label>
               <div className="relative">
                 <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -281,31 +280,19 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   type="number"
                   min="1"
                   value={guests}
-                  onChange={(e) => {
-                    if (!checkCreditsAndShowModal()) {
-                      setGuests(Number(e.target.value) || 1)
-                    }
-                  }}
-                  onClick={checkCreditsAndShowModal}
-                  onFocus={checkCreditsAndShowModal}
+                  onChange={(e) => setGuests(Number(e.target.value) || 1)}
                   className="pl-10"
                   required
                 />
               </div>
             </div>
 
-            <div onClick={checkCreditsAndShowModal}>
+            <div>
               <Label>Bericht</Label>
               <Textarea
                 placeholder={`Hallo ${targetHome.owner_name}...`}
                 value={message}
-                onChange={(e) => {
-                  if (!checkCreditsAndShowModal()) {
-                    setMessage(e.target.value)
-                  }
-                }}
-                onClick={checkCreditsAndShowModal}
-                onFocus={checkCreditsAndShowModal}
+                onChange={(e) => setMessage(e.target.value)}
                 required
               />
             </div>
@@ -313,12 +300,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
             <Button
               type="submit"
               className="w-full"
-              disabled={isSubmitting || isLoadingCredits}
-              onClick={(e) => {
-                if (checkCreditsAndShowModal(e)) {
-                  e.preventDefault()
-                }
-              }}
+              disabled={isSubmitting || isLoadingCredits || (userCredits !== null && userCredits < 1)}
             >
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
@@ -326,7 +308,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         </CardContent>
       </Card>
 
-      <CreditExplanationModal open={isExplanationModalOpen} onOpenChange={setIsExplanationModalOpen} />
+      <CreditExplanationModal
+        open={isExplanationModalOpen}
+        onOpenChange={(open) => {
+          console.log("Modal state changing to:", open)
+          setIsExplanationModalOpen(open)
+        }}
+      />
     </>
   )
 }

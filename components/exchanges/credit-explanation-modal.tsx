@@ -1,4 +1,5 @@
 "use client"
+import { useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,11 @@ interface CreditExplanationModalProps {
 
 export function CreditExplanationModal({ open, onOpenChange }: CreditExplanationModalProps) {
   const router = useRouter()
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Modal open state:", open)
+  }, [open])
 
   const handleBuyCredits = () => {
     router.push("/credits")
