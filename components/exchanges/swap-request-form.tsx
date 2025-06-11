@@ -11,10 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Users, CreditCard, AlertCircle } from "lucide-react"
+import { Users, CreditCard, AlertCircle, X } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
-import { SimpleCreditModal } from "./simple-credit-modal"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -34,13 +33,12 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
   const [isLoadingCredits, setIsLoadingCredits] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [showModal, setShowModal] = useState(false)
 
-  // Fetch availabilities for the target home
+  // Fetch availabilities
   useEffect(() => {
     async function fetchAvailabilities() {
       if (!targetHome?.id) return
-
       try {
         const response = await fetch(`/api/availabilities?homeId=${targetHome.id}`)
         if (response.ok) {
@@ -51,18 +49,16 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         console.error("Error fetching availabilities:", error)
       }
     }
-
     fetchAvailabilities()
   }, [targetHome?.id])
 
-  // Fetch user credits ONLY if user is logged in
+  // Fetch user credits
   useEffect(() => {
     async function fetchUserCredits() {
       if (!session?.user) {
         setIsLoadingCredits(false)
         return
       }
-
       setIsLoadingCredits(true)
       try {
         const response = await fetch("/api/credits")
@@ -76,18 +72,9 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         setIsLoadingCredits(false)
       }
     }
-
     fetchUserCredits()
   }, [session?.user])
 
-  // Open modal ONLY for logged in users with insufficient credits (bij laden van component)
-  useEffect(() => {
-    if (session?.user && !isLoadingCredits && userCredits !== null && userCredits < 1) {
-      setIsModalOpen(true)
-    }
-  }, [session?.user, isLoadingCredits, userCredits])
-
-  // Convert availabilities to DateRange format
   const availableDateRanges = availabilities.map((availability) => ({
     from: new Date(availability.start_date || availability.startDate),
     to: new Date(availability.end_date || availability.endDate),
@@ -101,10 +88,10 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
       return
     }
 
-    // Check credits for logged in users (bij indienen van formulier)
-    if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
-      setIsModalOpen(true)
-      return // Stop hier - geen verdere verwerking
+    // Check credits
+    if (userCredits !== null && userCredits < 1) {
+      setShowModal(true)
+      return
     }
 
     if (!selectedHomeId || !dateRange?.from || !dateRange?.to || !message.trim()) {
@@ -156,7 +143,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     }
   }
 
-  // SITUATIE 1: Gebruiker is NIET ingelogd
   if (!session) {
     return (
       <Card>
@@ -164,7 +150,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600 mb-4">Je moet ingelogd zijn om een swap aan te vragen.</p>
           <Button onClick={() => router.push("/login")} className="w-full">
             Inloggen voor swap
           </Button>
@@ -173,7 +158,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     )
   }
 
-  // SITUATIE 2: Gebruiker heeft geen woningen
   if (userHomes.length === 0) {
     return (
       <Card>
@@ -190,7 +174,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     )
   }
 
-  // SITUATIE 3: Gebruiker is ingelogd en heeft woningen
   return (
     <>
       <Card>
@@ -198,24 +181,18 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Credits info banner - ALLEEN voor ingelogde gebruikers */}
           {!isLoadingCredits && (
             <div
               className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
-                userCredits !== null && userCredits < 1
-                  ? "bg-amber-50 text-amber-800 cursor-pointer hover:bg-amber-100"
-                  : "bg-green-50 text-green-800 cursor-pointer hover:bg-green-100"
+                userCredits !== null && userCredits < 1 ? "bg-amber-50 text-amber-800" : "bg-green-50 text-green-800"
               }`}
-              onClick={() => setIsModalOpen(true)}
             >
               {userCredits !== null && userCredits < 1 ? (
                 <>
                   <AlertCircle className="h-5 w-5" />
                   <div>
                     <p className="font-medium">Je hebt geen credits meer</p>
-                    <p className="text-sm">
-                      Klik hier om te leren waarom we credits gebruiken en hoe je ze kunt kopen.
-                    </p>
+                    <p className="text-sm">Je hebt credits nodig om een swap aan te vragen.</p>
                   </div>
                 </>
               ) : (
@@ -225,44 +202,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                     <p className="font-medium">
                       Je hebt {userCredits} credit{userCredits !== 1 ? "s" : ""}
                     </p>
-                    <p className="text-sm">
-                      1 credit wordt gebruikt bij het versturen van deze aanvraag.{" "}
-                      <span
-                        className="underline cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setIsModalOpen(true)
-                        }}
-                      >
-                        Meer info
-                      </span>
-                    </p>
+                    <p className="text-sm">1 credit wordt gebruikt bij het versturen van deze aanvraag.</p>
                   </div>
                 </>
               )}
             </div>
           )}
 
-          {/* Loading state */}
-          {isLoadingCredits && (
-            <div className="mb-4 p-3 rounded-md bg-gray-100 flex items-center gap-2">
-              <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
-              <span>Credits laden...</span>
-            </div>
-          )}
-
-          {/* Test button - ALLEEN voor gebruikers met onvoldoende credits */}
-          {!isLoadingCredits && userCredits !== null && userCredits < 1 && (
-            <Button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="mb-4 w-full bg-amber-500 hover:bg-amber-600"
-            >
-              Open Credits Uitleg (TEST KNOP)
-            </Button>
-          )}
-
-          {/* BELANGRIJKE WIJZIGING: onClick verwijderd van form element */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
@@ -314,19 +260,46 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting || isLoadingCredits || (userCredits !== null && userCredits < 1)}
-            >
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* Modal ALLEEN voor ingelogde gebruikers */}
-      {session && <SimpleCreditModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />}
+      {/* CONDITIONAL POPUP */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Je hebt credits nodig</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="mb-6 text-gray-600">
+              Om een swap aanvraag te versturen heb je credits nodig. Credits helpen ons om spam te voorkomen en zorgen
+              ervoor dat alleen serieuze gebruikers aanvragen kunnen doen.
+            </p>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setShowModal(false)} className="flex-1">
+                Sluiten
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowModal(false)
+                  router.push("/credits")
+                }}
+                className="flex-1"
+              >
+                Credits kopen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
