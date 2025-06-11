@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Users, X } from "lucide-react"
+import { Users, CreditCard, AlertCircle } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
+import Link from "next/link"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -32,7 +33,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
-  const [showModal, setShowModal] = useState(false)
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true)
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -58,6 +59,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     async function fetchUserCredits() {
       if (!session?.user) return
 
+      setIsLoadingCredits(true)
       try {
         const response = await fetch("/api/credits")
         if (response.ok) {
@@ -66,6 +68,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         }
       } catch (error) {
         console.error("Error fetching credits:", error)
+      } finally {
+        setIsLoadingCredits(false)
       }
     }
 
@@ -86,15 +90,19 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
       return
     }
 
-    // Check credits
-    if (userCredits !== null && userCredits < 1) {
-      setShowModal(true)
-      return
-    }
-
     if (!selectedHomeId || !dateRange?.from || !dateRange?.to || !message.trim()) {
       toast({
         title: "Vul alle velden in",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if user has enough credits
+    if (userCredits !== null && userCredits < 1) {
+      toast({
+        title: "Niet genoeg credits",
+        description: "Je hebt minimaal 1 credit nodig om een swap aan te vragen.",
         variant: "destructive",
       })
       return
@@ -173,95 +181,110 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Swap aanvragen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label>Je huis</Label>
-              <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {userHomes.map((home) => (
-                    <SelectItem key={home.id} value={home.id}>
-                      {home.title} - {home.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <Card>
+      <CardHeader>
+        <CardTitle>Swap aanvragen</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Credits info banner */}
+        <div
+          className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
+            isLoadingCredits
+              ? "bg-gray-100"
+              : userCredits !== null && userCredits < 1
+                ? "bg-red-50 text-red-800"
+                : "bg-green-50 text-green-800"
+          }`}
+        >
+          {isLoadingCredits ? (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+              <span>Credits laden...</span>
             </div>
-
-            <div>
-              <Label>Datums</Label>
-              <DatePickerWithRange
-                dateRange={dateRange}
-                setDateRange={setDateRange}
-                availableDateRanges={availableDateRanges}
-              />
-            </div>
-
-            <div>
-              <Label>Gasten</Label>
-              <div className="relative">
-                <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  min="1"
-                  value={guests}
-                  onChange={(e) => setGuests(Number(e.target.value) || 1)}
-                  className="pl-10"
-                  required
-                />
+          ) : userCredits !== null && userCredits < 1 ? (
+            <>
+              <AlertCircle className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Je hebt geen credits meer</p>
+                <p className="text-sm">Je hebt minimaal 1 credit nodig om een swap aan te vragen.</p>
+                <Link href="/credits" className="text-sm underline mt-1 inline-block">
+                  Koop credits
+                </Link>
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              <CreditCard className="h-5 w-5" />
+              <div>
+                <p className="font-medium">
+                  Je hebt {userCredits} credit{userCredits !== 1 ? "s" : ""}
+                </p>
+                <p className="text-sm">1 credit wordt gebruikt bij het versturen van deze aanvraag.</p>
+              </div>
+            </>
+          )}
+        </div>
 
-            <div>
-              <Label>Bericht</Label>
-              <Textarea
-                placeholder={`Hallo ${targetHome.owner_name}...`}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Je huis</Label>
+            <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {userHomes.map((home) => (
+                  <SelectItem key={home.id} value={home.id}>
+                    {home.title} - {home.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Datums</Label>
+            <DatePickerWithRange
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              availableDateRanges={availableDateRanges}
+            />
+          </div>
+
+          <div>
+            <Label>Gasten</Label>
+            <div className="relative">
+              <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="number"
+                min="1"
+                value={guests}
+                onChange={(e) => setGuests(Number(e.target.value) || 1)}
+                className="pl-10"
                 required
               />
             </div>
-
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Credits nodig</h2>
-              <button onClick={() => setShowModal(false)}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <p className="mb-6">
-              Je hebt credits nodig om een swap aan te vragen. Credits voorkomen spam en zorgen voor serieuze
-              gebruikers.
-            </p>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setShowModal(false)} className="flex-1">
-                Sluiten
-              </Button>
-              <Button onClick={() => router.push("/credits")} className="flex-1">
-                Credits kopen
-              </Button>
-            </div>
           </div>
-        </div>
-      )}
-    </>
+
+          <div>
+            <Label>Bericht</Label>
+            <Textarea
+              placeholder={`Hallo ${targetHome.owner_name}...`}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || isLoadingCredits || (userCredits !== null && userCredits < 1)}
+          >
+            {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
