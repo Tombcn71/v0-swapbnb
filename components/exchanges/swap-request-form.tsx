@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Users, CreditCard, AlertCircle } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
-import Link from "next/link"
+import { CreditExplanationModal } from "./credit-explanation-modal"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -34,6 +34,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
   const [isLoadingCredits, setIsLoadingCredits] = useState(true)
+  const [isExplanationModalOpen, setIsExplanationModalOpen] = useState(false)
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -82,6 +83,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
+  const handleFormClick = () => {
+    // Open explanation modal if user has insufficient credits
+    if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
+      setIsExplanationModalOpen(true)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -100,11 +108,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
     // Check if user has enough credits
     if (userCredits !== null && userCredits < 1) {
-      toast({
-        title: "Niet genoeg credits",
-        description: "Je hebt minimaal 1 credit nodig om een swap aan te vragen.",
-        variant: "destructive",
-      })
+      setIsExplanationModalOpen(true)
       return
     }
 
@@ -181,110 +185,135 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Swap aanvragen</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Credits info banner */}
-        <div
-          className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
-            isLoadingCredits
-              ? "bg-gray-100"
-              : userCredits !== null && userCredits < 1
-                ? "bg-red-50 text-red-800"
-                : "bg-green-50 text-green-800"
-          }`}
-        >
-          {isLoadingCredits ? (
-            <div className="flex items-center gap-2">
-              <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
-              <span>Credits laden...</span>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Swap aanvragen</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Credits info banner */}
+          <div
+            className={`mb-4 p-3 rounded-md flex items-center gap-2 ${
+              isLoadingCredits
+                ? "bg-gray-100"
+                : userCredits !== null && userCredits < 1
+                  ? "bg-red-50 text-red-800"
+                  : "bg-green-50 text-green-800"
+            }`}
+            onClick={() => {
+              if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
+                setIsExplanationModalOpen(true)
+              }
+            }}
+            style={{ cursor: !isLoadingCredits && userCredits !== null && userCredits < 1 ? "pointer" : "default" }}
+          >
+            {isLoadingCredits ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+                <span>Credits laden...</span>
+              </div>
+            ) : userCredits !== null && userCredits < 1 ? (
+              <>
+                <AlertCircle className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">Je hebt geen credits meer</p>
+                  <p className="text-sm">Je hebt minimaal 1 credit nodig om een swap aan te vragen.</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsExplanationModalOpen(true)
+                    }}
+                    className="text-sm underline mt-1 inline-block"
+                  >
+                    Waarom credits?
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-5 w-5" />
+                <div>
+                  <p className="font-medium">
+                    Je hebt {userCredits} credit{userCredits !== 1 ? "s" : ""}
+                  </p>
+                  <p className="text-sm">1 credit wordt gebruikt bij het versturen van deze aanvraag.</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsExplanationModalOpen(true)
+                    }}
+                    className="text-sm underline mt-1 inline-block"
+                  >
+                    Waarom credits?
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4" onClick={handleFormClick}>
+            <div>
+              <Label>Je huis</Label>
+              <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {userHomes.map((home) => (
+                    <SelectItem key={home.id} value={home.id}>
+                      {home.title} - {home.city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : userCredits !== null && userCredits < 1 ? (
-            <>
-              <AlertCircle className="h-5 w-5" />
-              <div>
-                <p className="font-medium">Je hebt geen credits meer</p>
-                <p className="text-sm">Je hebt minimaal 1 credit nodig om een swap aan te vragen.</p>
-                <Link href="/credits" className="text-sm underline mt-1 inline-block">
-                  Koop credits
-                </Link>
+
+            <div>
+              <Label>Datums</Label>
+              <DatePickerWithRange
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                availableDateRanges={availableDateRanges}
+              />
+            </div>
+
+            <div>
+              <Label>Gasten</Label>
+              <div className="relative">
+                <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  min="1"
+                  value={guests}
+                  onChange={(e) => setGuests(Number(e.target.value) || 1)}
+                  className="pl-10"
+                  required
+                />
               </div>
-            </>
-          ) : (
-            <>
-              <CreditCard className="h-5 w-5" />
-              <div>
-                <p className="font-medium">
-                  Je hebt {userCredits} credit{userCredits !== 1 ? "s" : ""}
-                </p>
-                <p className="text-sm">1 credit wordt gebruikt bij het versturen van deze aanvraag.</p>
-              </div>
-            </>
-          )}
-        </div>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Je huis</Label>
-            <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {userHomes.map((home) => (
-                  <SelectItem key={home.id} value={home.id}>
-                    {home.title} - {home.city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Datums</Label>
-            <DatePickerWithRange
-              dateRange={dateRange}
-              setDateRange={setDateRange}
-              availableDateRanges={availableDateRanges}
-            />
-          </div>
-
-          <div>
-            <Label>Gasten</Label>
-            <div className="relative">
-              <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="number"
-                min="1"
-                value={guests}
-                onChange={(e) => setGuests(Number(e.target.value) || 1)}
-                className="pl-10"
+            <div>
+              <Label>Bericht</Label>
+              <Textarea
+                placeholder={`Hallo ${targetHome.owner_name}...`}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <Label>Bericht</Label>
-            <Textarea
-              placeholder={`Hallo ${targetHome.owner_name}...`}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-            />
-          </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting || isLoadingCredits || (userCredits !== null && userCredits < 1)}
+            >
+              {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting || isLoadingCredits || (userCredits !== null && userCredits < 1)}
-          >
-            {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+      <CreditExplanationModal open={isExplanationModalOpen} onOpenChange={setIsExplanationModalOpen} />
+    </>
   )
 }
