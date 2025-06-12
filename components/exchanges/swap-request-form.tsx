@@ -63,6 +63,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         if (response.ok) {
           const data = await response.json()
           setUserCredits(data.credits)
+          console.log("Credits fetched:", data.credits)
         }
       } catch (error) {
         console.error("Error fetching credits:", error)
@@ -77,14 +78,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     from: new Date(availability.start_date || availability.startDate),
     to: new Date(availability.end_date || availability.endDate),
   }))
-
-  const handleFormClick = (e: React.MouseEvent) => {
-    if (userCredits !== null && userCredits < 1) {
-      e.preventDefault()
-      e.stopPropagation()
-      setShowCreditModal(true)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -149,7 +142,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent onClick={handleFormClick}>
+        <CardContent>
           <Button onClick={() => router.push("/login")} className="w-full">
             Inloggen voor swap
           </Button>
@@ -164,7 +157,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent onClick={handleFormClick}>
+        <CardContent>
           <p className="text-gray-600 mb-4">Je hebt geen woningen om te ruilen.</p>
           <Button onClick={() => router.push("/homes/new")} className="w-full">
             Woning toevoegen
@@ -176,11 +169,24 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
   return (
     <>
-      <Card>
+      <Card className="relative">
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent onClick={handleFormClick}>
+        <CardContent>
+          {/* Overlay for users without credits */}
+          {userCredits !== null && userCredits < 1 && (
+            <div
+              className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center cursor-pointer rounded-lg"
+              onClick={() => setShowCreditModal(true)}
+            >
+              <div className="text-center p-4">
+                <p className="text-lg font-semibold mb-2">Credits nodig</p>
+                <p className="text-sm text-gray-600">Klik hier om credits te kopen</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
