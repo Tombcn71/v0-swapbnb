@@ -68,6 +68,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
           const data = await response.json()
           console.log("Credits API response:", data)
           setUserCredits(data.credits)
+          // Force immediate state update for debugging
+          console.log("Setting userCredits to:", data.credits)
+          if (data.credits === 0) {
+            console.log("User has 0 credits - should show credit warning")
+          }
 
           // Force a re-render by setting state
           if (data.credits < 1) {
@@ -204,7 +209,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   }
 
   // Show a clear message if user has no credits
-  if (!isLoading && userCredits !== null && userCredits < 1) {
+  if (!isLoading && userCredits === 0) {
     return (
       <Card>
         <CardHeader>
