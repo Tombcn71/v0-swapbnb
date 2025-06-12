@@ -70,7 +70,7 @@ export function ExchangeConfirmation({
   const otherUserConfirmed = isRequester ? exchange.host_confirmed : exchange.requester_confirmed
   const bothConfirmed = currentUserConfirmed && otherUserConfirmed
 
-  if (exchange.status !== "accepted") {
+  if (exchange.status !== "accepted" && exchange.status !== "videocall_completed") {
     return null
   }
 

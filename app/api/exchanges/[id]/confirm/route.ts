@@ -31,8 +31,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const exchange = exchanges[0]
 
     // Check if exchange is accepted
-    if (exchange.status !== "accepted") {
-      return NextResponse.json({ error: "Exchange must be accepted before confirmation" }, { status: 400 })
+    if (exchange.status !== "accepted" && exchange.status !== "videocall_completed") {
+      return NextResponse.json(
+        { error: "Exchange must be accepted or videocall completed before confirmation" },
+        { status: 400 },
+      )
     }
 
     const isRequester = exchange.requester_id === userId
