@@ -125,7 +125,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       const baseUrl = ensureUrlHasScheme(process.env.NEXTAUTH_URL || request.headers.get("origin") || "")
 
       const stripeSession = await stripe.checkout.sessions.create({
-        payment_method_types: ["card", "ideal"],
+        payment_method_types: ["card"],
         line_items: [
           {
             price_data: {
