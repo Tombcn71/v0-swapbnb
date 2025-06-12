@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Users, AlertCircle } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
+import { Modal } from "@/components/ui/modal"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -33,6 +34,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
   const [isLoadingCredits, setIsLoadingCredits] = useState(true)
+  const [showCreditModal, setShowCreditModal] = useState(false)
 
   // Fetch user credits
   useEffect(() => {
@@ -91,7 +93,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
   const handleFormClick = () => {
     if (userCredits !== null && userCredits < 1) {
-      router.push("/credits?reason=swap")
+      setShowCreditModal(true)
     }
   }
 
@@ -105,7 +107,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
     // Check credits before submission
     if (userCredits !== null && userCredits < 1) {
-      router.push("/credits?reason=swap")
+      setShowCreditModal(true)
       return
     }
 
@@ -284,6 +286,19 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
             </Button>
           </form>
         </div>
+        <Modal isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} title="Geen credits">
+          <div className="space-y-4">
+            <p>Je hebt geen credits meer. Koop credits om een swap aan te vragen.</p>
+            <div className="flex gap-2">
+              <Button onClick={() => router.push("/credits")} className="flex-1">
+                Credits kopen
+              </Button>
+              <Button variant="outline" onClick={() => setShowCreditModal(false)} className="flex-1">
+                Annuleren
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </CardContent>
     </Card>
   )
