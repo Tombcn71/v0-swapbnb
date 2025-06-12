@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { ExchangeRequestForm } from "@/components/exchanges/exchange-request-form"
+import { SwapRequestForm } from "@/components/exchanges/swap-request-form"
 import Script from "next/script"
 
 // Dit zou normaal gesproken uit de database komen
@@ -65,24 +65,42 @@ const mockListings = [
   },
 ]
 
-export default function ExchangeRequestPage({ params }: { params: { id: string } }) {
-  const home = mockListings.find((listing) => listing.id === params.id)
+export default async function ExchangePage({ params }: { params: { id: string } }) {
+  const targetHome = mockListings.find((listing) => listing.id === params.id)
 
-  if (!home) {
+  if (!targetHome) {
     notFound()
   }
 
+  // Mock user homes (replace with actual data fetching)
+  const userHomes = [
+    {
+      id: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      title: "Knus Appartement in Rotterdam",
+      description: "Leuk appartement met uitzicht op de Maas.",
+      address: "Boompjes 200",
+      city: "Rotterdam",
+      postalCode: "3011 XZ",
+      bedrooms: 1,
+      bathrooms: 1,
+      maxGuests: 2,
+    },
+  ]
+
   return (
-    <>
-      <Script src="/credit-check.js" strategy="afterInteractive" />
+    <div>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-2">Huizenruil aanvragen</h1>
         <p className="text-gray-600 mb-8">
-          Vul het onderstaande formulier in om een huizenruil aan te vragen voor {home.title} in {home.city}.
+          Vul het onderstaande formulier in om een huizenruil aan te vragen voor {targetHome.title} in {targetHome.city}
+          .
         </p>
 
-        <ExchangeRequestForm home={home} />
+        <SwapRequestForm targetHome={targetHome} userHomes={userHomes} />
       </div>
-    </>
+
+      {/* Script toevoegen dat de modal direct in de DOM injecteert */}
+      <Script src="/credit-modal.js" strategy="afterInteractive" />
+    </div>
   )
 }
