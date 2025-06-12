@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Users } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
-import Script from "next/script"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -25,7 +24,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const { data: session } = useSession()
   const router = useRouter()
   const { toast } = useToast()
-  const formRef = useRef<HTMLFormElement>(null)
 
   const [selectedHomeId, setSelectedHomeId] = useState<string>(userHomes.length > 0 ? userHomes[0].id : "")
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
@@ -33,8 +31,15 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
-  const [userCredits, setUserCredits] = useState<number | null>(null)
-  const [showCreditModal, setShowCreditModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+
+  // FORCE MODAL TO SHOW FOR TESTING
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowModal(true)
+    }, 1000)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -55,53 +60,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     fetchAvailabilities()
   }, [targetHome?.id])
 
-  // Fetch user credits
-  useEffect(() => {
-    async function fetchUserCredits() {
-      if (!session?.user) return
-
-      try {
-        const response = await fetch("/api/credits")
-        if (response.ok) {
-          const data = await response.json()
-          setUserCredits(data.credits)
-        }
-      } catch (error) {
-        console.error("Error fetching credits:", error)
-      }
-    }
-
-    fetchUserCredits()
-  }, [session?.user])
-
-  // Force modal to show when form is clicked
-  useEffect(() => {
-    if (!formRef.current) return
-
-    const formElement = formRef.current
-
-    const handleFormClick = (e: MouseEvent) => {
-      if (userCredits !== null && userCredits < 1) {
-        e.preventDefault()
-        e.stopPropagation()
-
-        // Force show modal using the script
-        const script = document.createElement("script")
-        script.src = "/force-credit-modal.js"
-        document.body.appendChild(script)
-        script.onload = () => {
-          document.body.removeChild(script)
-        }
-      }
-    }
-
-    formElement.addEventListener("click", handleFormClick)
-
-    return () => {
-      formElement.removeEventListener("click", handleFormClick)
-    }
-  }, [userCredits, formRef])
-
   // Convert availabilities to DateRange format
   const availableDateRanges = availabilities.map((availability) => ({
     from: new Date(availability.start_date || availability.startDate),
@@ -113,18 +71,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
     if (!session) {
       router.push("/login")
-      return
-    }
-
-    // Check credits before submission
-    if (userCredits !== null && userCredits < 1) {
-      // Force show modal using the script
-      const script = document.createElement("script")
-      script.src = "/force-credit-modal.js"
-      document.body.appendChild(script)
-      script.onload = () => {
-        document.body.removeChild(script)
-      }
       return
     }
 
@@ -210,18 +156,16 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
   return (
     <>
-      <Script src="/force-credit-modal.js" strategy="lazyOnload" />
-
       <Card>
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
         <CardContent>
-          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
               <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-                <SelectTrigger>
+                <SelectTrigger onClick={() => setShowModal(true)}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -234,7 +178,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               </Select>
             </div>
 
-            <div>
+            <div onClick={() => setShowModal(true)}>
               <Label>Datums</Label>
               <DatePickerWithRange
                 dateRange={dateRange}
@@ -243,7 +187,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               />
             </div>
 
-            <div>
+            <div onClick={() => setShowModal(true)}>
               <Label>Gasten</Label>
               <div className="relative">
                 <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -258,7 +202,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               </div>
             </div>
 
-            <div>
+            <div onClick={() => setShowModal(true)}>
               <Label>Bericht</Label>
               <Textarea
                 placeholder={`Hallo ${targetHome.owner_name}...`}
@@ -268,12 +212,39 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting} onClick={() => setShowModal(true)}>
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
           </form>
         </CardContent>
       </Card>
+
+      {/* SIMPLE MODAL - ALWAYS WORKS */}
+      {showModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowModal(false)}
+        >
+          <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold mb-4">Credits nodig</h2>
+            <p className="mb-4">Je hebt niet genoeg credits om deze swap aan te vragen. Elke swap kost 1 credit.</p>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                onClick={() => setShowModal(false)}
+              >
+                Sluiten
+              </button>
+              <button
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                onClick={() => router.push("/credits")}
+              >
+                Credits kopen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
