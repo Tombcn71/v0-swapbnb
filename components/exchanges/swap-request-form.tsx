@@ -4,34 +4,53 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
-import { Users, AlertCircle } from "lucide-react"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import type { DateRange } from "react-day-picker"
-import { Modal } from "@/components/ui/modal"
+import { Users, AlertCircle, X, Calendar } from "lucide-react"
 
 interface SwapRequestFormProps {
   targetHome: any
   userHomes: any[]
 }
 
+interface DateRange {
+  from?: Date
+  to?: Date
+}
+
+// Modal Component
+interface ModalProps {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  children: React.ReactNode
+}
+
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  )
+}
+
 export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps) {
   const { data: session } = useSession()
   const router = useRouter()
-  const { toast } = useToast()
 
   const [selectedHomeId, setSelectedHomeId] = useState<string>(userHomes.length > 0 ? userHomes[0].id : "")
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+  const [dateRange, setDateRange] = useState<DateRange>({})
   const [guests, setGuests] = useState<number>(1)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
   const [isLoadingCredits, setIsLoadingCredits] = useState(true)
   const [showCreditModal, setShowCreditModal] = useState(false)
@@ -49,47 +68,21 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         if (response.ok) {
           const data = await response.json()
           setUserCredits(data.credits)
-
-          // Redirect to credits page if user has 0 credits
-          if (data.credits === 0) {
-            router.push("/credits?reason=swap")
-            return
-          }
+        } else {
+          // Set to 0 for testing if API fails
+          setUserCredits(0)
         }
       } catch (error) {
         console.error("Error fetching credits:", error)
+        // Set to 0 for testing
+        setUserCredits(0)
       } finally {
         setIsLoadingCredits(false)
       }
     }
 
     fetchUserCredits()
-  }, [session?.user, router])
-
-  // Fetch availabilities for the target home
-  useEffect(() => {
-    async function fetchAvailabilities() {
-      if (!targetHome?.id) return
-
-      try {
-        const response = await fetch(`/api/availabilities?homeId=${targetHome.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setAvailabilities(data || [])
-        }
-      } catch (error) {
-        console.error("Error fetching availabilities:", error)
-      }
-    }
-
-    fetchAvailabilities()
-  }, [targetHome?.id])
-
-  // Convert availabilities to DateRange format
-  const availableDateRanges = availabilities.map((availability) => ({
-    from: new Date(availability.start_date || availability.startDate),
-    to: new Date(availability.end_date || availability.endDate),
-  }))
+  }, [session?.user])
 
   const handleFormInteraction = (e: React.MouseEvent | React.FormEvent) => {
     if (userCredits !== null && userCredits < 1) {
@@ -114,10 +107,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     }
 
     if (!selectedHomeId || !dateRange?.from || !dateRange?.to || !message.trim()) {
-      toast({
-        title: "Vul alle velden in",
-        variant: "destructive",
-      })
+      alert("Vul alle velden in")
       return
     }
 
@@ -144,170 +134,239 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
       }
 
       const exchange = await response.json()
-
-      toast({
-        title: "Swap aanvraag verzonden!",
-        description: `Je aanvraag is verzonden naar ${targetHome.owner_name}`,
-      })
-
+      alert(`Swap aanvraag verzonden naar ${targetHome.owner_name}!`)
       router.push(`/exchanges/${exchange.id}`)
     } catch (error: any) {
-      toast({
-        title: "Fout",
-        description: error.message,
-        variant: "destructive",
-      })
+      alert(`Fout: ${error.message}`)
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const handleBuyCredits = () => {
+    setShowCreditModal(false)
+    router.push("/credits")
+  }
+
   if (!session) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Swap aanvragen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => router.push("/login")} className="w-full">
+      <div className="bg-white rounded-lg border shadow-sm">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-semibold">Swap aanvragen</h3>
+        </div>
+        <div className="p-6">
+          <button
+            onClick={() => router.push("/login")}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          >
             Inloggen voor swap
-          </Button>
-        </CardContent>
-      </Card>
+          </button>
+        </div>
+      </div>
     )
   }
 
   if (userHomes.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Swap aanvragen</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-white rounded-lg border shadow-sm">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-semibold">Swap aanvragen</h3>
+        </div>
+        <div className="p-6">
           <p className="text-gray-600 mb-4">Je hebt geen woningen om te ruilen.</p>
-          <Button onClick={() => router.push("/homes/new")} className="w-full">
+          <button
+            onClick={() => router.push("/homes/new")}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+          >
             Woning toevoegen
-          </Button>
-        </CardContent>
-      </Card>
+          </button>
+        </div>
+      </div>
     )
   }
 
   if (isLoadingCredits) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Swap aanvragen</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-white rounded-lg border shadow-sm">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-semibold">Swap aanvragen</h3>
+        </div>
+        <div className="p-6">
           <div className="flex items-center justify-center p-8">
             <div className="animate-spin h-8 w-8 border-4 border-gray-300 border-t-blue-600 rounded-full"></div>
             <span className="ml-3">Credits laden...</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Swap aanvragen</CardTitle>
-        {userCredits !== null && (
-          <p className="text-sm text-gray-600 mt-1">
-            Credits beschikbaar: <span className="font-semibold">{userCredits}</span>
-          </p>
-        )}
-      </CardHeader>
-      <CardContent>
-        {/* Credit warning banner */}
-        {userCredits !== null && userCredits < 1 && (
-          <div
-            className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 cursor-pointer hover:bg-amber-100"
-            onClick={() => router.push("/credits?reason=swap")}
-          >
-            <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-              <div>
-                <p className="font-medium text-amber-800">Geen credits beschikbaar</p>
-                <p className="text-sm text-amber-700">Klik hier om credits te kopen</p>
+    <>
+      <div className="bg-white rounded-lg border shadow-sm">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-semibold">Swap aanvragen</h3>
+          {userCredits !== null && (
+            <p className="text-sm text-gray-600 mt-1">
+              Credits beschikbaar: <span className="font-semibold">{userCredits}</span>
+            </p>
+          )}
+        </div>
+        <div className="p-6">
+          {/* Credit warning banner */}
+          {userCredits !== null && userCredits < 1 && (
+            <div
+              className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 cursor-pointer hover:bg-amber-100 transition-colors"
+              onClick={handleBuyCredits}
+            >
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-amber-800">Geen credits beschikbaar</p>
+                  <p className="text-sm text-amber-700">Klik hier om credits te kopen voor swap aanvragen</p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Je huis</Label>
-            <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-              <SelectTrigger onClick={handleFormInteraction}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {userHomes.map((home) => (
-                  <SelectItem key={home.id} value={home.id}>
-                    {home.title} - {home.city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Datums</Label>
-            <DatePickerWithRange
-              dateRange={dateRange}
-              setDateRange={setDateRange}
-              availableDateRanges={availableDateRanges}
-              onClick={handleFormInteraction}
-            />
-          </div>
-
-          <div>
-            <Label>Gasten</Label>
-            <div className="relative">
-              <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="number"
-                min="1"
-                value={guests}
-                onChange={(e) => setGuests(Number(e.target.value) || 1)}
-                className="pl-10"
-                required
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Je huis</label>
+              <select
+                value={selectedHomeId}
+                onChange={(e) => setSelectedHomeId(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 onClick={handleFormInteraction}
+                required
+              >
+                {userHomes.map((home) => (
+                  <option key={home.id} value={home.id}>
+                    {home.title} - {home.city}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="inline h-4 w-4 mr-1" />
+                Check-in datum
+              </label>
+              <input
+                type="date"
+                value={dateRange.from ? dateRange.from.toISOString().split("T")[0] : ""}
+                onChange={(e) => setDateRange((prev) => ({ ...prev, from: new Date(e.target.value) }))}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onClick={handleFormInteraction}
+                required
               />
             </div>
-          </div>
 
-          <div>
-            <Label>Bericht</Label>
-            <Textarea
-              placeholder={`Hallo ${targetHome.owner_name}...`}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-              onClick={handleFormInteraction}
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="inline h-4 w-4 mr-1" />
+                Check-out datum
+              </label>
+              <input
+                type="date"
+                value={dateRange.to ? dateRange.to.toISOString().split("T")[0] : ""}
+                onChange={(e) => setDateRange((prev) => ({ ...prev, to: new Date(e.target.value) }))}
+                min={dateRange.from ? dateRange.from.toISOString().split("T")[0] : ""}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onClick={handleFormInteraction}
+                required
+              />
+            </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
-          </Button>
-        </form>
-        <Modal isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} title="Geen credits">
-          <div className="space-y-4">
-            <p>Je hebt geen credits meer. Koop credits om een swap aan te vragen.</p>
-            <div className="flex gap-2">
-              <Button onClick={() => router.push("/credits")} className="flex-1">
-                Credits kopen
-              </Button>
-              <Button variant="outline" onClick={() => setShowCreditModal(false)} className="flex-1">
-                Annuleren
-              </Button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Users className="inline h-4 w-4 mr-1" />
+                Aantal gasten
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={guests}
+                onChange={(e) => setGuests(Number(e.target.value) || 1)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onClick={handleFormInteraction}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Persoonlijk bericht</label>
+              <textarea
+                placeholder={`Hallo ${targetHome.owner_name}, ik zou graag mijn huis willen ruilen met jouw mooie woning...`}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                onClick={handleFormInteraction}
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || (userCredits !== null && userCredits < 1)}
+              className={`w-full py-3 px-4 rounded-md font-medium transition-colors ${
+                isSubmitting || (userCredits !== null && userCredits < 1)
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Verzenden...
+                </div>
+              ) : (
+                "Swap aanvragen"
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Credit Modal */}
+      <Modal isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} title="Geen credits beschikbaar">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-lg">
+            <AlertCircle className="h-6 w-6 text-amber-600 flex-shrink-0" />
+            <div>
+              <p className="font-medium text-amber-800">Credits vereist</p>
+              <p className="text-sm text-amber-700">
+                Je hebt geen credits meer om een swap aan te vragen. Koop credits om door te gaan met je aanvraag.
+              </p>
             </div>
           </div>
-        </Modal>
-      </CardContent>
-    </Card>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-2">Wat zijn credits?</h4>
+            <p className="text-sm text-gray-600">
+              Credits gebruik je om swap aanvragen te versturen. Elke aanvraag kost 1 credit. Dit houdt de kwaliteit van
+              aanvragen hoog en voorkomt spam.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleBuyCredits}
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium"
+            >
+              Credits kopen
+            </button>
+            <button
+              onClick={() => setShowCreditModal(false)}
+              className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors font-medium"
+            >
+              Annuleren
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </>
   )
 }
