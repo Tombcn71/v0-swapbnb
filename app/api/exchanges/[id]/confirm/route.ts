@@ -25,10 +25,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const exchange = exchanges[0]
 
-    // Check if exchange is accepted or videocall completed
-    if (exchange.status !== "accepted" && exchange.status !== "videocall_completed") {
+    // Debug: log de huidige status
+    console.log("Exchange status:", exchange.status)
+
+    // Check if exchange is in a confirmable state
+    const confirmableStatuses = ["accepted", "videocall_completed", "videocall_scheduled"]
+    if (!confirmableStatuses.includes(exchange.status)) {
       return NextResponse.json(
-        { error: "Exchange must be accepted or videocall completed before confirmation" },
+        {
+          error: `Exchange status '${exchange.status}' is not confirmable. Must be one of: ${confirmableStatuses.join(", ")}`,
+        },
         { status: 400 },
       )
     }
