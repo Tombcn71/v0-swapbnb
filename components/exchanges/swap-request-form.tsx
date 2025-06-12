@@ -40,10 +40,21 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
       if (!session?.user) return
 
       try {
+        console.log("Fetching credits for user:", session.user.email)
         const response = await fetch("/api/credits")
+        console.log("Credits API response status:", response.status)
+
         if (response.ok) {
           const data = await response.json()
+          console.log("Credits API data:", data)
           setUserCredits(data.credits)
+          console.log("Set userCredits to:", data.credits)
+
+          // Test: force modal if credits are 0
+          if (data.credits === 0) {
+            console.log("User has 0 credits, should show modal")
+            setShowCreditModal(true)
+          }
         }
       } catch (error) {
         console.error("Error fetching credits:", error)
@@ -223,8 +234,12 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 value={selectedHomeId}
                 onValueChange={setSelectedHomeId}
                 onOpenChange={() => {
+                  console.log("Form element clicked, userCredits:", userCredits)
                   if (userCredits !== null && userCredits < 1) {
+                    console.log("Opening modal because userCredits < 1")
                     setShowCreditModal(true)
+                  } else {
+                    console.log("Not opening modal, userCredits:", userCredits)
                   }
                 }}
               >
@@ -245,8 +260,12 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               <Label>Datums</Label>
               <div
                 onClick={() => {
+                  console.log("Form element clicked, userCredits:", userCredits)
                   if (userCredits !== null && userCredits < 1) {
+                    console.log("Opening modal because userCredits < 1")
                     setShowCreditModal(true)
+                  } else {
+                    console.log("Not opening modal, userCredits:", userCredits)
                   }
                 }}
               >
@@ -268,8 +287,12 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   value={guests}
                   onChange={(e) => setGuests(Number(e.target.value) || 1)}
                   onClick={() => {
+                    console.log("Form element clicked, userCredits:", userCredits)
                     if (userCredits !== null && userCredits < 1) {
+                      console.log("Opening modal because userCredits < 1")
                       setShowCreditModal(true)
+                    } else {
+                      console.log("Not opening modal, userCredits:", userCredits)
                     }
                   }}
                   className="pl-10"
@@ -285,8 +308,12 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onClick={() => {
+                  console.log("Form element clicked, userCredits:", userCredits)
                   if (userCredits !== null && userCredits < 1) {
+                    console.log("Opening modal because userCredits < 1")
                     setShowCreditModal(true)
+                  } else {
+                    console.log("Not opening modal, userCredits:", userCredits)
                   }
                 }}
                 required
