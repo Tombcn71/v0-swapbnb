@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
   const [showCreditModal, setShowCreditModal] = useState(false)
+  const [creditsFetched, setCreditsFetched] = useState(false)
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -65,6 +66,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
           const data = await response.json()
           console.log("Credits response:", data)
           setUserCredits(data.credits)
+          setCreditsFetched(true)
         }
       } catch (error) {
         console.error("Error fetching credits:", error)
@@ -80,9 +82,29 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
+  // Check if user has enough credits
+  const checkCredits = useCallback(() => {
+    console.log("Checking credits:", userCredits)
+    if (creditsFetched && userCredits !== null && userCredits < 1) {
+      console.log("No credits, showing modal")
+      setShowCreditModal(true)
+      return false
+    }
+    return true
+  }, [userCredits, creditsFetched])
+
+  // Handle any click on form elements
+  const handleFormElementClick = (e: React.MouseEvent) => {
+    console.log("Form element clicked")
+    if (!checkCredits()) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Form submitted, userCredits:", userCredits)
+    console.log("Form submitted")
 
     if (!session) {
       router.push("/login")
@@ -90,9 +112,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     }
 
     // Check credits first
-    if (userCredits !== null && userCredits < 1) {
-      console.log("User has no credits, showing modal")
-      setShowCreditModal(true)
+    if (!checkCredits()) {
       return
     }
 
@@ -176,6 +196,14 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     )
   }
 
+  // Hardcoded check for testing - remove in production
+  if (creditsFetched && userCredits === 0) {
+    // Force modal to show for testing
+    setTimeout(() => {
+      setShowCreditModal(true)
+    }, 500)
+  }
+
   return (
     <>
       <Card>
@@ -184,7 +212,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div onClick={handleFormElementClick}>
               <Label>Je huis</Label>
               <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
                 <SelectTrigger>
@@ -200,7 +228,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               </Select>
             </div>
 
-            <div>
+            <div onClick={handleFormElementClick}>
               <Label>Datums</Label>
               <DatePickerWithRange
                 dateRange={dateRange}
@@ -209,7 +237,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               />
             </div>
 
-            <div>
+            <div onClick={handleFormElementClick}>
               <Label>Gasten</Label>
               <div className="relative">
                 <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -224,7 +252,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               </div>
             </div>
 
-            <div>
+            <div onClick={handleFormElementClick}>
               <Label>Bericht</Label>
               <Textarea
                 placeholder={`Hallo ${targetHome.owner_name}...`}
@@ -234,7 +262,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting} onClick={handleFormElementClick}>
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
           </form>
