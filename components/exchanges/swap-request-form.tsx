@@ -31,38 +31,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
-  const [userCredits, setUserCredits] = useState<number | null>(null)
-  const [showCreditModal, setShowCreditModal] = useState(false)
-
-  // Fetch user credits
-  useEffect(() => {
-    async function fetchUserCredits() {
-      if (!session?.user) return
-
-      try {
-        console.log("Fetching credits for user:", session.user.email)
-        const response = await fetch("/api/credits")
-        console.log("Credits API response status:", response.status)
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log("Credits API data:", data)
-          setUserCredits(data.credits)
-          console.log("Set userCredits to:", data.credits)
-
-          // Test: force modal if credits are 0
-          if (data.credits === 0) {
-            console.log("User has 0 credits, should show modal")
-            setShowCreditModal(true)
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching credits:", error)
-      }
-    }
-
-    fetchUserCredits()
-  }, [session?.user])
+  const [showCreditModal, setShowCreditModal] = useState(true) // ALTIJD ZICHTBAAR VOOR TESTEN
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -94,12 +63,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
     if (!session) {
       router.push("/login")
-      return
-    }
-
-    // Check credits before submission
-    if (userCredits !== null && userCredits < 1) {
-      setShowCreditModal(true)
       return
     }
 
@@ -185,9 +148,9 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
   return (
     <>
-      {/* Credit Modal */}
+      {/* Credit Modal - ALTIJD ZICHTBAAR */}
       {showCreditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex items-center gap-3 mb-4">
               <AlertCircle className="h-6 w-6 text-amber-500" />
@@ -211,38 +174,10 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Credit warning banner */}
-          {userCredits !== null && userCredits < 1 && (
-            <div
-              className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 cursor-pointer hover:bg-amber-100"
-              onClick={() => setShowCreditModal(true)}
-            >
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-                <div>
-                  <p className="font-medium text-amber-800">Geen credits beschikbaar</p>
-                  <p className="text-sm text-amber-700">Klik hier om credits te kopen</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
-              <Select
-                value={selectedHomeId}
-                onValueChange={setSelectedHomeId}
-                onOpenChange={() => {
-                  console.log("Form element clicked, userCredits:", userCredits)
-                  if (userCredits !== null && userCredits < 1) {
-                    console.log("Opening modal because userCredits < 1")
-                    setShowCreditModal(true)
-                  } else {
-                    console.log("Not opening modal, userCredits:", userCredits)
-                  }
-                }}
-              >
+              <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -258,23 +193,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
             <div>
               <Label>Datums</Label>
-              <div
-                onClick={() => {
-                  console.log("Form element clicked, userCredits:", userCredits)
-                  if (userCredits !== null && userCredits < 1) {
-                    console.log("Opening modal because userCredits < 1")
-                    setShowCreditModal(true)
-                  } else {
-                    console.log("Not opening modal, userCredits:", userCredits)
-                  }
-                }}
-              >
-                <DatePickerWithRange
-                  dateRange={dateRange}
-                  setDateRange={setDateRange}
-                  availableDateRanges={availableDateRanges}
-                />
-              </div>
+              <DatePickerWithRange
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                availableDateRanges={availableDateRanges}
+              />
             </div>
 
             <div>
@@ -286,15 +209,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   min="1"
                   value={guests}
                   onChange={(e) => setGuests(Number(e.target.value) || 1)}
-                  onClick={() => {
-                    console.log("Form element clicked, userCredits:", userCredits)
-                    if (userCredits !== null && userCredits < 1) {
-                      console.log("Opening modal because userCredits < 1")
-                      setShowCreditModal(true)
-                    } else {
-                      console.log("Not opening modal, userCredits:", userCredits)
-                    }
-                  }}
                   className="pl-10"
                   required
                 />
@@ -307,15 +221,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 placeholder={`Hallo ${targetHome.owner_name}...`}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onClick={() => {
-                  console.log("Form element clicked, userCredits:", userCredits)
-                  if (userCredits !== null && userCredits < 1) {
-                    console.log("Opening modal because userCredits < 1")
-                    setShowCreditModal(true)
-                  } else {
-                    console.log("Not opening modal, userCredits:", userCredits)
-                  }
-                }}
                 required
               />
             </div>
