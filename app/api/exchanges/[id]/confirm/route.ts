@@ -2,22 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { executeQuery } from "@/lib/db"
-import Stripe from "stripe"
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-})
-
-// Helper function to ensure URL has a scheme
-function ensureUrlHasScheme(url: string): string {
-  if (!url) return "https://swapbnb.vercel.app" // Default fallback
-
-  if (!url.startsWith("http://") && !url.startsWith("https://")) {
-    return `https://${url}`
-  }
-
-  return url
-}
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -73,96 +57,48 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "You have already confirmed this swap" }, { status: 400 })
     }
 
-    // Check if user has free swap available - met fallback
-    let hasFreeSWap = true // Default: eerste swap is gratis
-    try {
-      const userResult = await executeQuery("SELECT first_swap_free FROM users WHERE id = $1", [userId])
-      hasFreeSWap = userResult[0]?.first_swap_free || false
-    } catch (error) {
-      // Kolom bestaat nog niet, behandel als eerste swap (gratis)
-      console.log("first_swap_free column doesn't exist yet, treating as free swap")
-      hasFreeSWap = true
+    // Haal user credits op
+    const userResult = await executeQuery("SELECT credits FROM users WHERE id = $1", [userId])
+    const userCredits = userResult[0]?.credits || 0
+
+    // Check if user has enough credits
+    if (userCredits < 1) {
+      return NextResponse.json({ error: "Insufficient credits" }, { status: 400 })
     }
 
-    if (hasFreeSWap) {
-      // Free swap - direct confirmation
-      if (isRequester) {
-        await executeQuery("UPDATE exchanges SET requester_confirmed = true WHERE id = $1", [exchangeId])
-      } else {
-        await executeQuery("UPDATE exchanges SET host_confirmed = true WHERE id = $1", [exchangeId])
-      }
+    // Trek 1 credit af
+    await executeQuery("UPDATE users SET credits = credits - 1 WHERE id = $1", [userId])
 
-      // Probeer first_swap_free te updaten (als kolom bestaat)
-      try {
-        await executeQuery("UPDATE users SET first_swap_free = false WHERE id = $1", [userId])
-      } catch (error) {
-        console.log("Could not update first_swap_free - column may not exist yet")
-      }
+    // Record credit transaction
+    await executeQuery(
+      `INSERT INTO credits_transactions (user_id, amount, transaction_type, description, exchange_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [userId, -1, "swap_confirmation", `Swap confirmation for exchange ${exchangeId}`, exchangeId],
+    )
 
-      // Check if both parties confirmed
-      const updatedExchange = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
-      const bothConfirmed = updatedExchange[0].requester_confirmed && updatedExchange[0].host_confirmed
-
-      if (bothConfirmed) {
-        await executeQuery("UPDATE exchanges SET status = 'confirmed', confirmed_at = NOW() WHERE id = $1", [
-          exchangeId,
-        ])
-      }
-
-      return NextResponse.json({
-        success: true,
-        free_swap: true,
-        both_confirmed: bothConfirmed,
-        message: bothConfirmed
-          ? "Swap bevestigd! Jullie eerste swap is gratis."
-          : "Je bevestiging is geregistreerd (gratis). Wacht op de andere partij.",
-      })
+    // Bevestig de swap
+    if (isRequester) {
+      await executeQuery("UPDATE exchanges SET requester_confirmed = true WHERE id = $1", [exchangeId])
     } else {
-      // Paid swap - create Stripe session
-      const swapPrice = 500 // €5.00 in cents
-
-      // Ensure URLs have proper scheme
-      const baseUrl = ensureUrlHasScheme(process.env.NEXTAUTH_URL || request.headers.get("origin") || "")
-
-      const stripeSession = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price_data: {
-              currency: "eur",
-              product_data: {
-                name: "Home Swap Bevestiging",
-                description: `Bevestiging voor swap van ${exchange.start_date} tot ${exchange.end_date}`,
-              },
-              unit_amount: swapPrice,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: "payment",
-        success_url: `${baseUrl}/exchanges/${exchangeId}?payment=success`,
-        cancel_url: `${baseUrl}/exchanges/${exchangeId}?payment=cancelled`,
-        metadata: {
-          exchange_id: exchangeId,
-          user_id: userId,
-          confirmation_type: isRequester ? "requester" : "host",
-        },
-      })
-
-      // Save session ID
-      await executeQuery("UPDATE exchanges SET stripe_payment_session_id = $1, payment_amount = $2 WHERE id = $3", [
-        stripeSession.id,
-        swapPrice,
-        exchangeId,
-      ])
-
-      return NextResponse.json({
-        success: true,
-        free_swap: false,
-        checkout_url: stripeSession.url,
-        message: "Doorverwijzen naar betaling...",
-      })
+      await executeQuery("UPDATE exchanges SET host_confirmed = true WHERE id = $1", [exchangeId])
     }
+
+    // Check if both parties confirmed
+    const updatedExchange = await executeQuery("SELECT * FROM exchanges WHERE id = $1", [exchangeId])
+    const bothConfirmed = updatedExchange[0].requester_confirmed && updatedExchange[0].host_confirmed
+
+    if (bothConfirmed) {
+      await executeQuery("UPDATE exchanges SET status = 'confirmed', confirmed_at = NOW() WHERE id = $1", [exchangeId])
+    }
+
+    return NextResponse.json({
+      success: true,
+      both_confirmed: bothConfirmed,
+      message: bothConfirmed
+        ? "🎉 Swap bevestigd! Beide partijen hebben bevestigd."
+        : "✅ Je bevestiging is geregistreerd. Wacht op de andere partij.",
+      credits_remaining: userCredits - 1,
+    })
   } catch (error) {
     console.error("Error confirming exchange:", error)
     return NextResponse.json({ error: "Failed to confirm exchange" }, { status: 500 })
