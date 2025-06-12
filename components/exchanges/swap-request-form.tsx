@@ -82,6 +82,15 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
+  // Check credits before allowing interaction
+  const checkCreditsBeforeInteraction = () => {
+    if (userCredits !== null && userCredits < 1) {
+      setShowCreditModal(true)
+      return false
+    }
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -90,9 +99,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
       return
     }
 
-    // Check if user has enough credits
-    if (userCredits !== null && userCredits < 1) {
-      setShowCreditModal(true)
+    if (!checkCreditsBeforeInteraction()) {
       return
     }
 
@@ -202,11 +209,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
             <div>
               <Label>Datums</Label>
-              <DatePickerWithRange
-                dateRange={dateRange}
-                setDateRange={setDateRange}
-                availableDateRanges={availableDateRanges}
-              />
+              <div onClick={checkCreditsBeforeInteraction}>
+                <DatePickerWithRange
+                  dateRange={dateRange}
+                  setDateRange={setDateRange}
+                  availableDateRanges={availableDateRanges}
+                />
+              </div>
             </div>
 
             <div>
@@ -220,6 +229,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   onChange={(e) => setGuests(Number(e.target.value) || 1)}
                   className="pl-10"
                   required
+                  onFocus={checkCreditsBeforeInteraction}
                 />
               </div>
             </div>
@@ -231,10 +241,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required
+                onFocus={checkCreditsBeforeInteraction}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" disabled={isSubmitting || isLoadingCredits}>
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
           </form>
