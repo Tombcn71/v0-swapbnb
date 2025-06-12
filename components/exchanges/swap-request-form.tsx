@@ -91,10 +91,13 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
-  const handleFormClick = () => {
+  const handleFormInteraction = (e: React.MouseEvent | React.FormEvent) => {
     if (userCredits !== null && userCredits < 1) {
+      e.preventDefault()
       setShowCreditModal(true)
+      return false
     }
+    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,8 +109,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     }
 
     // Check credits before submission
-    if (userCredits !== null && userCredits < 1) {
-      setShowCreditModal(true)
+    if (!handleFormInteraction(e)) {
       return
     }
 
@@ -211,6 +213,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     <Card>
       <CardHeader>
         <CardTitle>Swap aanvragen</CardTitle>
+        {userCredits !== null && (
+          <p className="text-sm text-gray-600 mt-1">
+            Credits beschikbaar: <span className="font-semibold">{userCredits}</span>
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {/* Credit warning banner */}
@@ -229,63 +236,64 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
           </div>
         )}
 
-        <div onClick={handleFormClick}>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label>Je huis</Label>
-              <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {userHomes.map((home) => (
-                    <SelectItem key={home.id} value={home.id}>
-                      {home.title} - {home.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Je huis</Label>
+            <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
+              <SelectTrigger onClick={handleFormInteraction}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {userHomes.map((home) => (
+                  <SelectItem key={home.id} value={home.id}>
+                    {home.title} - {home.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div>
-              <Label>Datums</Label>
-              <DatePickerWithRange
-                dateRange={dateRange}
-                setDateRange={setDateRange}
-                availableDateRanges={availableDateRanges}
-              />
-            </div>
+          <div>
+            <Label>Datums</Label>
+            <DatePickerWithRange
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              availableDateRanges={availableDateRanges}
+              onClick={handleFormInteraction}
+            />
+          </div>
 
-            <div>
-              <Label>Gasten</Label>
-              <div className="relative">
-                <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  min="1"
-                  value={guests}
-                  onChange={(e) => setGuests(Number(e.target.value) || 1)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Bericht</Label>
-              <Textarea
-                placeholder={`Hallo ${targetHome.owner_name}...`}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+          <div>
+            <Label>Gasten</Label>
+            <div className="relative">
+              <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="number"
+                min="1"
+                value={guests}
+                onChange={(e) => setGuests(Number(e.target.value) || 1)}
+                className="pl-10"
                 required
+                onClick={handleFormInteraction}
               />
             </div>
+          </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
-            </Button>
-          </form>
-        </div>
+          <div>
+            <Label>Bericht</Label>
+            <Textarea
+              placeholder={`Hallo ${targetHome.owner_name}...`}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+              onClick={handleFormInteraction}
+            />
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
+          </Button>
+        </form>
         <Modal isOpen={showCreditModal} onClose={() => setShowCreditModal(false)} title="Geen credits">
           <div className="space-y-4">
             <p>Je hebt geen credits meer. Koop credits om een swap aan te vragen.</p>
