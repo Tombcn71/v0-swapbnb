@@ -31,7 +31,38 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
-  const [showCreditModal, setShowCreditModal] = useState(true) // ALTIJD ZICHTBAAR VOOR TESTEN
+  const [userCredits, setUserCredits] = useState<number | null>(null)
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true)
+
+  // Fetch user credits
+  useEffect(() => {
+    async function fetchUserCredits() {
+      if (!session?.user) {
+        setIsLoadingCredits(false)
+        return
+      }
+
+      try {
+        const response = await fetch("/api/credits")
+        if (response.ok) {
+          const data = await response.json()
+          setUserCredits(data.credits)
+
+          // Redirect to credits page if user has 0 credits
+          if (data.credits === 0) {
+            router.push("/credits?reason=swap")
+            return
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching credits:", error)
+      } finally {
+        setIsLoadingCredits(false)
+      }
+    }
+
+    fetchUserCredits()
+  }, [session?.user, router])
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -58,11 +89,23 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
+  const handleFormClick = () => {
+    if (userCredits !== null && userCredits < 1) {
+      router.push("/credits?reason=swap")
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!session) {
       router.push("/login")
+      return
+    }
+
+    // Check credits before submission
+    if (userCredits !== null && userCredits < 1) {
+      router.push("/credits?reason=swap")
       return
     }
 
@@ -146,34 +189,45 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     )
   }
 
-  return (
-    <>
-      {/* Credit Modal - ALTIJD ZICHTBAAR */}
-      {showCreditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="h-6 w-6 text-amber-500" />
-              <h2 className="text-xl font-bold">Credits nodig</h2>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Je hebt niet genoeg credits om deze swap aan te vragen. Elke swap kost 1 credit.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowCreditModal(false)}>
-                Sluiten
-              </Button>
-              <Button onClick={() => router.push("/credits")}>Credits kopen</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
+  if (isLoadingCredits) {
+    return (
       <Card>
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin h-8 w-8 border-4 border-gray-300 border-t-blue-600 rounded-full"></div>
+            <span className="ml-3">Credits laden...</span>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Swap aanvragen</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Credit warning banner */}
+        {userCredits !== null && userCredits < 1 && (
+          <div
+            className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 cursor-pointer hover:bg-amber-100"
+            onClick={() => router.push("/credits?reason=swap")}
+          >
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+              <div>
+                <p className="font-medium text-amber-800">Geen credits beschikbaar</p>
+                <p className="text-sm text-amber-700">Klik hier om credits te kopen</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div onClick={handleFormClick}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
@@ -229,8 +283,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-    </>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
