@@ -8,6 +8,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
 })
 
+// Helper function to ensure URL has a scheme
+function ensureUrlHasScheme(url: string): string {
+  if (!url) return "https://swapbnb.vercel.app" // Default fallback
+
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return `https://${url}`
+  }
+
+  return url
+}
+
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
@@ -30,7 +41,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const exchange = exchanges[0]
 
-    // Check if exchange is accepted
+    // Check if exchange is accepted or videocall completed
     if (exchange.status !== "accepted" && exchange.status !== "videocall_completed") {
       return NextResponse.json(
         { error: "Exchange must be accepted or videocall completed before confirmation" },
@@ -110,6 +121,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // Paid swap - create Stripe session
       const swapPrice = 500 // €5.00 in cents
 
+      // Ensure URLs have proper scheme
+      const baseUrl = ensureUrlHasScheme(process.env.NEXTAUTH_URL || request.headers.get("origin") || "")
+
       const stripeSession = await stripe.checkout.sessions.create({
         payment_method_types: ["card", "ideal"],
         line_items: [
@@ -126,8 +140,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           },
         ],
         mode: "payment",
-        success_url: `${process.env.NEXTAUTH_URL}/exchanges/${exchangeId}?payment=success`,
-        cancel_url: `${process.env.NEXTAUTH_URL}/exchanges/${exchangeId}?payment=cancelled`,
+        success_url: `${baseUrl}/exchanges/${exchangeId}?payment=success`,
+        cancel_url: `${baseUrl}/exchanges/${exchangeId}?payment=cancelled`,
         metadata: {
           exchange_id: exchangeId,
           user_id: userId,
