@@ -84,9 +84,17 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     fetchUserCredits()
   }, [session?.user])
 
+  // Toon de modal automatisch als credits geladen zijn en te laag zijn
+  useEffect(() => {
+    if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
+      setShowCreditModal(true)
+    }
+  }, [isLoadingCredits, userCredits])
+
   const handleFormInteraction = (e: React.MouseEvent | React.FormEvent) => {
-    if (userCredits !== null && userCredits < 1) {
+    if (!isLoadingCredits && userCredits !== null && userCredits < 1) {
       e.preventDefault()
+      e.stopPropagation()
       setShowCreditModal(true)
       return false
     }
