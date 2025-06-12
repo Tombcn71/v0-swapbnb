@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Users, X } from "lucide-react"
+import { Users } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
 
@@ -32,7 +32,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
   const [userCredits, setUserCredits] = useState<number | null>(null)
-  const [isLoadingCredits, setIsLoadingCredits] = useState(true)
   const [showCreditModal, setShowCreditModal] = useState(false)
 
   // Fetch availabilities for the target home
@@ -59,7 +58,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     async function fetchUserCredits() {
       if (!session?.user) return
 
-      setIsLoadingCredits(true)
       try {
         const response = await fetch("/api/credits")
         if (response.ok) {
@@ -68,8 +66,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         }
       } catch (error) {
         console.error("Error fetching credits:", error)
-      } finally {
-        setIsLoadingCredits(false)
       }
     }
 
@@ -82,13 +78,12 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
-  // Check credits before allowing interaction
-  const checkCreditsBeforeInteraction = () => {
+  const handleFormClick = (e: React.MouseEvent) => {
     if (userCredits !== null && userCredits < 1) {
+      e.preventDefault()
+      e.stopPropagation()
       setShowCreditModal(true)
-      return false
     }
-    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,10 +91,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
     if (!session) {
       router.push("/login")
-      return
-    }
-
-    if (!checkCreditsBeforeInteraction()) {
       return
     }
 
@@ -189,7 +180,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent onClick={handleFormClick}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
@@ -209,13 +200,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
             <div>
               <Label>Datums</Label>
-              <div onClick={checkCreditsBeforeInteraction}>
-                <DatePickerWithRange
-                  dateRange={dateRange}
-                  setDateRange={setDateRange}
-                  availableDateRanges={availableDateRanges}
-                />
-              </div>
+              <DatePickerWithRange
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                availableDateRanges={availableDateRanges}
+              />
             </div>
 
             <div>
@@ -229,7 +218,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   onChange={(e) => setGuests(Number(e.target.value) || 1)}
                   className="pl-10"
                   required
-                  onFocus={checkCreditsBeforeInteraction}
                 />
               </div>
             </div>
@@ -241,11 +229,10 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required
-                onFocus={checkCreditsBeforeInteraction}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting || isLoadingCredits}>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
           </form>
@@ -254,27 +241,28 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
       {/* Credit Modal */}
       {showCreditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Credits nodig</h2>
-              <button onClick={() => setShowCreditModal(false)}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <p className="mb-6">
-              Je hebt credits nodig om een swap aan te vragen. Credits voorkomen spam en zorgen voor serieuze
-              gebruikers.
-            </p>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setShowCreditModal(false)} className="flex-1">
-                Sluiten
-              </Button>
-              <Button onClick={() => router.push("/credits")} className="flex-1">
-                Credits kopen
-              </Button>
-            </div>
-          </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Credits nodig</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>Je hebt niet genoeg credits om deze swap aan te vragen. Elke swap kost 1 credit.</p>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowCreditModal(false)}>
+                  Sluiten
+                </Button>
+                <Button
+                  onClick={() => {
+                    router.push("/credits")
+                    setShowCreditModal(false)
+                  }}
+                >
+                  Credits kopen
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </>
