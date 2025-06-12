@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Users } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
-import { SimpleModal } from "@/components/simple-modal"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -32,6 +31,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [userCredits, setUserCredits] = useState<number | null>(null)
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -52,17 +53,53 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     fetchAvailabilities()
   }, [targetHome?.id])
 
+  // Fetch user credits
+  useEffect(() => {
+    async function fetchUserCredits() {
+      if (!session?.user) return
+
+      try {
+        const response = await fetch("/api/credits")
+        if (response.ok) {
+          const data = await response.json()
+          setUserCredits(data.credits)
+
+          // Auto-show modal if user has 0 credits
+          if (data.credits < 1) {
+            setShowModal(true)
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching credits:", error)
+      }
+    }
+
+    fetchUserCredits()
+  }, [session?.user])
+
   // Convert availabilities to DateRange format
   const availableDateRanges = availabilities.map((availability) => ({
     from: new Date(availability.start_date || availability.startDate),
     to: new Date(availability.end_date || availability.endDate),
   }))
 
+  const handleFormClick = () => {
+    if (userCredits !== null && userCredits < 1) {
+      setShowModal(true)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!session) {
       router.push("/login")
+      return
+    }
+
+    // Check credits before submission
+    if (userCredits !== null && userCredits < 1) {
+      setShowModal(true)
       return
     }
 
@@ -148,13 +185,34 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
   return (
     <>
-      <SimpleModal />
+      {/* Credit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Credits nodig</h2>
+            <p className="mb-4">Je hebt niet genoeg credits om deze swap aan te vragen. Elke swap kost 1 credit.</p>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowModal(false)}>
+                Sluiten
+              </Button>
+              <Button
+                onClick={() => {
+                  router.push("/credits")
+                  setShowModal(false)
+                }}
+              >
+                Credits kopen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent onClick={handleFormClick}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
