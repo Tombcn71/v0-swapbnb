@@ -11,10 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Users } from "lucide-react"
+import { Users, AlertCircle } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
-import { CreditModal } from "@/components/credit-modal"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -32,7 +31,27 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
-  const [showModal, setShowModal] = useState(true) // Start with modal visible for testing
+  const [userCredits, setUserCredits] = useState<number | null>(null)
+  const [showCreditModal, setShowCreditModal] = useState(false)
+
+  // Fetch user credits
+  useEffect(() => {
+    async function fetchUserCredits() {
+      if (!session?.user) return
+
+      try {
+        const response = await fetch("/api/credits")
+        if (response.ok) {
+          const data = await response.json()
+          setUserCredits(data.credits)
+        }
+      } catch (error) {
+        console.error("Error fetching credits:", error)
+      }
+    }
+
+    fetchUserCredits()
+  }, [session?.user])
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -59,15 +78,17 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     to: new Date(availability.end_date || availability.endDate),
   }))
 
-  const handleFormClick = () => {
-    setShowModal(true)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!session) {
       router.push("/login")
+      return
+    }
+
+    // Check credits before submission
+    if (userCredits !== null && userCredits < 1) {
+      setShowCreditModal(true)
       return
     }
 
@@ -153,17 +174,60 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
   return (
     <>
-      <CreditModal isOpen={showModal} onClose={() => setShowModal(false)} />
+      {/* Credit Modal */}
+      {showCreditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertCircle className="h-6 w-6 text-amber-500" />
+              <h2 className="text-xl font-bold">Credits nodig</h2>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Je hebt niet genoeg credits om deze swap aan te vragen. Elke swap kost 1 credit.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowCreditModal(false)}>
+                Sluiten
+              </Button>
+              <Button onClick={() => router.push("/credits")}>Credits kopen</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent onClick={handleFormClick}>
+        <CardContent>
+          {/* Credit warning banner */}
+          {userCredits !== null && userCredits < 1 && (
+            <div
+              className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 cursor-pointer hover:bg-amber-100"
+              onClick={() => setShowCreditModal(true)}
+            >
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600" />
+                <div>
+                  <p className="font-medium text-amber-800">Geen credits beschikbaar</p>
+                  <p className="text-sm text-amber-700">Klik hier om credits te kopen</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Je huis</Label>
-              <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
+              <Select
+                value={selectedHomeId}
+                onValueChange={setSelectedHomeId}
+                onOpenChange={() => {
+                  if (userCredits !== null && userCredits < 1) {
+                    setShowCreditModal(true)
+                  }
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -179,11 +243,19 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
             <div>
               <Label>Datums</Label>
-              <DatePickerWithRange
-                dateRange={dateRange}
-                setDateRange={setDateRange}
-                availableDateRanges={availableDateRanges}
-              />
+              <div
+                onClick={() => {
+                  if (userCredits !== null && userCredits < 1) {
+                    setShowCreditModal(true)
+                  }
+                }}
+              >
+                <DatePickerWithRange
+                  dateRange={dateRange}
+                  setDateRange={setDateRange}
+                  availableDateRanges={availableDateRanges}
+                />
+              </div>
             </div>
 
             <div>
@@ -195,6 +267,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                   min="1"
                   value={guests}
                   onChange={(e) => setGuests(Number(e.target.value) || 1)}
+                  onClick={() => {
+                    if (userCredits !== null && userCredits < 1) {
+                      setShowCreditModal(true)
+                    }
+                  }}
                   className="pl-10"
                   required
                 />
@@ -207,6 +284,11 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 placeholder={`Hallo ${targetHome.owner_name}...`}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onClick={() => {
+                  if (userCredits !== null && userCredits < 1) {
+                    setShowCreditModal(true)
+                  }
+                }}
                 required
               />
             </div>
