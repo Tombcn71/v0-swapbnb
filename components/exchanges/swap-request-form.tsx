@@ -149,7 +149,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent onClick={handleFormClick}>
           <Button onClick={() => router.push("/login")} className="w-full">
             Inloggen voor swap
           </Button>
@@ -164,7 +164,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent onClick={handleFormClick}>
           <p className="text-gray-600 mb-4">Je hebt geen woningen om te ruilen.</p>
           <Button onClick={() => router.push("/homes/new")} className="w-full">
             Woning toevoegen
