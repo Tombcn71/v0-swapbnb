@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Users } from "lucide-react"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import type { DateRange } from "react-day-picker"
+import { SimpleModal } from "@/components/simple-modal"
 
 interface SwapRequestFormProps {
   targetHome: any
@@ -31,15 +32,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   const [message, setMessage] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availabilities, setAvailabilities] = useState<any[]>([])
-  const [showModal, setShowModal] = useState(false)
-
-  // FORCE MODAL TO SHOW FOR TESTING
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowModal(true)
-    }, 1000)
-    return () => clearTimeout(timer)
-  }, [])
 
   // Fetch availabilities for the target home
   useEffect(() => {
@@ -156,6 +148,8 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
 
   return (
     <>
+      <SimpleModal />
+
       <Card>
         <CardHeader>
           <CardTitle>Swap aanvragen</CardTitle>
@@ -165,7 +159,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
             <div>
               <Label>Je huis</Label>
               <Select value={selectedHomeId} onValueChange={setSelectedHomeId}>
-                <SelectTrigger onClick={() => setShowModal(true)}>
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -178,7 +172,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               </Select>
             </div>
 
-            <div onClick={() => setShowModal(true)}>
+            <div>
               <Label>Datums</Label>
               <DatePickerWithRange
                 dateRange={dateRange}
@@ -187,7 +181,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               />
             </div>
 
-            <div onClick={() => setShowModal(true)}>
+            <div>
               <Label>Gasten</Label>
               <div className="relative">
                 <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -202,7 +196,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               </div>
             </div>
 
-            <div onClick={() => setShowModal(true)}>
+            <div>
               <Label>Bericht</Label>
               <Textarea
                 placeholder={`Hallo ${targetHome.owner_name}...`}
@@ -212,39 +206,12 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting} onClick={() => setShowModal(true)}>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Verzenden..." : "Swap aanvragen"}
             </Button>
           </form>
         </CardContent>
       </Card>
-
-      {/* SIMPLE MODAL - ALWAYS WORKS */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={() => setShowModal(false)}
-        >
-          <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-4">Credits nodig</h2>
-            <p className="mb-4">Je hebt niet genoeg credits om deze swap aan te vragen. Elke swap kost 1 credit.</p>
-            <div className="flex justify-end space-x-2">
-              <button
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                onClick={() => setShowModal(false)}
-              >
-                Sluiten
-              </button>
-              <button
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                onClick={() => router.push("/credits")}
-              >
-                Credits kopen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
