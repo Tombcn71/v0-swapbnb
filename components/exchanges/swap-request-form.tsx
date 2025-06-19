@@ -100,12 +100,20 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
   }, [session?.user])
 
   const handleFormInteraction = (e: React.MouseEvent | React.FormEvent) => {
+    // Check if user has sufficient credits before any form interaction
     if (userCredits !== null && userCredits < 1) {
       e.preventDefault()
+      e.stopPropagation()
       setShowCreditModal(true)
       return false
     }
     return true
+  }
+
+  // Add onClick handler to all form inputs
+  const formInputProps = {
+    onClick: handleFormInteraction,
+    onFocus: handleFormInteraction,
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -259,7 +267,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 value={selectedHomeId}
                 onChange={(e) => setSelectedHomeId(e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onClick={handleFormInteraction}
+                {...formInputProps}
                 required
               >
                 {userHomes.map((home) => (
@@ -280,7 +288,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 value={dateRange.from ? dateRange.from.toISOString().split("T")[0] : ""}
                 onChange={(e) => setDateRange((prev) => ({ ...prev, from: new Date(e.target.value) }))}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onClick={handleFormInteraction}
+                {...formInputProps}
                 required
               />
             </div>
@@ -296,7 +304,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 onChange={(e) => setDateRange((prev) => ({ ...prev, to: new Date(e.target.value) }))}
                 min={dateRange.from ? dateRange.from.toISOString().split("T")[0] : ""}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onClick={handleFormInteraction}
+                {...formInputProps}
                 required
               />
             </div>
@@ -326,7 +334,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                onClick={handleFormInteraction}
+                {...formInputProps}
                 required
               />
             </div>
