@@ -99,7 +99,7 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
     fetchUserCredits()
   }, [session?.user])
 
-  const handleFormInteraction = (e: React.MouseEvent | React.FormEvent) => {
+  const handleFormInteraction = (e: React.MouseEvent | React.FormEvent | React.FocusEvent) => {
     // Check if user has sufficient credits before any form interaction
     if (userCredits !== null && userCredits < 1) {
       e.preventDefault()
@@ -108,12 +108,6 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
       return false
     }
     return true
-  }
-
-  // Add onClick handler to all form inputs
-  const formInputProps = {
-    onClick: handleFormInteraction,
-    onFocus: handleFormInteraction,
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -265,9 +259,14 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               <label className="block text-sm font-medium text-gray-700 mb-2">Je huis</label>
               <select
                 value={selectedHomeId}
-                onChange={(e) => setSelectedHomeId(e.target.value)}
+                onChange={(e) => {
+                  if (handleFormInteraction(e as any)) {
+                    setSelectedHomeId(e.target.value)
+                  }
+                }}
+                onClick={handleFormInteraction}
+                onFocus={handleFormInteraction}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                {...formInputProps}
                 required
               >
                 {userHomes.map((home) => (
@@ -286,9 +285,14 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               <input
                 type="date"
                 value={dateRange.from ? dateRange.from.toISOString().split("T")[0] : ""}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, from: new Date(e.target.value) }))}
+                onChange={(e) => {
+                  if (handleFormInteraction(e as any)) {
+                    setDateRange((prev) => ({ ...prev, from: new Date(e.target.value) }))
+                  }
+                }}
+                onClick={handleFormInteraction}
+                onFocus={handleFormInteraction}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                {...formInputProps}
                 required
               />
             </div>
@@ -301,10 +305,15 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               <input
                 type="date"
                 value={dateRange.to ? dateRange.to.toISOString().split("T")[0] : ""}
-                onChange={(e) => setDateRange((prev) => ({ ...prev, to: new Date(e.target.value) }))}
+                onChange={(e) => {
+                  if (handleFormInteraction(e as any)) {
+                    setDateRange((prev) => ({ ...prev, to: new Date(e.target.value) }))
+                  }
+                }}
+                onClick={handleFormInteraction}
+                onFocus={handleFormInteraction}
                 min={dateRange.from ? dateRange.from.toISOString().split("T")[0] : ""}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                {...formInputProps}
                 required
               />
             </div>
@@ -319,9 +328,14 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
                 min="1"
                 max="20"
                 value={guests}
-                onChange={(e) => setGuests(Number(e.target.value) || 1)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => {
+                  if (handleFormInteraction(e as any)) {
+                    setGuests(Number(e.target.value) || 1)
+                  }
+                }}
                 onClick={handleFormInteraction}
+                onFocus={handleFormInteraction}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
@@ -331,10 +345,15 @@ export function SwapRequestForm({ targetHome, userHomes }: SwapRequestFormProps)
               <textarea
                 placeholder={`Hallo ${targetHome.owner_name}, ik zou graag mijn huis willen ruilen met jouw mooie woning...`}
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  if (handleFormInteraction(e as any)) {
+                    setMessage(e.target.value)
+                  }
+                }}
+                onClick={handleFormInteraction}
+                onFocus={handleFormInteraction}
                 rows={4}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                {...formInputProps}
                 required
               />
             </div>

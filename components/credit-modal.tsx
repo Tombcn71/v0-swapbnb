@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, CreditCard, Shield, Zap } from "lucide-react"
+import { AlertCircle, CreditCard, Shield, Zap, X } from "lucide-react"
 
 interface CreditModalProps {
   isOpen?: boolean
@@ -31,13 +31,18 @@ export function CreditModal({ isOpen = false, onClose }: CreditModalProps) {
   if (!isVisible) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-amber-100 rounded-full">
-            <AlertCircle className="h-6 w-6 text-amber-600" />
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]" onClick={handleClose}>
+      <div className="bg-white rounded-lg p-6 w-full max-w-lg shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-full">
+              <AlertCircle className="h-6 w-6 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold">Credits nodig voor swap verzoek</h2>
           </div>
-          <h2 className="text-xl font-bold">Credits nodig voor swap verzoek</h2>
+          <button onClick={handleClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="space-y-4 mb-6">
